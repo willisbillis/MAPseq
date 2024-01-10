@@ -13,11 +13,12 @@ source ../../project_config.txt
 
 # Set all the local variables for this pipeline
 PIPELINE_NAME=${PROJECT_NAME}_RNA
-OUTPUT_DIR=$PROJECT_DIR/pipeline/RNA.FB.BCR
+FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
+OUTPUT_DIR=$PROJECT_PATH/pipeline/RNA.FB.BCR
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.bcr_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
-sample_names=$(cut -d, -f2 $PROJECT_DIR/data/${PROJECT_NAME}.RNA.sampleManifest.csv | uniq)
+sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv | uniq)
 bcr_samples=$(grep $BCR_NAMING_ID $sample_names)
 echo $bcr_samples # verbose for testing
 
@@ -25,7 +26,7 @@ CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
 GEX_REF_version=$(grep -Po '(?<=refdata-gex-)+' $GEX_REF_PATH)
 echo "$(date) Using transcriptome reference $GEX_REF_version located at $GEX_REF_PATH" >> $OUTPUT_FILE
-echo "$(date) Using HTO/ADT feature reference located at $FEAT_REF_PATH" >> $OUTPUT_FILE
+echo "$(date) Using HTO/ADT feature reference located at $GEX_FEAT_REF_PATH" >> $OUTPUT_FILE
 if [ ${#bcr_samples[@]} != 0 ]; then
     VDJ_REF_version=$(grep -Po '(?<=refdata-cellranger-vdj-)+' $VDJ_REF_PATH)
     echo "$(date) Using vdj reference $VDJ_REF_version located at $VDJ_REF_PATH" >> $OUTPUT_FILE
@@ -42,19 +43,18 @@ for sample in $(grep '*${GEX_NAMING_ID}*' $sample_names); do
         echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         echo "[feature]" >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' reference $FEAT_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' reference $GEX_FEAT_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         echo "[vdj]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' reference $VDJ_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         echo "[libraries]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' fastq_id fastqs feature_types | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        fq_path=$PROJECT_DIR/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
         gex_sample=$sample
         hashtag_sample=$(sed -n -e 's/GEX/CSP/p' $sample) # this sed command substitutes the 'GEX' part of the sample name with 'CSP'
         vdj_sample=$(sed -n -e 's/GEX/XP/p' $sample) # this sed command substitutes the 'GEX' part of the sample name with 'XP'
-        printf '%s\n' $gex_sample $fq_path Gene Expression | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $hashtag_sample $fq_path Antibody Capture | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $vdj_sample $fq_path VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' $gex_sample $FASTQ_PATH Gene Expression | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' $hashtag_sample $FASTQ_PATH Antibody Capture | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' $vdj_sample $FASTQ_PATH VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         # Run the Cell Ranger multi command for the sample
         cellranger multi --id $sample \
@@ -65,15 +65,15 @@ for sample in $(grep '*${GEX_NAMING_ID}*' $sample_names); do
         # Create the config csv for the sample being run
         SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
         printf '%s\n' fastqs sample library_type | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        fq_path=$PROJECT_DIR/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
+        fq_path=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
         gex_sample=$sample
         hashtag_sample=$(sed -n -e 's/GEX/CSP/p' $sample) # this sed command substitutes the 'GEX' part of the sample name with 'CSP'
-        printf '%s\n' $fq_path $gex_sample Gene Expression | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $fq_path $hashtag_sample Antibody Capture | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' $FASTQ_PATH $gex_sample Gene Expression | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' $FASTQ_PATH $hashtag_sample Antibody Capture | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         # Run the Cell Ranger count command for the sample
         cellranger count --id $sample \
-            --transcriptome $REF_PATH --feature-ref $FEAT_REF \
+            --transcriptome $GEX_REF_PATH --feature-ref $GEX_FEAT_REF_PATH \
             --libraries $SAMPLE_CONFIG_CSV \
             --localcores $NCPU --localmem $MEM
     fi
