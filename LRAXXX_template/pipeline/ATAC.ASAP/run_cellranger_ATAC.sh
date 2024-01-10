@@ -5,14 +5,13 @@
 # the LRA MAPseq project started in 2023.
 #
 # NOTICE: At this point, the user has generated the ATAC and ASAP 
-#       fastqs and has formatted an ATAC + ASAP feature reference
+#       fastqs and has formatted an ASAP feature reference
 #       table for the HTO demultiplexing.
 ################################################################################
 # Import all the global variables for this project
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
-PIPELINE_NAME=${PROJECT_NAME}_ATAC
 FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ATAC
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_atac_mapping.log
