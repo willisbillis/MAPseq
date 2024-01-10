@@ -1,39 +1,51 @@
 #!/bin/bash
 #
-# run_kite.sh - written by MEW (https://github.com/willisbillis) Dec 2023
+# run_kite.sh - written by MEW (https://github.com/willisbillis) Jan 2024
 # This script runs the kite pipeline formatted for the LRA MAPseq project 
 # started in 2023.
 
-# NOTICE: At this point, the cellranger mkfastq-atac to generate fastqs and
-#	    asap_to_kite.py generation of kite formatted fastqs should have been run.
-#	    The ASAP fastqs are in the PROJECT_DIR/pipeline/ATAC.ASAP/ASAP directory
-#	    under their own separate directories named after each sample in the run.
+# NOTICE: At this point, the user has generated the ATAC and ASAP fastqs and
+#	    the asap_to_kite_v2.py generation of kite formatted fastqs should have 
+#     been run.
+################################################################################
+# Import all the global variables for this project
+source ../../project_config.txt
 
+# Set all the local variables for this pipeline
+PIPELINE_NAME=${PROJECT_NAME}_ATAC
+FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID
+OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
+OUTPUT_FILE=$OUTPUT_DIR/asap_to_kite.log
+################################################################################
+mkdir -p $OUTPUT_DIR
+cd $OUTPUT_DIR
+sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv | uniq)
 
-# This is the highest level directory for the LRA run
-PROJECT_DIR=/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq/LRA001.Oct2023
-# This is the list of space separated sample names of the LRA samples, which should look something like LRAXXX_ASAP_XXX
-SAMPLE_LIST=("LRA001_ASAP")
-# The number of cores used when running tools
-NCPU=32
+echo "$(date) Using HTO feature reference located at $ASAP_FEAT_REF_PATH" >> $OUTPUT_FILE
+python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
+echo "$(date) Running kite using python version $python_version and binary $(which python)" >> $OUTPUT_FILE
+kallisto_version=$(kallisto version | grep -Po '(?<=version )[^;]+')
+echo "$(date) Running kallisto using version $kallisto_version and binary $(which kallisto)" >> $OUTPUT_FILE
+bustools_version=$(bustools version | grep -Po '(?<=version )[^;]+')
+echo "$(date) Running bustools using version $bustools_version and binary $(which bustools)" >> $OUTPUT_FILE
 
-for sample in ${SAMPLE_LIST[@]}; do
-  echo $sample
-  WD=$PROJECT_DIR/pipeline/ATAC.ASAP/ASAP/$sample
-  barcodes_csv=$WD/FeatureBarcodes.csv
-  # cut just the HTO names and sequences from the full table
-  cut -d, -f2,5 < $PROJECT_DIR/pipeline/ATAC.ASAP/ASAP/HTOB_master_feature_ref.csv > $barcodes_csv
-  # generate the mismatch FASTA and t2g files (for following commands, see tutorial at https://github.com/pachterlab/kite)
+for sample in $sample_names; do
+  WD=$OUTPUT_DIR/$sample
+  mkdir -p $WD
   cd $WD
+  barcodes_csv=FeatureBarcodes.csv
+  # cut just the HTO names and sequences from the full table
+  cut -d, -f2,5 < $ASAP_FEAT_REF_PATH > $barcodes_csv
+  # generate the mismatch FASTA and t2g files (for following commands, see tutorial at https://github.com/pachterlab/kite)
   python $PROJECT_DIR/pipeline/ATAC.ASAP/tools/kite/featuremap/featuremap.py $barcodes_csv --header
   # build kallisto index with mismatch fasta and a k-mer length equal to the length of the Feature Barcodes (of the HTO)
-  kallisto index -i $WD/FeaturesMismatch.idx -k 15 $WD/FeaturesMismatch.fa
+  kallisto index -i FeaturesMismatch.idx -k 15 FeaturesMismatch.fa
   # pseudoalign the reads
-  kallisto bus -i $WD/FeaturesMismatch.idx -o $WD -x 10xv3 -t $NCPU $WD/*fastq.gz
+  kallisto bus -i FeaturesMismatch.idx -o ./ -x 10xv3 -t $NCPU $FASTQ_PATH/${sample}*fastq.gz
   # run bustools (note we are NOT running the whitelist filtering command from the tutorial,
   # we are trusting the barcodes we have are good 10x barcodes. Removed because this filtered too many cells in the past)
-  bustools sort -t $NCPU -o $WD/output_sorted.bus $WD/output.bus
-  mkdir $WD/featurecounts/
+  bustools sort -t $NCPU -o output_sorted.bus output.bus
+  mkdir -p featurecounts/
   # generate the counts matrix using bustools
-  bustools count -o $WD/featurecounts/featurecounts --genecounts -g $WD/FeaturesMismatch.t2g -e $WD/matrix.ec -t $WD/transcripts.txt $WD/output_sorted.bus
+  bustools count -o featurecounts/featurecounts --genecounts -g FeaturesMismatch.t2g -e matrix.ec -t transcripts.txt output_sorted.bus
 done

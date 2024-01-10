@@ -1,5 +1,30 @@
 #!/bin/bash
-fastq_path=/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq/LRA001.Oct2023/data/LRA001_ATAC/outs/fastq_path
-NCPU=48
+#
+# run_cellranger_ATAC.sh - written by MEW (https://github.com/willisbillis) Jan 2024
+# This script runs the asap_to_kite_v2.py help script written by
+# Caleb Lareau (https://github.com/caleblareau) to prepare ASAP fastq
+# files for the kite (https://github.com/pachterlab/kite) pipeline.
+# Formatted for the ATAC + ASAP side of the LRA MAPseq project started in 2023.
+#
+# NOTICE: At this point, the user has generated the ATAC and ASAP fastqs.
+################################################################################
+# Import all the global variables for this project
+source ../../project_config.txt
 
-python asap_to_kite_v2.py -f $fastq_path -s LRA001_ASAP -o LRA001_ASAP -j TotalSeqB -c $NCPU
+# Set all the local variables for this pipeline
+PIPELINE_NAME=${PROJECT_NAME}_ATAC
+FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID
+OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
+OUTPUT_FILE=$OUTPUT_DIR/asap_to_kite.log
+################################################################################
+mkdir -p $OUTPUT_DIR
+cd $OUTPUT_DIR
+
+python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
+echo "$(date) Running asap_to_kite_v2.py using python version $python_version and binary $(which python)" >> $OUTPUT_FILE
+
+for sample in $(grep '*${ASAP_NAMING_ID}*' $sample_names); do
+    python asap_to_kite_v2.py -f $FASTQ_PATH \
+        -s $sample -o $sample -j TotalSeqB \
+        -c $NCPU
+done
