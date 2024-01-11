@@ -25,11 +25,11 @@ echo $rna_samples # verbose for testing
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
-GEX_REF_version=$(grep -Po '(?<=refdata-gex-)+' <<< $GEX_REF_PATH)
+GEX_REF_version=$(echo $GEX_REF_PATH | grep -Po '(?<=refdata-gex-)[^;]+')
 echo "$(date) Using transcriptome reference $GEX_REF_version located at $GEX_REF_PATH" >> $OUTPUT_FILE
 echo "$(date) Using HTO/ADT feature reference located at $GEX_FEAT_REF_PATH" >> $OUTPUT_FILE
 if [ ${#bcr_samples[@]} != 0 ]; then
-    VDJ_REF_version=$(grep -Po '(?<=refdata-cellranger-vdj-)+' <<< $VDJ_REF_PATH)
+    VDJ_REF_version=$(echo $VDJ_REF_PATH | grep -Po '(?<=refdata-cellranger-vdj-)[^;]+')
     echo "$(date) Using vdj reference $VDJ_REF_version located at $VDJ_REF_PATH" >> $OUTPUT_FILE
 fi
 cd $OUTPUT_DIR

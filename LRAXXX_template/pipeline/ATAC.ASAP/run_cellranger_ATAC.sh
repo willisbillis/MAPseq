@@ -22,7 +22,7 @@ sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifes
 
 CR_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
 echo "$(date) Running Cell Ranger ATAC version $CR_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
-ATAC_REF_version=$(grep -Po '(?<=refdata-cellranger-arc-)+' '$ATAC_REF_PATH')
+ATAC_REF_version=$(echo $ATAC_REF_PATH | grep -Po '(?<=refdata-cellranger-arc-)[^;]+')
 echo "$(date) Using epigenome reference $ATAC_REF_version located at $ATAC_REF_PATH" >> $OUTPUT_FILE
 
 for sample in $(grep '*${ATAC_NAMING_ID}*' "${sample_names[@]}"); do
