@@ -12,7 +12,6 @@
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
-FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
 OUTPUT_FILE=$OUTPUT_DIR/kite_asap_mapping.log
 ################################################################################
@@ -40,7 +39,7 @@ for sample in $sample_names; do
   # build kallisto index with mismatch fasta and a k-mer length equal to the length of the Feature Barcodes (of the HTO)
   kallisto index -i FeaturesMismatch.idx -k 15 FeaturesMismatch.fa
   # pseudoalign the reads
-  kallisto bus -i FeaturesMismatch.idx -o ./ -x 10xv3 -t $NCPU $FASTQ_PATH/${sample}*fastq.gz
+  kallisto bus -i FeaturesMismatch.idx -o ./ -x 10xv3 -t $NCPU $OUTPUT_DIR/${sample}*fastq.gz
   # run bustools (note we are NOT running the whitelist filtering command from the tutorial,
   # we are trusting the barcodes we have are good 10x barcodes. Removed because this filtered too many cells in the past)
   bustools sort -t $NCPU -o output_sorted.bus output.bus

@@ -29,6 +29,6 @@ for sample in $(grep '*${ATAC_NAMING_ID}*' $sample_names); do
   echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
 
   cellranger-atac count --id=$sample --sample=$sample \
-    --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH \
+    --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH/$sample \
     --localcores=$NCPU --localmem=$MEM
 done
