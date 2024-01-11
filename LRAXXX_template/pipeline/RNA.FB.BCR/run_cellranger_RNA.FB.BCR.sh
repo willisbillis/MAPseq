@@ -20,8 +20,8 @@ mkdir -p $OUTPUT_DIR
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
 sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
 
-bcr_samples=$(printf -- '%s ' "${sample_names[@]}" | grep .*${BCR_NAMING_ID}.*)
-rna_samples=$(printf -- '%s ' "${sample_names[@]}" | grep .*${GEX_NAMING_ID}.*)
+bcr_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${BCR_NAMING_ID}.*))
+rna_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${GEX_NAMING_ID}.*))
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
@@ -36,11 +36,11 @@ cd $OUTPUT_DIR
 
 for sample in "${rna_samples[@]}"; do
     echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
+    SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
 
     if [ ${#bcr_samples[@]} != 0 ]; then
         ## BCR SAMPLES DETECTED, RUN CR MULTI
         # Create the config csv for the sample being run
-        SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
         echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         echo "[feature]" >> $SAMPLE_CONFIG_CSV
@@ -64,7 +64,6 @@ for sample in "${rna_samples[@]}"; do
     else
         ## NO BCR SAMPLES DETECTED, RUN CR COUNT
         # Create the config csv for the sample being run
-        SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
         printf '%s\n' fastqs sample library_type | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         fq_path=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
         gex_sample=$sample
