@@ -20,7 +20,7 @@ mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
 sample_names=$(printf -- '%s\n' "${sample_name_col[@]}" | grep -v Sample | uniq)
-atac_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep *${ATAC_NAMING_ID}*)
+atac_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep .*${ATAC_NAMING_ID}.*)
 
 CR_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
 echo "$(date) Running Cell Ranger ATAC version $CR_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
