@@ -17,9 +17,11 @@ OUTPUT_DIR=$PROJECT_PATH/pipeline/RNA.FB.BCR
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.bcr_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
-sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv | grep -v "Sample" | uniq)
-bcr_samples=$(grep -o '*${BCR_NAMING_ID}*' <<< $sample_names)
-echo $bcr_samples # verbose for testing
+sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv | grep -vo "Sample" | uniq)
+echo $sample_names # verbose for testing
+bcr_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep *${BCR_NAMING_ID}*)
+rna_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep *${GEX_NAMING_ID}*)
+echo $rna_samples # verbose for testing
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
@@ -32,7 +34,7 @@ if [ ${#bcr_samples[@]} != 0 ]; then
 fi
 cd $OUTPUT_DIR
 
-for sample in $(grep -o '*${GEX_NAMING_ID}*' "${sample_names[@]}"); do
+for sample in "${rna_samples[@]}"; do
     echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
 
     if [ ${#bcr_samples[@]} != 0 ]; then
