@@ -34,7 +34,8 @@ if [ -z "$(echo $PATH | grep -o ~/.local/bin)" ]; then
     echo "export PATH=\$PATH:~/.local/bin >> ~/.bashrc && source ~/.bashrc"
     return 1
 fi
-echo "Copying src/create_run.sh functions to ~/.local/bin to add to PATH..."
+echo "Appending 'source $PWD/src/create_run.sh' to ~/.bashrc to add bash functions in this repository..."
 chmod +x src/create_run.sh
-mkdir -p ~/.local/bin
-cp src/create_run.sh ~/.local/bin
+echo "source $PWD/src/create_run.sh" >> ~/.bashrc
+source ~/.bashrc
+echo "Install complete!"
