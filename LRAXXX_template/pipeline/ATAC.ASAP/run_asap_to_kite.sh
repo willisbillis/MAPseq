@@ -18,11 +18,12 @@ OUTPUT_FILE=$OUTPUT_DIR/asap_to_kite.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
+sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv | grep -v "Sample" | uniq)
 
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
 echo "$(date) Running asap_to_kite_v2.py using python version $python_version and binary $(which python)" >> $OUTPUT_FILE
 
-for sample in $(grep '*${ASAP_NAMING_ID}*' $sample_names); do
+for sample in $(grep '*${ASAP_NAMING_ID}*' "${sample_names[@]}"); do
     python asap_to_kite_v2.py -f $FASTQ_PATH \
         -s $sample -o $sample -j TotalSeqB \
         -c $NCPU
