@@ -1,29 +1,16 @@
-# README #
+# MAPseq Pipeline and Analysis
 
-This README would normally document whatever steps are necessary to get your application up and running.
+**M**arker **A**ssisted **P**rogramming **seq**uencing Pipeline
 
-### What is this repository for? ###
+This repository provides an end-to-end open source pipeline for the
+processing of MAPseq (Marker Assisted Programming sequencing) data.
+* Current Version: v0.1
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+### Installation Requirements ####
 
-### How do I get set up? ###
+* Cell Ranger [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
+* Cell Ranger ATAC [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/installation)
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+### Questions and Issues ###
 
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+If you have a question, error, or bug to report, please use the [issue page](https://github.com/willisbillis/LRA.MAPseq/issues).
