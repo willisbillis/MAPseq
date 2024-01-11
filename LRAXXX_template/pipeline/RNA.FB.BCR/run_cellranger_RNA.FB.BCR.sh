@@ -51,10 +51,12 @@ for sample in "${rna_samples[@]}"; do
         echo "[libraries]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' fastq_id fastqs feature_types | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         gex_sample=$sample
-        hashtag_sample=$(sed -n -e 's/GEX/CSP/p' $sample) # this sed command substitutes the 'GEX' part of the sample name with 'CSP'
-        vdj_sample=$(sed -n -e 's/GEX/XP/p' $sample) # this sed command substitutes the 'GEX' part of the sample name with 'XP'
-        printf '%s\n' $gex_sample $FASTQ_PATH Gene Expression | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $hashtag_sample $FASTQ_PATH Antibody Capture | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $GEX_FEAT_NAMING_ID
+        hashtag_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$GEX_FEAT_NAMING_ID/p")
+        # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $BCR_NAMING_ID
+        vdj_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$BCR_NAMING_ID/p")
+        printf '%s\n' $gex_sample $FASTQ_PATH 'Gene Expression' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' $hashtag_sample $FASTQ_PATH 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         printf '%s\n' $vdj_sample $FASTQ_PATH VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         # Run the Cell Ranger multi command for the sample
@@ -67,9 +69,10 @@ for sample in "${rna_samples[@]}"; do
         printf '%s\n' fastqs sample library_type | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         fq_path=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
         gex_sample=$sample
-        hashtag_sample=$(sed -n -e 's/GEX/CSP/p' $sample) # this sed command substitutes the 'GEX' part of the sample name with 'CSP'
-        printf '%s\n' $FASTQ_PATH $gex_sample Gene Expression | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $FASTQ_PATH $hashtag_sample Antibody Capture | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $GEX_FEAT_NAMING_ID
+        hashtag_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$GEX_FEAT_NAMING_ID/p")
+        printf '%s\n' $FASTQ_PATH $gex_sample 'Gene Expression' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' $FASTQ_PATH $hashtag_sample 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         # Run the Cell Ranger count command for the sample
         cellranger count --id $sample \
