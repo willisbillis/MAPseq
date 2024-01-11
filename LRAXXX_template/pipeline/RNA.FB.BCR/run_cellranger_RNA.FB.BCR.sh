@@ -18,7 +18,7 @@ OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.bcr_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
 sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv | grep -v "Sample" | uniq)
-bcr_samples=$(grep *${BCR_NAMING_ID}* $sample_names)
+bcr_samples=$(grep -o '*${BCR_NAMING_ID}*' <<< $sample_names)
 echo $bcr_samples # verbose for testing
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
@@ -32,7 +32,7 @@ if [ ${#bcr_samples[@]} != 0 ]; then
 fi
 cd $OUTPUT_DIR
 
-for sample in $(grep *${GEX_NAMING_ID}* "${sample_names[@]}"); do
+for sample in $(grep -o '*${GEX_NAMING_ID}*' "${sample_names[@]}"); do
     echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
 
     if [ ${#bcr_samples[@]} != 0 ]; then
