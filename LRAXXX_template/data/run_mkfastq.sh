@@ -39,7 +39,7 @@ CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
 
 cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=$RNA_DIR \
-    --csv=${PROJECT_NAME}.sampleManifest.csv \
+    --csv=${PROJECT_NAME}.RNA.sampleManifest.csv \
     --delete-undetermined \
     --localcores=$NCPU --localmem=$MEM
 
