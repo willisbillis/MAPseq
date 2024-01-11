@@ -6,7 +6,7 @@
 
 ## CHECK ALL VARIABLES BEFORE EACH RUN ##
 data_downloads_dir=/home/boss_lab/Projects/data_downloads
-ATAC_DIR=$data_downloads_dir/datadownload_2023-12-13_LRA_Chris/231211_NB551577_0774_AHFTF3BGXV
+ATAC_DIR=$data_downloads_dir/datadownload_2024-01-10/231220_NB551577_0777_AHKM5LBGXV
 RNA_DIR=$data_downloads_dir/datadownload_2023-12-20_LRA_Chris/231219_NB551577_0776_AHKL57BGXV
 PROJECT_PATH=/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq/LRAXXX.MMMYYYY
 PROJECT_NAME=LRAXXX
