@@ -12,6 +12,7 @@
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
+TOOL_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/tools
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
 OUTPUT_FILE=$OUTPUT_DIR/kite_asap_mapping.log
 ################################################################################
@@ -37,7 +38,7 @@ for sample in "${asap_samples[@]}"; do
   # cut just the HTO names and sequences from the full table
   cut -d, -f2,5 < $ASAP_FEAT_REF_PATH > $barcodes_csv
   # generate the mismatch FASTA and t2g files (for following commands, see tutorial at https://github.com/pachterlab/kite)
-  python $PROJECT_DIR/pipeline/ATAC.ASAP/tools/kite/featuremap/featuremap.py $barcodes_csv --header
+  python $TOOL_PATH/kite/featuremap/featuremap.py $barcodes_csv --header
   # build kallisto index with mismatch fasta and a k-mer length equal to the length of the Feature Barcodes (of the HTO)
   kallisto index -i FeaturesMismatch.idx -k 15 FeaturesMismatch.fa
   # pseudoalign the reads

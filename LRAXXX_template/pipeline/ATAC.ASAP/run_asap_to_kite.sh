@@ -13,6 +13,7 @@ source ../../project_config.txt
 
 # Set all the local variables for this pipeline
 FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path
+TOOL_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/tools
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
 OUTPUT_FILE=$OUTPUT_DIR/asap_to_kite.log
 ################################################################################
@@ -26,7 +27,7 @@ python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
 echo "$(date) Running asap_to_kite_v2.py using python version $python_version and binary $(which python)" >> $OUTPUT_FILE
 
 for sample in "${asap_samples[@]}"; do
-    python asap_to_kite_v2.py -f $FASTQ_PATH \
-        -s $sample -o $sample -j TotalSeqB \
+    python $TOOL_PATH/asap_to_kite_v2.py -f $FASTQ_PATH \
+        -s $sample -o $OUTPUT_DIR/$sample/$sample -j TotalSeqB \
         -c $NCPU
 done

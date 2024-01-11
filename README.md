@@ -10,6 +10,8 @@ processing of MAPseq (Marker Assisted Programming sequencing) data.
 
 * Cell Ranger [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
 * Cell Ranger ATAC [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/installation)
+* kallisto
+* bustools
 
 ### Questions and Issues ###
 
