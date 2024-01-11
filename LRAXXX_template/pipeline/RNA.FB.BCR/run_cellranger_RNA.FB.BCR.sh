@@ -17,7 +17,8 @@ OUTPUT_DIR=$PROJECT_PATH/pipeline/RNA.FB.BCR
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.bcr_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
-sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv | grep -vo "Sample" | uniq)
+sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
+sample_names=$(printf -- '%s\n' "${sample_name_col[@]}" | grep -v Sample | uniq)
 echo $sample_names # verbose for testing
 bcr_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep *${BCR_NAMING_ID}*)
 rna_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep *${GEX_NAMING_ID}*)

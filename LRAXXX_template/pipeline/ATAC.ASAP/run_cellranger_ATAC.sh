@@ -18,14 +18,16 @@ OUTPUT_FILE=$OUTPUT_DIR/cellranger_atac_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
-sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv | grep -v "Sample" | uniq)
+sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
+sample_names=$(printf -- '%s\n' "${sample_name_col[@]}" | grep -v Sample | uniq)
+atac_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep *${ATAC_NAMING_ID}*)
 
 CR_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
 echo "$(date) Running Cell Ranger ATAC version $CR_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
 ATAC_REF_version=$(echo $ATAC_REF_PATH | grep -Po '(?<=refdata-cellranger-arc-)[^;]+')
 echo "$(date) Using epigenome reference $ATAC_REF_version located at $ATAC_REF_PATH" >> $OUTPUT_FILE
 
-for sample in $(grep '*${ATAC_NAMING_ID}*' "${sample_names[@]}"); do
+for sample in "${atac_samples[@]}"; do
   echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
 
   cellranger-atac count --id=$sample --sample=$sample \
