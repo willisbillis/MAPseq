@@ -14,3 +14,25 @@ processing of MAPseq (Marker Assisted Programming sequencing) data.
 ### Questions and Issues ###
 
 If you have a question, error, or bug to report, please use the [issue page](https://github.com/willisbillis/LRA.MAPseq/issues).
+
+Resources
+---------
+* [MAPseq documentation](https://github.com/willisbillis/LRA.MAPseq/blob/main/docs/readthedocs.md)
+
+Citing
+------
+If you make use of this software for your work we would appreciate it if you woud cite the paper from XXXX:
+
+    @article(firstauthor2024lramapseq,
+        title={LRA MAPseq title},
+        author={..., Williams, M. Elliott, ..., Scharer, Christopher D., Boss, Jeremy},
+        journal={XXXX},
+        volume={X},
+        number={X},
+        pages={X},
+        year={2024}
+    }
+
+Known Issues
+------------
+* No currently known issues
