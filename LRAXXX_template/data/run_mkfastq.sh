@@ -47,6 +47,6 @@ cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=$RNA_DIR \
 #     NB: This checks to see if this variable is already set.
 #     See https://stackoverflow.com/a/13864829
 if [[ -z ${RNA_FLOWCELL_ID+x} ]]; then
-    RNA_FC_ID=$(ls -d $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/*/ | grep -v "Reports\|Stats")
+    RNA_FC_PATH=$(ls -d $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/*/ | grep -v "Reports\|Stats")
     echo "RNA_FLOWCELL_ID=$(basename $RNA_FC_PATH)" >> ../project_config.txt
 fi
