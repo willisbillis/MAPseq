@@ -30,8 +30,8 @@ cellranger-atac mkfastq --id=${PROJECT_NAME}_ATAC --run=$ATAC_DIR \
 #     NB: This checks to see if this variable is already set.
 #     See https://stackoverflow.com/a/13864829
 if [[ -z ${ATAC_FLOWCELL_ID+x} ]]; then
-    ATAC_FC_ID=$(ls -d $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path | grep -v "Reports\|Stats")
-    echo "ATAC_FLOWCELL_ID=$ATAC_FC_ID" >> ../project_config.txt
+    ATAC_FC_PATH=$(ls -d $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/*/ | grep -v "Reports\|Stats")
+    echo "ATAC_FLOWCELL_ID=$(basename $ATAC_FC_PATH)" >> ../project_config.txt
 fi
 
 ## RNA.FB.BCR mkfastq demultiplexing
@@ -47,6 +47,6 @@ cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=$RNA_DIR \
 #     NB: This checks to see if this variable is already set.
 #     See https://stackoverflow.com/a/13864829
 if [[ -z ${RNA_FLOWCELL_ID+x} ]]; then
-    RNA_FC_ID=$(ls -d $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path | grep -v "Reports\|Stats")
-    echo "RNA_FLOWCELL_ID=$RNA_FC_ID" >> ../project_config.txt
+    RNA_FC_ID=$(ls -d $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/*/ | grep -v "Reports\|Stats")
+    echo "RNA_FLOWCELL_ID=$(basename $RNA_FC_PATH)" >> ../project_config.txt
 fi
