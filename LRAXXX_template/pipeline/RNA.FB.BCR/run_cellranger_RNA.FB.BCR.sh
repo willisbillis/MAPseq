@@ -17,6 +17,7 @@ OUTPUT_DIR=$PROJECT_PATH/pipeline/RNA.FB.BCR
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.bcr_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
+cd $OUTPUT_DIR
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
 sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
 
@@ -32,7 +33,6 @@ if [ ${#bcr_samples[@]} != 0 ]; then
     VDJ_REF_version=$(echo $VDJ_REF_PATH | grep -Po '(?<=refdata-cellranger-vdj-)[^;]+')
     echo "$(date) Using vdj reference $VDJ_REF_version located at $VDJ_REF_PATH" >> $OUTPUT_FILE
 fi
-cd $OUTPUT_DIR
 
 for sample in "${rna_samples[@]}"; do
     echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE

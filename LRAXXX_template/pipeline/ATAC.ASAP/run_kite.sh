@@ -17,7 +17,9 @@ OUTPUT_FILE=$OUTPUT_DIR/kite_asap_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
-sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv | uniq)
+sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
+sample_names=$(printf -- '%s\n' "${sample_name_col[@]}" | grep -v Sample | uniq)
+asap_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*)
 
 echo "$(date) Using HTO feature reference located at $ASAP_FEAT_REF_PATH" >> $OUTPUT_FILE
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
@@ -27,7 +29,7 @@ echo "$(date) Running kallisto using version $kallisto_version and binary $(whic
 bustools_version=$(bustools version | grep -Po '(?<=version )[^;]+')
 echo "$(date) Running bustools using version $bustools_version and binary $(which bustools)" >> $OUTPUT_FILE
 
-for sample in $sample_names; do
+for sample in "${asap_samples[@]}"; do
   WD=$OUTPUT_DIR/$sample
   mkdir -p $WD
   cd $WD
