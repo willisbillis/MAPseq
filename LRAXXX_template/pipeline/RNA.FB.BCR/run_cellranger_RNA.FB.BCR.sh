@@ -18,21 +18,21 @@ OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.bcr_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
 sample_names=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv | grep -v "Sample" | uniq)
-bcr_samples=$(grep '*${BCR_NAMING_ID}*' $sample_names)
+bcr_samples=$(grep *${BCR_NAMING_ID}* $sample_names)
 echo $bcr_samples # verbose for testing
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
-GEX_REF_version=$(grep -Po '(?<=refdata-gex-)+' '$GEX_REF_PATH')
+GEX_REF_version=$(grep -Po '(?<=refdata-gex-)+' <<< $GEX_REF_PATH)
 echo "$(date) Using transcriptome reference $GEX_REF_version located at $GEX_REF_PATH" >> $OUTPUT_FILE
 echo "$(date) Using HTO/ADT feature reference located at $GEX_FEAT_REF_PATH" >> $OUTPUT_FILE
 if [ ${#bcr_samples[@]} != 0 ]; then
-    VDJ_REF_version=$(grep -Po '(?<=refdata-cellranger-vdj-)+' '$VDJ_REF_PATH')
+    VDJ_REF_version=$(grep -Po '(?<=refdata-cellranger-vdj-)+' <<< $VDJ_REF_PATH)
     echo "$(date) Using vdj reference $VDJ_REF_version located at $VDJ_REF_PATH" >> $OUTPUT_FILE
 fi
 cd $OUTPUT_DIR
 
-for sample in $(grep '*${GEX_NAMING_ID}*' "${sample_names[@]}"); do
+for sample in $(grep *${GEX_NAMING_ID}* "${sample_names[@]}"); do
     echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
 
     if [ ${#bcr_samples[@]} != 0 ]; then
