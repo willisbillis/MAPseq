@@ -20,14 +20,14 @@ OUTPUT_FILE=$OUTPUT_DIR/asap_to_kite.log
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
-sample_names=$(printf -- '%s\n' "${sample_name_col[@]}" | grep -v Sample | uniq)
-asap_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*)
+sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
+asap_samples=$(printf -- '%s ' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*)
 
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
 echo "$(date) Running asap_to_kite_v2.py using python version $python_version and binary $(which python)" >> $OUTPUT_FILE
 
 for sample in "${asap_samples[@]}"; do
     python $TOOL_PATH/asap_to_kite_v2.py -f $FASTQ_PATH \
-        -s $sample -o $OUTPUT_DIR/$sample/$sample -j TotalSeqB \
+        -s $sample -o $OUTPUT_DIR/$sample -j TotalSeqB \
         -c $NCPU
 done

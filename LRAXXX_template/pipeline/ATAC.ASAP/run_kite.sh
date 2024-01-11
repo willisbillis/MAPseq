@@ -19,8 +19,8 @@ OUTPUT_FILE=$OUTPUT_DIR/kite_asap_mapping.log
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
-sample_names=$(printf -- '%s\n' "${sample_name_col[@]}" | grep -v Sample | uniq)
-asap_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*)
+sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
+asap_samples=$(printf -- '%s ' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*)
 
 echo "$(date) Using HTO feature reference located at $ASAP_FEAT_REF_PATH" >> $OUTPUT_FILE
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
