@@ -20,8 +20,8 @@ mkdir -p $OUTPUT_DIR
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
 sample_names=$(printf -- '%s\n' "${sample_name_col[@]}" | grep -v Sample | uniq)
 echo $sample_names # verbose for testing
-bcr_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep *${BCR_NAMING_ID}*)
-rna_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep *${GEX_NAMING_ID}*)
+bcr_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep '.*${BCR_NAMING_ID}.*')
+rna_samples=$(printf -- '%s\n' "${sample_names[@]}" | grep '.*${GEX_NAMING_ID}.*')
 echo $rna_samples # verbose for testing
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
