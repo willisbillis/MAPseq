@@ -6,14 +6,14 @@
 # NOTICE: At this point, the user has the bcl files from
 #       the sequencer. There should be a corresponding 
 #       sample sheet with 10x indices to demultiplex the bcls.
-
+################################################################################
 # Import all the global variables for this project
-source ../../project_config.txt
+source ../project_config.txt
 
 # Set all the local variables for this pipeline
 OUTPUT_DIR=$PROJECT_PATH/data
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_mkfastq.log
-##############################################################################
+################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 
@@ -21,7 +21,7 @@ cd $OUTPUT_DIR
 CR_atac_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
 echo "$(date) Running Cell Ranger ATAC version $CR_atac_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
 
-cellranger-atac mkfastq --id=${PROJECT_NAME}_ATAC --run=$atac_dir \
+cellranger-atac mkfastq --id=${PROJECT_NAME}_ATAC --run=$ATAC_DIR \
     --csv=${PROJECT_NAME}.ATAC.sampleManifest.csv \
     --delete-undetermined \
     --localcores=$NCPU --localmem=$MEM
@@ -30,7 +30,7 @@ cellranger-atac mkfastq --id=${PROJECT_NAME}_ATAC --run=$atac_dir \
 #     NB: This checks to see if this variable is already set.
 #     See https://stackoverflow.com/a/13864829
 if [[ -z ${ATAC_FLOWCELL_ID+x} ]]; then
-    ATAC_FC_ID=$(ls -d $PROJECT_DIR/data/${PROJECT_NAME}_ATAC/outs/fastq_path | grep -v "Reports\|Stats")
+    ATAC_FC_ID=$(ls -d $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path | grep -v "Reports\|Stats")
     echo "ATAC_FLOWCELL_ID=$ATAC_FC_ID" >> ../project_config.txt
 fi
 
@@ -38,7 +38,7 @@ fi
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
 
-cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=$rna_dir \
+cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=$RNA_DIR \
     --csv=${PROJECT_NAME}.sampleManifest.csv \
     --delete-undetermined \
     --localcores=$NCPU --localmem=$MEM
@@ -47,6 +47,6 @@ cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=$rna_dir \
 #     NB: This checks to see if this variable is already set.
 #     See https://stackoverflow.com/a/13864829
 if [[ -z ${RNA_FLOWCELL_ID+x} ]]; then
-    RNA_FC_ID=$(ls -d $PROJECT_DIR/data/${PROJECT_NAME}_RNA/outs/fastq_path | grep -v "Reports\|Stats")
+    RNA_FC_ID=$(ls -d $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path | grep -v "Reports\|Stats")
     echo "RNA_FLOWCELL_ID=$RNA_FC_ID" >> ../project_config.txt
 fi
