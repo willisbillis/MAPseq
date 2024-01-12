@@ -26,7 +26,7 @@ INSTALL_OUTPUT_FILE=logs/install_output.log
 function find_install() {
     if [ -z "$(which $1)" ]; then
         echo "Error: $1 not found or installed!"
-        return 1
+        exit 1
     fi
 }
 
@@ -52,10 +52,10 @@ find_install bustools
 if [ -z "$(echo $PATH | grep -o ~/.local/bin)" ]; then
     echo "Error: please add user local bin to PATH with the command below"
     echo "export PATH=\$PATH:~/.local/bin >> ~/.bashrc && source ~/.bashrc"
-    return 1
+    exit 1
 fi
 echo "Appending 'source $PWD/src/create_run.sh' to ~/.bashrc to add bash functions in this repository..."
-echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed at $(date))" >> ~/.bashrc
+echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed $(date))" >> ~/.bashrc
 echo "export MAPSEQ_REPO_PATH=$PWD" >> ~/.bashrc
 echo "source $MAPSEQ_REPO_PATH/src/create_run.sh" >> ~/.bashrc
 source ~/.bashrc
