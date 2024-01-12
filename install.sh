@@ -49,12 +49,6 @@ find_install kallisto
 echo "Checking to see if bustools is installed..."
 find_install bustools
 
-if [ -z "$(echo $PATH | grep -o ~/.local/bin)" ]; then
-    echo "Error: please add user local bin to PATH with the command below"
-    echo "export PATH=\$PATH:~/.local/bin >> ~/.bashrc && source ~/.bashrc"
-    exit 1
-fi
-
 echo "Appending 'source $PWD/src/create_run.sh' to ~/.bashrc to add bash functions in this repository..."
 echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed $(date))" >> ~/.bashrc
 echo "export MAPSEQ_REPO_PATH=$PWD" >> ~/.bashrc
