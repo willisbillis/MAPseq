@@ -8,13 +8,13 @@ if ! [[ $(stat -c "%U" $(realpath ~/.bashrc)) == $USER ]]; then
   if ! [[ $(stat -c "%G" $(realpath ~/.bashrc)) == $(id -gn $USER) ]]; then
     # If not, are others able to write to your .bashrc? (unlikely)
     if ! [[ "${bashrc_permissions:8:1}" == "w" ]]; then
-        echo "Unable to write to ~/.bashrc. Must run install with sudo priviledges."
+        echo "Unable to write to ~/.bashrc. Please modify permissions and try again."
         exit 1
     fi
   else
     # If you are part of the group that owns your .bashrc, are there group write priviledges? (also unlikely)
     if ! [[ "${bashrc_permissions:5:1}" == "w" ]]; then
-        echo "Unable to write to ~/.bashrc. Must run install with sudo priviledges."
+        echo "Unable to write to ~/.bashrc. Please modify permissions and try again."
         exit 1
     fi
   fi
@@ -54,6 +54,7 @@ if [ -z "$(echo $PATH | grep -o ~/.local/bin)" ]; then
     echo "export PATH=\$PATH:~/.local/bin >> ~/.bashrc && source ~/.bashrc"
     exit 1
 fi
+
 echo "Appending 'source $PWD/src/create_run.sh' to ~/.bashrc to add bash functions in this repository..."
 echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed $(date))" >> ~/.bashrc
 echo "export MAPSEQ_REPO_PATH=$PWD" >> ~/.bashrc
