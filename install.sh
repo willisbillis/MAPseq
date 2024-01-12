@@ -42,8 +42,8 @@ source ~/.bashrc
 
 echo "Creating dummy project config file in LRAXXX_template for example..."
 cat $MAPSEQ_REPO_PATH/src/project_config_header.txt >> $MAPSEQ_REPO_PATH/LRAXXX_template/project_config.txt
-echo "PROJECT_NAME=LRAXXX" >> $1/project_config.txt
-echo "PROJECT_PATH=$PWD/LRAXXX" >> $1/project_config.txt
+echo "PROJECT_NAME=LRAXXX" >> $MAPSEQ_REPO_PATH/LRAXXX_template/project_config.txt
+echo "PROJECT_PATH=$PWD/LRAXXX" >> $MAPSEQ_REPO_PATH/LRAXXX_template/project_config.txt
 cat $MAPSEQ_REPO_PATH/src/project_config_body.txt >> $MAPSEQ_REPO_PATH/LRAXXX_template/project_config.txt
 
 echo -e "Installation complete! \n\n"
