@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Check if user running install script can write to their ~/.bashrc
+bashrc_permissions=$(stat -c "%A" $(realpath ~/.bashrc))
+# Do you own your .bashrc?
+if ! [[ $(stat -c "%U" $(realpath ~/.bashrc)) == $USER ]]; then
+  # If not, are you part of the group that owns your .bashrc?
+  if ! [[ $(stat -c "%G" $(realpath ~/.bashrc)) == $(id -gn $USER) ]]; then
+    # If not, are others able to write to your .bashrc? (unlikely)
+    if ! [[ "${bashrc_permissions:8:1}" == "w" ]]; then
+        echo "Unable to write to ~/.bashrc. Must run install with sudo priviledges."
+        return 1
+    fi
+  else
+    # If you are part of the group that owns your .bashrc, are there group write priviledges? (also unlikely)
+    if ! [[ "${bashrc_permissions:5:1}" == "w" ]]; then
+        echo "Unable to write to ~/.bashrc. Must run install with sudo priviledges."
+        return 1
+    fi
+  fi
+fi
+
 mkdir -p logs
 INSTALL_OUTPUT_FILE=logs/install_output.log
 
