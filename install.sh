@@ -35,7 +35,6 @@ if [ -z "$(echo $PATH | grep -o ~/.local/bin)" ]; then
     return 1
 fi
 echo "Appending 'source $PWD/src/create_run.sh' to ~/.bashrc to add bash functions in this repository..."
-chmod +x src/create_run.sh
 echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed at $(date))" >> ~/.bashrc
 echo "MAPSEQ_REPO_PATH=$PWD" >> ~/.bashrc
 echo "source $MAPSEQ_REPO_PATH/src/create_run.sh" >> ~/.bashrc
