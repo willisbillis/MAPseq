@@ -9,13 +9,13 @@ if ! [[ $(stat -c "%U" $(realpath ~/.bashrc)) == $USER ]]; then
     # If not, are others able to write to your .bashrc? (unlikely)
     if ! [[ "${bashrc_permissions:8:1}" == "w" ]]; then
         echo "Unable to write to ~/.bashrc. Must run install with sudo priviledges."
-        return 1
+        exit 1
     fi
   else
     # If you are part of the group that owns your .bashrc, are there group write priviledges? (also unlikely)
     if ! [[ "${bashrc_permissions:5:1}" == "w" ]]; then
         echo "Unable to write to ~/.bashrc. Must run install with sudo priviledges."
-        return 1
+        exit 1
     fi
   fi
 fi
