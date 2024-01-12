@@ -58,6 +58,7 @@ fi
 echo "Appending 'source $PWD/src/create_run.sh' to ~/.bashrc to add bash functions in this repository..."
 echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed $(date))" >> ~/.bashrc
 echo "export MAPSEQ_REPO_PATH=$PWD" >> ~/.bashrc
+source ~/.bashrc
 echo "source $MAPSEQ_REPO_PATH/src/create_run.sh" >> ~/.bashrc
 source ~/.bashrc
 
