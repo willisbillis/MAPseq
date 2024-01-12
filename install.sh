@@ -47,10 +47,10 @@ echo "PROJECT_NAME=LRAXXX" >> $1/project_config.txt
 echo "PROJECT_PATH=$PWD/LRAXXX" >> $1/project_config.txt
 cat $MAPSEQ_REPO_PATH/src/project_config_body.txt >> $1/project_config.txt
 
-echo -e "Install complete! \n\n"
-echo "To create a new directory for a single run, use the command below with an appropriately named run name."
+echo -e "Installation complete! \n\n"
+echo "To create a new directory for a single run, use the command below with an appropriately titled run name."
 echo -e "\ncreate_run <RUN_NAME>\n"
 echo -e "This directory (except for configuration and reference files) will mirror the local repository version of this pipeline.\n"
-echo "To create a new directory for aggregating all completed runs, use the command below with an appropriately named run name."
+echo "To create a new directory for aggregating all completed runs, use the command below with an appropriately titled run name."
 echo -e "\ncreate_aggr_run <AGGR_RUN_NAME>\n"
 echo "This directory (except for configuration and reference files) will mirror the local repository version of this pipeline, too."
