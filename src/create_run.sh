@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function create_run() {
+function create_ms_run() {
     if [ $# -ne 1 ]; then
         echo "Error: Exactly 1 argument required!"
         return 1
@@ -26,7 +26,7 @@ function create_run() {
     cat $MAPSEQ_REPO_PATH/src/project_config_body.txt >> $1/project_config.txt
 }
 
-function create_aggr_run() {
+function create_ms_aggr_run() {
     if [ $# -ne 1 ]; then
         echo "Error: Exactly 1 arguments required!"
         return 1
