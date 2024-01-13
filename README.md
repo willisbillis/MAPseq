@@ -10,8 +10,8 @@ processing of MAPseq (Marker Assisted Programming sequencing) data.
 
 * Cell Ranger [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
 * Cell Ranger ATAC [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/installation)
-* kallisto
-* bustools
+* kallisto [(install here)](https://pachterlab.github.io/kallisto/download)
+* bustools [(install here)](https://bustools.github.io/download)
 
 ### Questions and Issues ###
 
@@ -19,7 +19,7 @@ If you have a question, error, or bug to report, please use the [issue page](htt
 
 Resources
 ---------
-* [MAPseq documentation](https://github.com/willisbillis/LRA.MAPseq/blob/main/docs/readthedocs.md)
+* [MAPseq tutorial](https://github.com/willisbillis/LRA.MAPseq/blob/main/docs/quickstart.md)
 
 Citing
 ------
