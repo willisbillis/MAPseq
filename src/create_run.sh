@@ -21,6 +21,7 @@ function create_ms_run() {
     cp $MAPSEQ_REPO_PATH/src/references/TSC_feature_ref.csv $1/pipeline/RNA.FB.BCR/TSC_feature_ref.csv
 
     cat $MAPSEQ_REPO_PATH/src/project_config_header.txt >> $1/project_config.txt
+    echo -e "\n" >> $1/project_config.txt
     echo "PROJECT_NAME=$1" >> $1/project_config.txt
     echo "PROJECT_PATH=$PWD/$1" >> $1/project_config.txt
     cat $MAPSEQ_REPO_PATH/src/project_config_body.txt >> $1/project_config.txt
