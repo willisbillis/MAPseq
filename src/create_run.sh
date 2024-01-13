@@ -9,7 +9,7 @@ function create_ms_run() {
         echo "Error: Argument is empty!"
         return 1
     fi
-    if [ -f $1 ]; then
+    if [ -d $1 ]; then
         echo "Run directory $PWD/$1 already exists!"
         return 1
     fi
@@ -35,7 +35,7 @@ function create_ms_aggr_run() {
         echo "Error: Argument is empty!"
         return 1
     fi
-    if [ -f $1 ]; then
+    if [ -d $1 ]; then
         echo "Run directory $PWD/$1 already exists!"
         return 1
     fi
