@@ -23,6 +23,7 @@ fi
 if [[ -n ${MAPSEQ_REPO_PATH+x} ]]; then
     echo "Found existing installation (located at $MAPSEQ_REPO_PATH)."
     grep -v "^# MAPSEQ INSTALLATION\|^export MAPSEQ_REPO_PATH\|^source $MAPSEQ_REPO_PATH" ~/.bashrc > ~/.bashrc.tmp
+    sed -i '$d' ~/.bashrc.tmp
     mv ~/.bashrc.tmp ~/.bashrc
     source ~/.bashrc
     echo "Uninstallation complete."
