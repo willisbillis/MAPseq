@@ -14,7 +14,10 @@ function create_ms_run() {
         return 1
     fi
 
-    ln -s $MAPSEQ_REPO_PATH/src/LRAXXX_template $1
+    mkdir -p $1/data
+    mkdir -p $1/pipeline
+    ln -s $MAPSEQ_REPO_PATH/src/LRAXXX_template/data/* $1/data
+    ln -s $MAPSEQ_REPO_PATH/src/LRAXXX_template/pipeline/* $1/pipeline
     echo "Lane,Sample,Index" > $1/data/$1.ATAC.sampleManifest.csv
     echo "Lane,Sample,Index" > $1/data/$1.RNA.sampleManifest.csv
     cp $MAPSEQ_REPO_PATH/src/references/HTOB_feature_ref.csv $1/pipeline/ATAC.ASAP/HTOB_feature_ref.csv
