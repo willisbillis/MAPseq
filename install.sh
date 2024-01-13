@@ -66,7 +66,7 @@ echo "PROJECT_NAME=LRAXXX" >> $PWD/LRAXXX_template/project_config.txt
 echo "PROJECT_PATH=$PWD/LRAXXX" >> $PWD/LRAXXX_template/project_config.txt
 cat $PWD/src/project_config_body.txt >> $PWD/LRAXXX_template/project_config.txt
 
-echo -e "Installation complete! \n\n"
+echo -e "Installation complete! Restarting shell... \n\n"
 echo "To create a new directory for a single run, use the command below with an appropriately titled run name."
 echo -e "\ncreate_run <RUN_NAME>\n"
 echo -e "This directory (except for configuration and reference files) will mirror the local repository version of this pipeline.\n"
