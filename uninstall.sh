@@ -26,9 +26,7 @@ if [[ -n ${MAPSEQ_REPO_PATH+x} ]]; then
     sed -i '$d' ~/.bashrc.tmp
     mv ~/.bashrc.tmp ~/.bashrc
     unset MAPSEQ_REPO_PATH
-    echo "Uninstallation complete. Restarting shell..."
-    # Restart shell
-    $SHELL
+    echo "Uninstallation complete. Restart shell (by closing and opening new command line session or running $SHELL) for changes to take effect."
 else
     echo "No installation found (environment variable MAPSEQ_REPO_PATH not set). Exiting..."
     exit 1

@@ -59,13 +59,10 @@ echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed $(dat
 echo "export MAPSEQ_REPO_PATH=$PWD" >> ~/.bashrc
 echo "source $PWD/src/create_run.sh" >> ~/.bashrc
 
-echo -e "Installation complete! Restarting shell... \n\n"
+echo -e "Installation complete! Restart shell (by closing and opening new command line session or running $SHELL) for changes to take effect. \n\n"
 echo "To create a new directory for a single run, use the command below with an appropriately titled run name."
 echo -e "\ncreate_ms_run <RUN_NAME>\n"
 echo -e "This directory (except for configuration and reference files) will mirror the local repository version of this pipeline.\n"
 echo "To create a new directory for aggregating all completed runs, use the command below with an appropriately titled run name."
 echo -e "\ncreate_ms_aggr_run <AGGR_RUN_NAME>\n"
 echo "This directory (except for configuration and reference files) will mirror the local repository version of this pipeline, too."
-
-# Restart shell
-$SHELL
