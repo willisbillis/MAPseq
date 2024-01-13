@@ -66,7 +66,8 @@ echo "PROJECT_NAME=LRAXXX" >> $PWD/LRAXXX_template/project_config.txt
 echo "PROJECT_PATH=$PWD/LRAXXX" >> $PWD/LRAXXX_template/project_config.txt
 cat $PWD/src/project_config_body.txt >> $PWD/LRAXXX_template/project_config.txt
 
-source ~/.bashrc
+# Restart shell
+$SHELL
 
 echo -e "Installation complete! \n\n"
 echo "To create a new directory for a single run, use the command below with an appropriately titled run name."
