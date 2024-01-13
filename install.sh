@@ -20,6 +20,11 @@ if ! [[ $(stat -c "%U" $(realpath ~/.bashrc)) == $USER ]]; then
   fi
 fi
 
+if [[ -n ${MAPSEQ_REPO_PATH+x} ]]; then
+    echo "Found existing installation (located at $MAPSEQ_REPO_PATH). Exiting..."
+    exit 1
+fi
+
 mkdir -p logs
 INSTALL_OUTPUT_FILE=logs/install_output.log
 
