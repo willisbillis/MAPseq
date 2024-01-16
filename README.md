@@ -1,9 +1,7 @@
 # MAPseq Pipeline and Analysis
 
-**M**arker **A**ssisted **P**rogramming **seq**uencing Pipeline
-
 This repository provides an end-to-end open source pipeline for the
-processing of MAPseq (Marker Assisted Programming sequencing) data.
+processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) data.
 * Current Version: v0.1
 
 ### Installation Requirements ####
