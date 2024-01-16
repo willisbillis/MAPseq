@@ -1,19 +1,20 @@
 #!/bin/bash
 #
 # run_cellranger.aggr_rna.sh - written by MEW (https://github.com/willisbillis) Jan 2024
-# This script runs the cellranger aggr pipeline formatted for the RNA + HTO + ADT + BCR
+# This script runs the cellranger aggr pipeline formatted for the RNA + HTO + ADT + VDJ
 # side of the LRA MAPseq project started in 2023.
 #
 # NOTICE: At this point, the user has run through all steps in at least two
-#     runs and is ready to aggregate the runs for a single project.
+#     RNA + HTO + ADT (+ VDJ) runs and is ready to aggregate the runs for a
+#     single project.
 ################################################################################
 # Import all the global variables for this project
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
-SAMPLES_ARRAY=($(ls -d $PROJECT_PATH/*/pipeline/RNA.FB.BCR/*/))
-OUTPUT_DIR=$PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB
-OUTPUT_FILE=$OUTPUT_DIR/cellranger_aggr.log
+SAMPLES_ARRAY=($(ls -d $PROJECT_PATH/*/pipeline/RNA.FB.VDJ/*/))
+OUTPUT_DIR=$PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ
+OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna_aggr.log
 AGGR_CSV=$OUTPUT_DIR/aggr.csv
 ################################################################################
 mkdir -p $OUTPUT_DIR
@@ -22,8 +23,8 @@ cd $OUTPUT_DIR
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
 
-## Run test to assess if there is BCR information for all runs
-declare -a vdj_detected_array=()
+## Run test to assess if there is VDJ information for all (or no) runs
+vdj_detected_array=()
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
   multi_dir=$sample_path/outs/per_sample_outs
   count_file=$sample_path/outs/molecule_info.h5
@@ -40,7 +41,6 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
 done
 
 # Total up VDJ runs detected
-read -a vdj_detected_array
 tot=0
 for i in ${vdj_detected_array[@]}; do
   let tot+=$i

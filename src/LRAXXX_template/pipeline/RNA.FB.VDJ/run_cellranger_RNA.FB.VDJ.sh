@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# run_cellranger_RNA.FB_multi.sh - written by MEW (https://github.com/willisbillis) Jan 2024
-# This script runs the cellranger multi pipeline formatted for the RNA + HTO + ADT + BCR side of
+# run_cellranger_RNA.FB.VDJ.sh - written by MEW (https://github.com/willisbillis) Jan 2024
+# This script runs the cellranger multi pipeline formatted for the RNA + HTO + ADT (+ VDJ) side of
 # the LRA MAPseq project started in 2023.
 #
 # NOTICE: At this point, the user has generated the fastqs and
@@ -21,7 +21,7 @@ cd $OUTPUT_DIR
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
 sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
 
-bcr_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${BCR_NAMING_ID}.*))
+vdj_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${VDJ_NAMING_ID}.*))
 rna_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${GEX_NAMING_ID}.*))
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
@@ -29,7 +29,7 @@ echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellr
 GEX_REF_version=$(echo $GEX_REF_PATH | grep -Po '(?<=refdata-gex-)[^;]+')
 echo "$(date) Using transcriptome reference $GEX_REF_version located at $GEX_REF_PATH" >> $OUTPUT_FILE
 echo "$(date) Using HTO/ADT feature reference located at $GEX_FEAT_REF_PATH" >> $OUTPUT_FILE
-if [ ${#bcr_samples[@]} != 0 ]; then
+if [ ${#vdj_samples[@]} != 0 ]; then
     VDJ_REF_version=$(echo $VDJ_REF_PATH | grep -Po '(?<=refdata-cellranger-vdj-)[^;]+')
     echo "$(date) Using vdj reference $VDJ_REF_version located at $VDJ_REF_PATH" >> $OUTPUT_FILE
 fi
@@ -38,8 +38,8 @@ for sample in "${rna_samples[@]}"; do
     echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
     SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
 
-    if [ ${#bcr_samples[@]} != 0 ]; then
-        ## BCR SAMPLES DETECTED, RUN CR MULTI
+    if [ ${#vdj_samples[@]} != 0 ]; then
+        ## VDJ SAMPLES DETECTED, RUN CR MULTI
         # Create the config csv for the sample being run
         echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
@@ -53,7 +53,7 @@ for sample in "${rna_samples[@]}"; do
         gex_sample=$sample
         # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $GEX_FEAT_NAMING_ID
         hashtag_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$GEX_FEAT_NAMING_ID/p")
-        # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $BCR_NAMING_ID
+        # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $VDJ_NAMING_ID
         vdj_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$BCR_NAMING_ID/p")
         printf '%s\n' $gex_sample $FASTQ_PATH 'Gene Expression' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         printf '%s\n' $hashtag_sample $FASTQ_PATH 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
@@ -64,7 +64,7 @@ for sample in "${rna_samples[@]}"; do
         --csv $SAMPLE_CONFIG_CSV \
         --localcores $NCPU --localmem $MEM
     else
-        ## NO BCR SAMPLES DETECTED, RUN CR COUNT
+        ## NO VDJ SAMPLES DETECTED, RUN CR COUNT
         # Create the config csv for the sample being run
         printf '%s\n' fastqs sample library_type | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         fq_path=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
