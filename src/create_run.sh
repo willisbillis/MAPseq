@@ -44,5 +44,15 @@ function create_ms_aggr_run() {
     else
     fi
 
-    ln -s $MAPSEQ_REPO_PATH/src/LRA_all_template $1
+    mkdir -p $1/pipeline/RNA.FB.VDJ
+    mkdir -p $1/pipeline/ATAC.ASAP
+    ln -s $MAPSEQ_REPO_PATH/src/LRA_all_template/pipeline/RNA.FB.VDJ/* $1/pipeline/RNA.FB.VDJ
+    ln -s $MAPSEQ_REPO_PATH/src/LRA_all_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
+
+    cat $MAPSEQ_REPO_PATH/src/project_config_header.txt >> $1/project_config.txt
+    echo -e "\n" >> $1/project_config.txt
+    echo "PROJECT_NAME=$1" >> $1/project_config.txt
+    echo "PROJECT_PATH=$PWD/$1" >> $1/project_config.txt
+    echo -e "\n" >> $1/project_config.txt
+    tail -n 9 $MAPSEQ_REPO_PATH/src/project_config_body.txt >> $1/project_config.txt
 }
