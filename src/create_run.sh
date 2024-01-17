@@ -11,6 +11,7 @@ function create_ms_run() {
         echo "Run directory $PWD/$1 already exists!"
         return 1
     else
+        :
     fi
 
     mkdir -p $1/data
@@ -42,6 +43,7 @@ function create_ms_aggr_run() {
         echo "Run directory $PWD/$1 already exists!"
         return 1
     else
+        :
     fi
 
     mkdir -p $1/pipeline/RNA.FB.VDJ
