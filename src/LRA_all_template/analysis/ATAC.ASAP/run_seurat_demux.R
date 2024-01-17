@@ -1,11 +1,36 @@
-library(data.table)
-library(Seurat)
-library(Matrix)
-library(Signac)
-library(data.table)
-library(ggplot2)
-library(stringr)
+#!/bin/bash
+#
+# run_cellranger.aggr_atac.sh - written by MEW (https://github.com/willisbillis) Jan 2024
+# This script runs the cellranger-atac aggr pipeline formatted for the ATAC + ASAP
+# side of the LRA MAPseq project started in 2023.
+#
+# NOTICE: At this point, the user has run through all steps in at least two
+#     ATAC + ASAP runs and is ready to aggregate the runs for a single project.
+################################################################################
+# Install required packages using the package manager 'pacman'
+if (!require("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+}
+library(pacman)
 
+p_load(Seurat,Signac,GenomeInfoDb,ggplot2,data.table,
+  tidyr,dplyr,Matrix,stringr,tidytext)
+
+set.seed(1234)                # set seed for reproducibility
+options(bitmapType = "cairo") # grid and transparency in R4
+## Library descriptions ##
+# Seurat: functions for single cell data
+# Signac: DensityScatter function for QC
+# GenomeInfoDb: database for genomic annotations
+# EnsDb.Mmusculus.v79: database for mm10 annotations
+# EnsDb.Hsapiens.v86: database for hg38 annotations
+# ggplot2: functions for plotting
+# data.table: write out csv quickly
+# tidyr: for "separate" function
+# dplyr: for "slice_max" function
+# tidytext: reorder_within()
+################################################################################
+## Custom functions
 import_kite_counts <- function(data_path){
   mtx <- fread(paste0(data_path, "/featurecounts.mtx"), header = FALSE)
   dim <- mtx[1,]
@@ -15,14 +40,24 @@ import_kite_counts <- function(data_path){
   colnames(matx) <- fread(paste0(data_path, "/featurecounts.genes.txt"), header = FALSE)[[1]]
   return(t(matx))
 }
+################################################################################
+# Import all the global variables for this project
+system(command = "source", args = c("../../project_config.txt"))
+PROJECT_PATH = Sys.getenv("PROJECT_PATH")
+PROJECT_NAME = Sys.getenv("PROJECT_NAME")
+ASAP_NAMING_ID = Sys.getenv("ASAP_NAMING_ID")
 
-PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq/LRA_all"
-PROJECT_NAME = "LRA_all"
-asap_samples_list = c("LRA001_ASAP","LRA002_ASAP_LTR","LRA002_ASAP_SF","LRA003_ASAP_NRF","LRA003_ASAP_BEL")
-aggr_df = read.csv(paste0(PROJECT_DIR,"/pipeline/ATAC.ASAP/ATAC/LRA_all_aggr/outs/aggregation_csv.csv"))
-bcs = read.csv(paste0(PROJECT_DIR,"/pipeline/ATAC.ASAP/ATAC/LRA_all_aggr/outs/filtered_peak_bc_matrix/barcodes.tsv"), header=F)
-bcs$library_id = aggr_df$library_id[as.numeric(gsub(".*\\-","", bcs$V1))]
-hto_demux_df = read.csv("path/to/demux_ref_table.csv")
+# Set all the local variables for this pipeline
+ATAC_MANIFEST = read.csv(paste0(PROJECT_PATH,"/data/",PROJECT_NAME,".ATAC.sampleManifest.csv"))
+ASAP_SAMPLES_LIST = ATAC_MANIFEST[grepl(ASAP_NAMING_ID, ATAC_MANIFEST$Sample), "Sample"]
+HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/ATAC.ASAP/hashtag_demux_ref.csv")
+OUTS_DIR = paste0(PROJECT_PATH,"/pipeline/ATAC.ASAP/ATAC/",PROJECT_NAME,"_aggr/outs")
+OUTPUT_DIR = paste0(PROJECT_PATH, "/analysis/ATAC.ASAP")
+################################################################################
+
+aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation_csv.csv"))
+barcodes = read.csv(paste0(OUTS_DIR, "/filtered_peak_bc_matrix/barcodes.tsv"), header=F)
+bcs$library_id = aggr_df$library_id[as.numeric(gsub(".*\\-", "", bcs$V1))]
 
 for (idx in seq_along(asap_samples_list)) {
   asap_sample_id = asap_samples_list[idx]
