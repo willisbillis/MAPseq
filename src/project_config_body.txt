@@ -8,7 +8,7 @@ BCR_NAMING_ID=XP
 ATAC_NAMING_ID=scATAC
 ASAP_NAMING_ID=ASAP
 
-GEX_FEAT_REF_PATH=$PROJECT_PATH/pipeline/RNA.FB.BCR/TSC_feature_ref.csv
+GEX_FEAT_REF_PATH=$PROJECT_PATH/pipeline/RNA.FB.VDJ/TSC_feature_ref.csv
 ASAP_FEAT_REF_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/HTOB_feature_ref.csv
 
 GEX_REF_PATH=/home/boss_lab/Apps/genomes/cellranger/refdata-gex-GRCh38-2020-A
