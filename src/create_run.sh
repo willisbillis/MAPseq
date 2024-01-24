@@ -51,6 +51,5 @@ function create_ms_aggr_run() {
     echo -e "\n" >> $1/project_config.txt
     echo "PROJECT_NAME=$1" >> $1/project_config.txt
     echo "PROJECT_PATH=$PWD/$1" >> $1/project_config.txt
-    echo -e "\n" >> $1/project_config.txt
     tail -n 9 $MAPSEQ_REPO_PATH/src/project_config_body.txt >> $1/project_config.txt
 }
