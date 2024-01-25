@@ -58,9 +58,9 @@ directory or wait until consistent modalities are available."
   echo -e "\nSamples and if they have VDJ libraries (1) or not (0).\n"
   
   printf '%s\n' Sample VDJ_library | paste -sd ' '
-  for idx in $(seq 1 ${#vdj_detected_array[@]}); do
+  for idx in $(seq ${#vdj_detected_array[@]}); do
     zero_idx=$(($idx-1))
-    printf '%s\n' $SAMPLES_ARRAY[$zero_idx] $vdj_detected_array[$zero_idx] | paste -sd ' '
+    printf '%s\n' ${SAMPLES_ARRAY[$zero_idx]} ${vdj_detected_array[$zero_idx]} | paste -sd ' '
   done
 fi
 
