@@ -11,7 +11,7 @@
 #       they are accurate for the project.
 ################################################################################
 # Import all the global variables for this project
-source ../project_config.txt
+source ./project_config.txt
 ################################################################################
 # TODO: add unit tests here
 
