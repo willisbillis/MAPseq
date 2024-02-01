@@ -16,15 +16,16 @@ source ./project_config.txt
 # TODO: add unit tests here
 
 # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
-$PROJECT_PATH/data/run_mkfastq.sh
-
-# check for any fastqs from ATAC.ASAP
-if [ -d $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs ]; then
-    $PROJECT_PATH/pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh &
-fi
+cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
 
 # check for any fastqs from RNA.FB.VDJ
+if [ -d $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs ]; then
+    cd $PROJECT_PATH/pipeline/RNA.FB.VDJ && $PROJECT_PATH/pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh &
+fi
+
+# check for any fastqs from ATAC.ASAP
 if [ -d $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs ]; then
+    cd $PROJECT_PATH/pipeline/ATAC.ASAP
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
         $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh &
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_cellranger_ATAC.sh &
