@@ -27,11 +27,9 @@ GEX_NAMING_ID = Sys.getenv("GEX_NAMING_ID")
 GEX_FEAT_NAMING_ID = Sys.getenv("GEX_FEAT_NAMING_ID")
 
 # Set all the local variables for this pipeline
-ATAC_MANIFEST = read.csv(paste0(PROJECT_PATH,"/data/",PROJECT_NAME,".ATAC.sampleManifest.csv"))
-ASAP_SAMPLES_LIST = ATAC_MANIFEST[grepl(ASAP_NAMING_ID, ATAC_MANIFEST$Sample), "Sample"]
-HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/ATAC.ASAP/hashtag_demux_ref.csv")
-OUTS_DIR = paste0(PROJECT_PATH,"/pipeline/ATAC.ASAP/ATAC/",PROJECT_NAME,"_aggr/outs")
-OUTPUT_DIR = paste0(PROJECT_PATH, "/analysis/ATAC.ASAP")
+HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/RNA.FB.VDJ/hashtag_demux_ref.csv")
+OUTS_DIR = paste0(PROJECT_PATH,,"/",PROJECT_NAME"/pipeline/RNA.FB.VDJ/",PROJECT_NAME,"_aggr/outs")
+OUTPUT_DIR = paste0(PROJECT_PATH, "/analysis/RNA.FB.VDJ")
 ################################################################################
 
 aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation_csv.csv"))
