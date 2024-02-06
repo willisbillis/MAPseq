@@ -1,4 +1,4 @@
-library_id,hashtag,sample_id,new_hashtag
+library_id,hashtag,patient_id,new_hashtag
 LRA001_RNA,HTC1,LN1017,HTC1
 LRA001_RNA,HTC2,LN4032,HTC2
 LRA001_RNA,HTC3,LN4037,HTC3

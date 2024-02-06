@@ -31,62 +31,47 @@ HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/RNA.FB.VDJ/hashtag_demux_ref.csv
 OUTS_DIR = paste0(PROJECT_PATH,,"/",PROJECT_NAME"/pipeline/RNA.FB.VDJ/",PROJECT_NAME,"_aggr/outs")
 OUTPUT_DIR = paste0(PROJECT_PATH, "/analysis/RNA.FB.VDJ")
 ################################################################################
+dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
 
+sc.data = Read10X(data.dir=paste0(OUTS_DIR, "count/filtered_feature_bc_matrix/"))
+sc_total = CreateSeuratObject(counts=sc.data$`Gene Expression`,
+                              assay="RNA",
+                              project=PROJECT_NAME)
 aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation_csv.csv"))
-barcodes = read.csv(paste0(OUTS_DIR, "/filtered_peak_bc_matrix/barcodes.tsv"), header=F)
-bcs$library_id = aggr_df$library_id[as.numeric(gsub(".*\\-", "", bcs$V1))]
+new_sample_names = factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordered = TRUE)
+sc_total$library_id = new_sample_names[as.integer(sub(".*-","",names(sc_total$nCount_RNA)))]
 
-for (idx in seq_along(asap_samples_list)) {
-  asap_sample_id = asap_samples_list[idx]
-  atac_sample_id = gsub("ASAP","scATAC",asap_sample_id)
-  features_path = paste0(PROJECT_DIR,"/pipeline/ATAC.ASAP/ASAP/",asap_sample_id,"/featurecounts")
-  hto <- import_kite_counts(features_path)
-  cells = bcs$V1[bcs$library_id == atac_sample_id]
-  sample_suffix = match(atac_sample_id, aggr_df$library_id)
-  colnames(hto) = paste0(colnames(hto), "-", sample_suffix)
-  cmat <- hto[,colnames(hto) %in% cells]
-  print(paste0(dim(cmat)[2]," overlapping cells. (",dim(hto)[2]," in HTO, ",length(cells)," in scATAC)"))
-  
-  sample_summary = data.frame(sample=gsub("ASAP_","",asap_sample_id), HTO_cells=dim(hto)[2], scATAC_cells=length(cells), overlap=dim(cmat)[2], overlap_pct=100*dim(cmat)[2]/length(cells))
-  if (!exists("master_ht")) {
-    master_ht = cmat
-  } else {
-    master_ht = cbind(master_ht, cmat)
-  }
-  if (!exists("summary_table")) {
-    summary_table = sample_summary
-  } else {
-    summary_table = rbind(summary_table, sample_summary)
-  }
-}
+adt.data = sc.data$`Antibody Capture`
+sc_total[["HTO"]] = CreateAssayObject(counts = adt.data[grepl("HT", rownames(adt.data)),])
+sc_total[["ADT"]] = CreateAssayObject(counts = adt.data[!grepl("HT", rownames(adt.data)),])
 
-write.csv(summary_table, paste0("summary_table.",PROJECT_NAME,".csv"), quote=F, row.names=F)
-
-data_dir = paste0(PROJECT_DIR,"/analysis/ATAC.ASAP/data/")
+data_dir = paste0(OUTPUT_DIR,"/data/")
 dir.create(data_dir, recursive = T, showWarnings = F)
 
-hashtag_obj_list = list()
+sub_obj_list = list()
 
-for (idx in seq_along(asap_samples_list)) {
-  asap_sample_id = asap_samples_list[idx]
-  atac_sample_id = gsub("ASAP","scATAC",asap_sample_id)
-  cells = bcs$V1[bcs$library_id == atac_sample_id]
-  htos = hto_demux_df$hashtag[hto_demux_df$library_id == atac_sample_id]
+for (idx in seq_len(nrow(aggr_df))) {
+  rna_library_id = aggr_df[idx, "sample_id"]
+  run_id = basename(gsub("\\/pipeline*.","",aggr_df[idx, "fragments"]))
 
-  library_ht_adt = master_ht[!grepl("HTO",rownames(master_ht)),colnames(master_ht) %in% cells]
-  library_ht_hto = master_ht[htos,colnames(master_ht) %in% cells]
-  hashtag <- CreateSeuratObject(counts = library_ht_adt, assay = "ADT")
-  hashtag[["HTO"]] = CreateAssayObject(counts = library_ht_hto)
-  hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
-  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99)
-  hashtag$library_id = atac_sample_id
+  hto_reference_sub = HTO_DEMUX_CSV[HTO_DEMUX_CSV$library_id == rna_library_id,]
+  htos = hto_reference_sub$hashtag
+  sub = subset(sc_total, library_id == rna_library_id)
+  DefaultAssay(sub) = "HTO"
+  sub = subset(sub, features = htos)
+  sub <- NormalizeData(sub, assay = "HTO", normalization.method = "CLR")
+  sub <- HTODemux(sub, assay = "HTO", positive.quantile = 0.99)
 
-  saveRDS(hashtag, paste0(data_dir,"hto.adt_",asap_sample_id,".RDS"))
+  sub$patient_id = hto_reference_sub$patient_id[match(hto_reference_sub$hashtag, sub$HTO.maxID)]
+  sub$library_id = rna_library_id
+  sub$run_id = run_id
 
-  hashtag_obj_list[[idx]] = hashtag
+  sub_obj_list[[idx]] = sub
 }
 
-merged_hashtag = merge(hashtag_obj_list[[1]], c(hashtag_obj_list[2:idx]))
-merged_hashtag = JoinLayers(merged_hashtag)
+merged = merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
+merged = JoinLayers(merged)
+DefaultAssay(merged) = "RNA"
+merged = JoinLayers(merged)
 
-saveRDS(merged_hashtag, paste0(data_dir,"hto.adt_",PROJECT_NAME,".RDS"))
+saveRDS(merged, paste0(data_dir,"raw_rna.hto.adt_",PROJECT_NAME,".RDS"))

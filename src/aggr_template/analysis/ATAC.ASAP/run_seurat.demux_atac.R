@@ -57,10 +57,10 @@ metadata_df = data.frame(run_id = character(),
                          overlap = numeric(),
                          overlap_pct = numeric())
 
-asap_sample_paths = Sys.glob(paste0(PROJECT_PATH,"/*/pipeline/ATAC.ASAP/ASAP/*/"))
+asap_library_paths = Sys.glob(paste0(PROJECT_PATH,"/*/pipeline/ATAC.ASAP/ASAP/*/"))
 
-for (idx in seq_along(asap_sample_paths)) {
-  asap_path = asap_sample_paths[idx]
+for (idx in seq_along(asap_library_paths)) {
+  asap_path = asap_library_paths[idx]
   asap_id = basename(asap_path)
   atac_id = gsub(ASAP_NAMING_ID, ATAC_NAMING_ID, asap_id)
   run_id = basename(gsub("\\/pipeline*.", "", asap_path))
@@ -68,13 +68,13 @@ for (idx in seq_along(asap_sample_paths)) {
 }
 
 for (idx in seq_len(nrow(metadata_df))) {
-  asap_sample_id = metadata_df[idx, "asap_id"]
-  atac_sample_id = metadata_df[idx, "atac_id"]
-  features_path = paste0(PROJECT_DIR,"/pipeline/ATAC.ASAP/ASAP/",asap_sample_id,"/featurecounts")
+  asap_library_id = metadata_df[idx, "asap_id"]
+  atac_library_id = metadata_df[idx, "atac_id"]
+  features_path = paste0(PROJECT_DIR,"/pipeline/ATAC.ASAP/ASAP/",asap_library_id,"/featurecounts")
   hto <- import_kite_counts(features_path)
-  cells = barcodes$V1[barcodes$library_id == atac_sample_id]
-  sample_suffix = match(atac_sample_id, aggr_df$library_id)
-  colnames(hto) = paste0(colnames(hto), "-", sample_suffix)
+  cells = barcodes$V1[barcodes$library_id == atac_library_id]
+  library_suffix = match(atac_library_id, aggr_df$library_id)
+  colnames(hto) = paste0(colnames(hto), "-", library_suffix)
   cmat <- hto[,colnames(hto) %in% cells]
   print(paste0(dim(cmat)[2]," overlapping cells. (",dim(hto)[2]," in HTO, ",length(cells)," in scATAC)"))
 
@@ -87,7 +87,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   }
 }
 
-write.csv(metadata_df, paste0("sample_stats.",PROJECT_NAME,".csv"), quote=F, row.names=F)
+write.csv(metadata_df, paste0("library_stats.",PROJECT_NAME,".csv"), quote=F, row.names=F)
 
 data_dir = paste0(OUTPUT_DIR,"/data/")
 dir.create(data_dir, recursive = T, showWarnings = F)
@@ -96,17 +96,21 @@ hashtag_obj_list = list()
 
 for (idx in seq_len(nrow(metadata_df))) {
   run_id = metadata_df[idx, "run_id"]
-  asap_sample_id = metadata_df[idx, "asap_id"]
-  atac_sample_id = metadata_df[idx, "atac_id"]
-  cells = barcodes$V1[barcodes$library_id == atac_sample_id]
-  htos = HTO_DEMUX_CSV$hashtag[HTO_DEMUX_CSV$library_id == atac_sample_id]
+  asap_library_id = metadata_df[idx, "asap_id"]
+  atac_library_id = metadata_df[idx, "atac_id"]
+
+  cells = barcodes$V1[barcodes$library_id == atac_library_id]
+  hto_reference_sub = HTO_DEMUX_CSV[HTO_DEMUX_CSV$library_id == atac_library_id, ]
+  htos = hto_reference_sub$hashtag
 
   library_ht_hto = master_ht[htos,colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
   hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99)
-  hashtag$atac_id = atac_sample_id
-  hashtag$asap_id = asap_sample_id
+
+  hashtag$patient_id = hto_reference_sub$patient_id[match(hto_reference_sub$hashtag, hashtag$HTO.maxID)]
+  hashtag$atac_id = atac_library_id
+  hashtag$asap_id = asap_library_id
   hashtag$run_id = run_id
 
   hashtag_obj_list[[idx]] = hashtag
@@ -137,5 +141,6 @@ sc_total <- CreateSeuratObject(counts=chrom_assay,
                                project=PROJECT_NAME)
 
 sc_total = merge(sc_total, merged_hashtag)
+DefaultAssay(sc_total) = "ATAC"
 
 saveRDS(sc_total, paste0(data_dir,"raw_atac.hto_",PROJECT_NAME,".RDS"))
