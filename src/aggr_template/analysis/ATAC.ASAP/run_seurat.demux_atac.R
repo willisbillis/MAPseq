@@ -16,7 +16,6 @@ library(pacman)
 p_load(Seurat, Signac)
 
 set.seed(1234)                # set seed for reproducibility
-options(bitmapType = "cairo") # grid and transparency in R4
 ## Library descriptions ##
 # Seurat: functions for single cell data
 # Signac: create chromatin assay
@@ -40,7 +39,6 @@ ATAC_NAMING_ID = Sys.getenv("ATAC_NAMING_ID")
 ASAP_NAMING_ID = Sys.getenv("ASAP_NAMING_ID")
 
 # Set all the local variables for this pipeline
-ATAC_MANIFEST = read.csv(paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/ATAC.ASAP/ATAC/aggr.csv"))
 HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/ATAC.ASAP/hashtag_demux_ref.csv")
 OUTS_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/ATAC.ASAP/ATAC/",PROJECT_NAME,"_aggr/outs")
 OUTPUT_DIR = paste0(PROJECT_PATH, "/analysis/ATAC.ASAP")

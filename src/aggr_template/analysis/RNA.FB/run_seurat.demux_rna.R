@@ -13,38 +13,18 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 
-p_load(Seurat,GenomeInfoDb,ggplot2,data.table,
-  tidyr,dplyr,Matrix,stringr,tidytext)
+p_load(Seurat)
 
 set.seed(1234)                # set seed for reproducibility
-options(bitmapType = "cairo") # grid and transparency in R4
 ## Library descriptions ##
 # Seurat: functions for single cell data
-# GenomeInfoDb: database for genomic annotations
-# EnsDb.Mmusculus.v79: database for mm10 annotations
-# EnsDb.Hsapiens.v86: database for hg38 annotations
-# ggplot2: functions for plotting
-# data.table: write out csv quickly
-# tidyr: for "separate" function
-# dplyr: for "slice_max" function
-# tidytext: reorder_within()
-################################################################################
-## Custom functions
-import_kite_counts <- function(data_path){
-  mtx <- fread(paste0(data_path, "/featurecounts.mtx"), header = FALSE)
-  dim <- mtx[1,]
-  mtx <- mtx[-1,]
-  matx <- sparseMatrix(i = mtx[[1]], j = mtx[[2]], x = mtx[[3]], dims=c(dim[[1]],dim[[2]]))
-  rownames(matx) <- fread(paste0(data_path, "/featurecounts.barcodes.txt"), header = FALSE)[[1]]
-  colnames(matx) <- fread(paste0(data_path, "/featurecounts.genes.txt"), header = FALSE)[[1]]
-  return(t(matx))
-}
 ################################################################################
 # Import all the global variables for this project
 system(command = "source", args = c("../../project_config.txt"))
 PROJECT_PATH = Sys.getenv("PROJECT_PATH")
 PROJECT_NAME = Sys.getenv("PROJECT_NAME")
-ASAP_NAMING_ID = Sys.getenv("ASAP_NAMING_ID")
+GEX_NAMING_ID = Sys.getenv("GEX_NAMING_ID")
+GEX_FEAT_NAMING_ID = Sys.getenv("GEX_FEAT_NAMING_ID")
 
 # Set all the local variables for this pipeline
 ATAC_MANIFEST = read.csv(paste0(PROJECT_PATH,"/data/",PROJECT_NAME,".ATAC.sampleManifest.csv"))
