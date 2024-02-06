@@ -20,7 +20,6 @@ set.seed(1234)                # set seed for reproducibility
 options(bitmapType = "cairo") # grid and transparency in R4
 ## Library descriptions ##
 # Seurat: functions for single cell data
-# Signac: DensityScatter function for QC
 # GenomeInfoDb: database for genomic annotations
 # EnsDb.Mmusculus.v79: database for mm10 annotations
 # EnsDb.Hsapiens.v86: database for hg38 annotations
