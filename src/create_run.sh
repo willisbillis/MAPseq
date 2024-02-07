@@ -47,9 +47,9 @@ function create_ms_aggr_run() {
     mkdir -p $1/pipeline/RNA.FB.VDJ
     mkdir -p $1/pipeline/ATAC.ASAP
     ln -s $MAPSEQ_REPO_PATH/src/mapseq_template/run_mapseq_aggr.sh $1/run_mapseq_aggr.sh
-    printf '%s\n' library_id hashtag patient_id | paste -sd ',' >> $1/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv
+    echo "library_id,hashtag,patient_id" > $1/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv
     ln -s $MAPSEQ_REPO_PATH/src/aggr_template/pipeline/RNA.FB.VDJ/* $1/pipeline/RNA.FB.VDJ
-    printf '%s\n' library_id hashtag patient_id | paste -sd ',' >> $1/pipeline/ATAC.ASAP/hashtag_ref_atac.csv
+    echo "library_id,hashtag,patient_id" > $1/pipeline/ATAC.ASAP/hashtag_ref_atac.csv
     ln -s $MAPSEQ_REPO_PATH/src/aggr_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
 
     cat $MAPSEQ_REPO_PATH/src/project_config_header.txt >> $1/project_config.txt
