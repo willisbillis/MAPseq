@@ -26,13 +26,18 @@ echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellr
 ## Create aggregation csv
 printf '%s\n' sample_id molecule_h5 | paste -sd ',' >> $AGGR_CSV
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
-  sample_name=$(basename $sample_path)
-  if [ -d "${sample_path}outs/multi" ]; then
-    count_molecule_file=${sample_path}outs/multi/count/raw_molecule_info.h5
+  if [ -d "${sample_path}outs/per_sample_outs" ]; then
+    multi_samples_array=($(ls -d ${sample_path}outs/per_sample_outs/*/))
+    for multi_path in "${multi_samples_array[@]}"; do
+      sample_name=$(basename $multi_path)
+      count_molecule_file=${multi_path}sample_molecule_info.h5
+      printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
+    done
   else
+    sample_name=$(basename $sample_path)
     count_molecule_file=${sample_path}outs/molecule_info.h5
+    printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
   fi
-  printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
 done
 
 ## Run aggregation pipeline
