@@ -56,7 +56,6 @@ function create_ms_aggr_run() {
     echo -e "\n" >> $1/project_config.txt
     echo "PROJECT_NAME=$1" >> $1/project_config.txt
     echo "PROJECT_PATH=$PWD" >> $1/project_config.txt
-    echo -e "\n" >> $1/project_config.txt
     echo "GEX_NAMING_ID=GEX" >> $1/project_config.txt
     echo "GEX_FEAT_NAMING_ID=CSP" >> $1/project_config.txt
     echo "ATAC_NAMING_ID=scATAC" >> $1/project_config.txt

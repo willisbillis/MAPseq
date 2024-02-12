@@ -27,7 +27,7 @@ echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellr
 printf '%s\n' sample_id molecule_h5 | paste -sd ',' >> $AGGR_CSV
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
   sample_name=$(basename $sample_path)
-  count_molecule_file=$sample_path/outs/molecule_info.h5
+  count_molecule_file=${sample_path}outs/molecule_info.h5
   printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
 done
 
