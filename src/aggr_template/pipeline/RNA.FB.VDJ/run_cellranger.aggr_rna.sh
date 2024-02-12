@@ -30,7 +30,7 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
     multi_samples_array=($(ls -d ${sample_path}outs/per_sample_outs/*/))
     for multi_path in "${multi_samples_array[@]}"; do
       sample_name=$(basename $multi_path)
-      count_molecule_file=${multi_path}sample_molecule_info.h5
+      count_molecule_file=${multi_path}count/sample_molecule_info.h5
       printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
     done
   else
