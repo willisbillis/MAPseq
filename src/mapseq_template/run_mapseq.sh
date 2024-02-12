@@ -33,6 +33,7 @@ fi
 
 wait
 
+# compile reports from each step
 mkdir -p $PROJECT_PATH/reports
 cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
 cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
