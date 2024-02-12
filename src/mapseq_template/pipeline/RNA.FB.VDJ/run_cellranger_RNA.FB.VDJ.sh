@@ -18,6 +18,8 @@ OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.vdj_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
+mkdir -p $OUTPUT_DIR/reports
+
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
 sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
 
@@ -80,4 +82,6 @@ for sample in "${rna_samples[@]}"; do
             --libraries $SAMPLE_CONFIG_CSV \
             --localcores $NCPU --localmem $MEM
     fi
+
+    cp $sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
 done

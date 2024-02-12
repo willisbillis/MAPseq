@@ -30,3 +30,10 @@ if [ -d "$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs" ]; then
         $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh &
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_cellranger_ATAC.sh &
 fi
+
+wait
+
+mkdir -p $PROJECT_PATH/reports
+cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
+cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
+cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
