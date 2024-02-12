@@ -28,7 +28,7 @@ printf '%s\n' sample_id molecule_h5 | paste -sd ',' >> $AGGR_CSV
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
   sample_name=$(basename $sample_path)
   if [ -d "${sample_path}outs/multi" ]; then
-    count_molecule_file=${sample_path}outs/multi/raw_molecule_info.h5
+    count_molecule_file=${sample_path}outs/multi/count/raw_molecule_info.h5
   else
     count_molecule_file=${sample_path}outs/molecule_info.h5
   fi
