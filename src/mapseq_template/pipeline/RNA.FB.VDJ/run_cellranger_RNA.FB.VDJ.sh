@@ -54,7 +54,7 @@ for sample in "${rna_samples[@]}"; do
         # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $GEX_FEAT_NAMING_ID
         hashtag_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$GEX_FEAT_NAMING_ID/p")
         # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $VDJ_NAMING_ID
-        vdj_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$BCR_NAMING_ID/p")
+        vdj_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$VDJ_NAMING_ID/p")
         printf '%s\n' $gex_sample $FASTQ_PATH 'Gene Expression' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         printf '%s\n' $hashtag_sample $FASTQ_PATH 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         printf '%s\n' $vdj_sample $FASTQ_PATH VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
