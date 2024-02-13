@@ -117,7 +117,7 @@ for (idx in seq_len(nrow(metadata_df))) {
     print("[WARNING] Hashtag staining failed for the following hashtags! Excluding from final object.")
     failed_htos = names(rowSums(hashtag)[rowSums(hashtag) < 20])
     print(failed_htos)
-    hashtag = subset(hashtag, features == htos[htos != failed_htos])
+    hashtag = subset(hashtag, features = htos[htos != failed_htos])
   }
   hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99)
 

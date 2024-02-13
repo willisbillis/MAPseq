@@ -26,7 +26,7 @@ GEX_NAMING_ID = Sys.getenv("GEX_NAMING_ID")
 GEX_FEAT_NAMING_ID = Sys.getenv("GEX_FEAT_NAMING_ID")
 
 # Set all the local variables for this pipeline
-HTO_DEMUX_CSV = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
+HTO_DEMUX_PATH = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
 OUTS_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/RNA.FB.VDJ/",PROJECT_NAME,"_aggr/outs")
 OUTPUT_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/analysis/RNA.FB.VDJ/data")
 ################################################################################
@@ -38,16 +38,15 @@ sc_total = CreateSeuratObject(counts=sc.data$`Gene Expression`,
                               project=PROJECT_NAME)
 aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation.csv"))
 new_sample_names = factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordered = TRUE)
-sc_total$library_id = new_sample_names[as.integer(sub("*.-","",names(sc_total$nCount_RNA)))]
+sc_total$library_id = new_sample_names[as.integer(gsub(".*-","",colnames(sc_total)))]
 
 adt.data = sc.data$`Antibody Capture`
-print(adt.data[1:5,1:5])
 sc_total[["HTO"]] = CreateAssay5Object(counts = adt.data[grepl("^HT", rownames(adt.data)),])
 sc_total[["ADT"]] = CreateAssay5Object(counts = adt.data[!grepl("^HT", rownames(adt.data)),])
 
 data_dir = paste0(OUTPUT_DIR,"/data/")
 dir.create(data_dir, recursive = T, showWarnings = F)
-hto_reference = read.csv(HTO_DEMUX_CSV)
+hto_reference = read.csv(HTO_DEMUX_PATH)
 
 sub_obj_list = list()
 
@@ -58,21 +57,21 @@ for (idx in seq_len(nrow(aggr_df))) {
   hto_reference_sub = hto_reference[hto_reference$library_id == rna_library_id,]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   htos = gsub("_","-",hto_reference_sub$hashtag)
-  sub = subset(sc_total, library_id == rna_library_id)
-  DefaultAssay(sub) = "HTO"
-  print(rownames(sub))
+  sc_sub = sc_total[,sc_total$library_id == rna_library_id]
+  DefaultAssay(sc_sub) = "HTO"
+  print(rownames(sc_sub))
   print(htos)
-  print(rowSums(sub))
-  sub = subset(sub, features = htos)
-  print(sub)
-  sub <- NormalizeData(sub, assay = "HTO", normalization.method = "CLR")
-  sub <- HTODemux(sub, assay = "HTO", positive.quantile = 0.99)
+  print(rowSums(sc_sub))
+  sc_sub = subset(sc_sub, features = htos)
+  print(sc_sub)
+  sc_sub <- NormalizeData(sc_sub, assay = "HTO", normalization.method = "CLR")
+  sc_sub <- HTODemux(sc_sub, assay = "HTO", positive.quantile = 0.99)
 
-  sub$patient_id = hto_reference_sub$patient_id[match(htos, sub$HTO_maxID)]
-  sub$library_id = rna_library_id
-  sub$run_id = run_id
+  sc_sub$patient_id = hto_reference_sub$patient_id[match(htos, sc_sub$HTO_maxID)]
+  sc_sub$library_id = rna_library_id
+  sc_sub$run_id = run_id
 
-  sub_obj_list[[idx]] = sub
+  sub_obj_list[[idx]] = sc_sub
 }
 
 merged = merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
