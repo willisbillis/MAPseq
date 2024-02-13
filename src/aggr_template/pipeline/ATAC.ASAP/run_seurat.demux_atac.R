@@ -100,7 +100,6 @@ for (idx in seq_len(nrow(metadata_df))) {
   run_id = metadata_df[idx, "run_id"]
   asap_library_id = metadata_df[idx, "asap_id"]
   atac_library_id = metadata_df[idx, "atac_id"]
-  print(run_id)
   print(asap_library_id)
 
   cells = barcodes$V1[barcodes$library_id == atac_library_id]
@@ -111,10 +110,10 @@ for (idx in seq_len(nrow(metadata_df))) {
   print(rowSums(master_ht[,colnames(master_ht) %in% cells]))
 
   library_ht_hto = master_ht[htos, colnames(master_ht) %in% cells]
-  hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO", project=PROJECT_NAME)
+  hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
   print(rowSums(hashtag))
-  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99)
+  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99, kfunc = "kmeans")
 
   hashtag$patient_id = hto_reference_sub$patient_id[match(htos, hashtag$HTO_maxID)]
   hashtag$atac_id = atac_library_id
