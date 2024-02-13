@@ -96,24 +96,29 @@ hto_reference = read.csv(HTO_DEMUX_PATH)
 hashtag_obj_list = list()
 
 for (idx in seq_len(nrow(metadata_df))) {
+  print(0)
   run_id = metadata_df[idx, "run_id"]
   asap_library_id = metadata_df[idx, "asap_id"]
   atac_library_id = metadata_df[idx, "atac_id"]
 
+  print(1)
   cells = barcodes$V1[barcodes$library_id == atac_library_id]
   hto_reference_sub = hto_reference[hto_reference$library_id == atac_library_id, ]
   htos = hto_reference_sub$hashtag
 
+  print(2)
   library_ht_hto = master_ht[htos,colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
   hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99)
 
+  print(3)
   hashtag$patient_id = hto_reference_sub$patient_id[match(hto_reference_sub$hashtag, hashtag$HTO.maxID)]
   hashtag$atac_id = atac_library_id
   hashtag$asap_id = asap_library_id
   hashtag$run_id = run_id
 
+  print(4)
   hashtag_obj_list[[idx]] = hashtag
 }
 
