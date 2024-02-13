@@ -38,7 +38,7 @@ ATAC_NAMING_ID = Sys.getenv("ATAC_NAMING_ID")[1]
 ASAP_NAMING_ID = Sys.getenv("ASAP_NAMING_ID")[1]
 
 # Set all the local variables for this pipeline
-HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
+HTO_DEMUX_PATH = paste0(PROJECT_PATH, "/pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 OUTS_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/ATAC.ASAP/ATAC/",PROJECT_NAME,"_aggr/outs")
 OUTPUT_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/analysis/ATAC.ASAP/data")
 ################################################################################
@@ -91,6 +91,7 @@ write.csv(metadata_df, paste0("library_stats.",PROJECT_NAME,".csv"), quote=F, ro
 
 data_dir = paste0(OUTPUT_DIR,"/data")
 dir.create(data_dir, recursive = T, showWarnings = F)
+hto_reference = read.csv(HTO_DEMUX_PATH)
 
 hashtag_obj_list = list()
 
@@ -100,7 +101,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   atac_library_id = metadata_df[idx, "atac_id"]
 
   cells = barcodes$V1[barcodes$library_id == atac_library_id]
-  hto_reference_sub = HTO_DEMUX_CSV[HTO_DEMUX_CSV$library_id == atac_library_id, ]
+  hto_reference_sub = hto_reference[hto_reference$library_id == atac_library_id, ]
   htos = hto_reference_sub$hashtag
 
   library_ht_hto = master_ht[htos,colnames(master_ht) %in% cells]
