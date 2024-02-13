@@ -28,7 +28,7 @@ GEX_FEAT_NAMING_ID = Sys.getenv("GEX_FEAT_NAMING_ID")
 # Set all the local variables for this pipeline
 HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/RNA.FB.VDJ/hashtag_ref_rna.csv")
 OUTS_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/RNA.FB.VDJ/",PROJECT_NAME,"_aggr/outs")
-OUTPUT_DIR = paste0(PROJECT_PATH, "/analysis/data")
+OUTPUT_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/analysis/RNA.FB.VDJ/data")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
 
@@ -36,7 +36,7 @@ sc.data = Read10X(data.dir=paste0(OUTS_DIR, "/count/filtered_feature_bc_matrix/"
 sc_total = CreateSeuratObject(counts=sc.data$`Gene Expression`,
                               assay="RNA",
                               project=PROJECT_NAME)
-aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation_csv.csv"))
+aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation.csv"))
 new_sample_names = factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordered = TRUE)
 sc_total$library_id = new_sample_names[as.integer(sub(".*-","",names(sc_total$nCount_RNA)))]
 
