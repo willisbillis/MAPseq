@@ -51,7 +51,7 @@ sub_obj_list = list()
 
 for (idx in seq_len(nrow(aggr_df))) {
   rna_library_id = aggr_df[idx, "sample_id"]
-  run_id = basename(gsub("\\/pipeline*.","",aggr_df[idx, "fragments"]))
+  run_id = basename(gsub("\\/pipeline.*","",aggr_df[idx, "fragments"]))
 
   hto_reference_sub = HTO_DEMUX_CSV[HTO_DEMUX_CSV$library_id == rna_library_id,]
   htos = hto_reference_sub$hashtag
