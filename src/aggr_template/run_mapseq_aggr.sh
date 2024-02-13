@@ -11,6 +11,13 @@
 ################################################################################
 # Import all the global variables for this project
 source ./project_config.txt
+# Export global variables for R scripts
+export PROJECT_PATH=$PROJECT_PATH
+export PROJECT_NAME=$PROJECT_NAME
+export GEX_NAMING_ID=$GEX_NAMING_ID
+export GEX_FEAT_NAMING_ID=$GEX_FEAT_NAMING_ID
+export ATAC_NAMING_ID=$ATAC_NAMING_ID
+export ASAP_NAMING_ID=$ASAP_NAMING_ID
 ################################################################################
 # TODO: add unit tests here
 
@@ -21,8 +28,6 @@ cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && $PROJECT_PATH/$PROJECT_NAME
 wait
 
 # load RNA cellranger matrices into Seurat and generate a demultiplexed raw Seurat object
-source $PROJECT_PATH/$PROJECT_NAME/project_config.txt && cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && \
-    Rscript $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/run_seurat.demux_rna.R
+cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && Rscript $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/run_seurat.demux_rna.R
 # load ATAC cellranger/kite matrices into Seurat and generate a demultiplexed raw Seurat object
-source $PROJECT_PATH/$PROJECT_NAME/project_config.txt && cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && \
-    Rscript $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/run_seurat.demux_atac.R
+cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && Rscript $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/run_seurat.demux_atac.R

@@ -24,7 +24,6 @@ PROJECT_PATH = Sys.getenv("PROJECT_PATH")
 PROJECT_NAME = Sys.getenv("PROJECT_NAME")
 GEX_NAMING_ID = Sys.getenv("GEX_NAMING_ID")
 GEX_FEAT_NAMING_ID = Sys.getenv("GEX_FEAT_NAMING_ID")
-print(PROJECT_NAME)
 
 # Set all the local variables for this pipeline
 HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/RNA.FB.VDJ/hashtag_ref_rna.csv")
