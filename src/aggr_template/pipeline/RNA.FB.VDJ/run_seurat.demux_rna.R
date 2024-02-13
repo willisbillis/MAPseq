@@ -20,6 +20,7 @@ set.seed(1234)                # set seed for reproducibility
 # Seurat: functions for single cell data
 ################################################################################
 # Import all the global variables for this project
+system(command = "source", args = c("../../project_config.txt"))
 PROJECT_PATH = Sys.getenv("PROJECT_PATH")
 PROJECT_NAME = Sys.getenv("PROJECT_NAME")
 GEX_NAMING_ID = Sys.getenv("GEX_NAMING_ID")
