@@ -32,8 +32,9 @@ import_kite_counts <- function(data_path){
 }
 ################################################################################
 # Import all the global variables for this project
-setwd(dirname(getwd()))
-system(command = "source ../../project_config.txt")
+config_path = file.path(paste0(getwd(),"../../project_config.txt"))
+print(config_path)
+system(paste("source", config_path))
 PROJECT_PATH = Sys.getenv("PROJECT_PATH")
 PROJECT_NAME = Sys.getenv("PROJECT_NAME")
 ATAC_NAMING_ID = Sys.getenv("ATAC_NAMING_ID")

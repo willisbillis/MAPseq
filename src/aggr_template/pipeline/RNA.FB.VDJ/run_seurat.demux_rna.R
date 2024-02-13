@@ -21,6 +21,7 @@ set.seed(1234)                # set seed for reproducibility
 ################################################################################
 # Import all the global variables for this project
 setwd(dirname(getwd()))
+system(paste("source", config_path))
 system(command = "source ../../project_config.txt")
 PROJECT_PATH = Sys.getenv("PROJECT_PATH")
 PROJECT_NAME = Sys.getenv("PROJECT_NAME")
