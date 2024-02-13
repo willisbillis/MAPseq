@@ -55,14 +55,15 @@ for (idx in seq_len(nrow(aggr_df))) {
   run_id = basename(gsub("\\/pipeline.*","",aggr_df[idx, "fragments"]))
 
   hto_reference_sub = hto_reference[hto_reference$library_id == rna_library_id,]
-  htos = hto_reference_sub$hashtag
+  # ensure input HTOs match Seurat's replacement of underscores with dashes
+  htos = gsub("_","-",hto_reference_sub$hashtag)
   sub = subset(sc_total, library_id == rna_library_id)
   DefaultAssay(sub) = "HTO"
   sub = subset(sub, features = htos)
   sub <- NormalizeData(sub, assay = "HTO", normalization.method = "CLR")
   sub <- HTODemux(sub, assay = "HTO", positive.quantile = 0.99)
 
-  sub$patient_id = hto_reference_sub$patient_id[match(hto_reference_sub$hashtag, sub$HTO.maxID)]
+  sub$patient_id = hto_reference_sub$patient_id[match(htos, sub$HTO.maxID)]
   sub$library_id = rna_library_id
   sub$run_id = run_id
 
