@@ -28,6 +28,7 @@ import_kite_counts <- function(data_path){
   matx <- sparseMatrix(i = mtx[[1]], j = mtx[[2]], x = mtx[[3]], dims=c(dim[[1]],dim[[2]]))
   rownames(matx) <- fread(paste0(data_path, "/featurecounts.barcodes.txt"), header = FALSE)[[1]]
   colnames(matx) <- fread(paste0(data_path, "/featurecounts.genes.txt"), header = FALSE)[[1]]
+  colnames(matx) = gsub("_","-", colnames(matx)) # match Seurat's replacement of underscores with dashes
   return(t(matx))
 }
 ################################################################################
@@ -104,12 +105,10 @@ for (idx in seq_len(nrow(metadata_df))) {
   print(1)
   cells = barcodes$V1[barcodes$library_id == atac_library_id]
   hto_reference_sub = hto_reference[hto_reference$library_id == atac_library_id, ]
-  htos = hto_reference_sub$hashtag
+  # ensure input HTOs match Seurat's replacement of underscores with dashes
+  htos = gsub("_","-",hto_reference_sub$hashtag)
 
   print(2)
-  print(rownames(master_ht))
-  print(master_ht[1:5, 1:5])
-  print(htos)
   library_ht_hto = master_ht[htos, colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
