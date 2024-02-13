@@ -107,7 +107,10 @@ for (idx in seq_len(nrow(metadata_df))) {
   htos = hto_reference_sub$hashtag
 
   print(2)
-  library_ht_hto = master_ht[htos,colnames(master_ht) %in% cells]
+  print(rownames(master_ht))
+  print(master_ht[1:5, 1:5])
+  print(htos)
+  library_ht_hto = master_ht[htos, colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
   hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99)
