@@ -38,7 +38,7 @@ sc_total = CreateSeuratObject(counts=sc.data$`Gene Expression`,
                               project=PROJECT_NAME)
 aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation.csv"))
 new_sample_names = factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordered = TRUE)
-sc_total$library_id = new_sample_names[as.integer(sub(".*-","",names(sc_total$nCount_RNA)))]
+sc_total$library_id = new_sample_names[as.integer(sub("*.-","",names(sc_total$nCount_RNA)))]
 
 print(colnames(sc.data))
 adt.data = sc.data$`Antibody Capture`
