@@ -20,12 +20,11 @@ set.seed(1234)                # set seed for reproducibility
 # Seurat: functions for single cell data
 ################################################################################
 # Import all the global variables for this project
-config_path = file.path(paste0(getwd(),"/../../project_config.txt"))
-system(paste("source", config_path))
 PROJECT_PATH = Sys.getenv("PROJECT_PATH")
 PROJECT_NAME = Sys.getenv("PROJECT_NAME")
 GEX_NAMING_ID = Sys.getenv("GEX_NAMING_ID")
 GEX_FEAT_NAMING_ID = Sys.getenv("GEX_FEAT_NAMING_ID")
+print(PROJECT_NAME)
 
 # Set all the local variables for this pipeline
 HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/RNA.FB.VDJ/hashtag_ref_rna.csv")
