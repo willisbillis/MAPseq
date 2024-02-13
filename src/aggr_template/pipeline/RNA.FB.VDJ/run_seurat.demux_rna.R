@@ -59,11 +59,14 @@ for (idx in seq_len(nrow(aggr_df))) {
   htos = gsub("_","-",hto_reference_sub$hashtag)
   sub = subset(sc_total, library_id == rna_library_id)
   DefaultAssay(sub) = "HTO"
+  print(rownames(sub))
+  print(htos)
   sub = subset(sub, features = htos)
+  print(sub)
   sub <- NormalizeData(sub, assay = "HTO", normalization.method = "CLR")
   sub <- HTODemux(sub, assay = "HTO", positive.quantile = 0.99)
 
-  sub$patient_id = hto_reference_sub$patient_id[match(htos, sub$HTO.maxID)]
+  sub$patient_id = hto_reference_sub$patient_id[match(htos, sub$HTO_maxID)]
   sub$library_id = rna_library_id
   sub$run_id = run_id
 
