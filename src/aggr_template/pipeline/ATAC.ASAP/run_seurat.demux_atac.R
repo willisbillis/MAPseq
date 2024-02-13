@@ -146,12 +146,12 @@ chrom_assay <- CreateChromatinAssay(counts=counts,
                                     min.cells = 10,
                                     min.features = 200)
 
-chrom_assay = chrom_assay[, colnames(chrom_assay)[colnames(chrom_assay) %in% colnames(merged_hashtag)]]
-
 sc_total <- CreateSeuratObject(counts=chrom_assay,
                                assay="ATAC",
                                meta.data=metadata,
                                project=PROJECT_NAME)
+
+sc_total = sc_total[, colnames(sc_total)[colnames(sc_total) %in% colnames(merged_hashtag)]]
 
 sc_total = merge(sc_total, merged_hashtag)
 DefaultAssay(sc_total) = "ATAC"
