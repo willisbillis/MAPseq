@@ -13,7 +13,7 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 
-p_load(Seurat, Signac)
+p_load(Seurat, Signac, data.table)
 
 set.seed(1234)                # set seed for reproducibility
 ## Library descriptions ##
