@@ -40,7 +40,7 @@ aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation.csv"))
 new_sample_names = factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordered = TRUE)
 sc_total$library_id = new_sample_names[as.integer(sub("*.-","",names(sc_total$nCount_RNA)))]
 
-print(colnames(sc.data))
+print(names(sc.data))
 adt.data = sc.data$`Antibody Capture`
 sc_total[["HTO"]] = CreateAssayObject(counts = adt.data[grepl("HT", rownames(adt.data)),])
 sc_total[["ADT"]] = CreateAssayObject(counts = adt.data[!grepl("HT", rownames(adt.data)),])
