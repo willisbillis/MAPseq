@@ -32,10 +32,11 @@ import_kite_counts <- function(data_path){
 }
 ################################################################################
 # Import all the global variables for this project
-PROJECT_PATH = Sys.getenv("PROJECT_PATH")
-PROJECT_NAME = Sys.getenv("PROJECT_NAME")
-ATAC_NAMING_ID = Sys.getenv("ATAC_NAMING_ID")
-ASAP_NAMING_ID = Sys.getenv("ASAP_NAMING_ID")
+PROJECT_PATH = Sys.getenv("PROJECT_PATH")[1]
+PROJECT_NAME = Sys.getenv("PROJECT_NAME")[1]
+ATAC_NAMING_ID = Sys.getenv("ATAC_NAMING_ID")[1]
+ASAP_NAMING_ID = Sys.getenv("ASAP_NAMING_ID")[1]
+print(PROJECT_PATH)
 
 # Set all the local variables for this pipeline
 HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
