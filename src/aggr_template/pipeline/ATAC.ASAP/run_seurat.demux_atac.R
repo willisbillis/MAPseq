@@ -88,7 +88,7 @@ for (idx in seq_len(nrow(metadata_df))) {
 
 write.csv(metadata_df, paste0("library_stats.",PROJECT_NAME,".csv"), quote=F, row.names=F)
 
-data_dir = paste0(OUTPUT_DIR,"/data/")
+data_dir = paste0(OUTPUT_DIR,"/data")
 dir.create(data_dir, recursive = T, showWarnings = F)
 
 hashtag_obj_list = list()
@@ -118,11 +118,11 @@ for (idx in seq_len(nrow(metadata_df))) {
 merged_hashtag = merge(hashtag_obj_list[[1]], c(hashtag_obj_list[2:idx]))
 merged_hashtag = JoinLayers(merged_hashtag)
 
-saveRDS(merged_hashtag, paste0(data_dir,"hto_",PROJECT_NAME,".RDS"))
+saveRDS(merged_hashtag, paste0(data_dir,"/hto_",PROJECT_NAME,".RDS"))
 
-peak_matrix_file = paste0(OUTS_DIR, "filtered_peak_bc_matrix.h5")
-metadata_file = paste0(OUTS_DIR, "singlecell.csv")
-frag_file = paste0(OUTS_DIR, "fragments.tsv.gz")
+peak_matrix_file = paste0(OUTS_DIR, "/filtered_peak_bc_matrix.h5")
+metadata_file = paste0(OUTS_DIR, "/singlecell.csv")
+frag_file = paste0(OUTS_DIR, "/fragments.tsv.gz")
 counts <- Read10X_h5(filename=peak_matrix_file)
 metadata <- read.csv(file=metadata_file, header=TRUE, row.names=1)
 
@@ -142,4 +142,4 @@ sc_total <- CreateSeuratObject(counts=chrom_assay,
 sc_total = merge(sc_total, merged_hashtag)
 DefaultAssay(sc_total) = "ATAC"
 
-saveRDS(sc_total, paste0(data_dir,"raw_atac.hto_",PROJECT_NAME,".RDS"))
+saveRDS(sc_total, paste0(data_dir,"/raw_atac.hto_",PROJECT_NAME,".RDS"))

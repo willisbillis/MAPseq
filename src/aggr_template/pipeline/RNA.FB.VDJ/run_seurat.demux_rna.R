@@ -32,7 +32,7 @@ OUTPUT_DIR = paste0(PROJECT_PATH, "/analysis/data")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
 
-sc.data = Read10X(data.dir=paste0(OUTS_DIR, "count/filtered_feature_bc_matrix/"))
+sc.data = Read10X(data.dir=paste0(OUTS_DIR, "/count/filtered_feature_bc_matrix/"))
 sc_total = CreateSeuratObject(counts=sc.data$`Gene Expression`,
                               assay="RNA",
                               project=PROJECT_NAME)
