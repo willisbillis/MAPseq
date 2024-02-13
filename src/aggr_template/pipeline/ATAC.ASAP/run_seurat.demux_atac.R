@@ -108,6 +108,8 @@ for (idx in seq_len(nrow(metadata_df))) {
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   htos = gsub("_","-",hto_reference_sub$hashtag)
 
+  print(rowSums(master_ht[,colnames(master_ht) %in% cells]))
+
   library_ht_hto = master_ht[htos, colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO", project=PROJECT_NAME)
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")

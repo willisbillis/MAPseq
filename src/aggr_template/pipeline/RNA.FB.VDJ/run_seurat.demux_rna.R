@@ -61,6 +61,7 @@ for (idx in seq_len(nrow(aggr_df))) {
   DefaultAssay(sub) = "HTO"
   print(rownames(sub))
   print(htos)
+  print(rowSums(sub))
   sub = subset(sub, features = htos)
   print(sub)
   sub <- NormalizeData(sub, assay = "HTO", normalization.method = "CLR")
