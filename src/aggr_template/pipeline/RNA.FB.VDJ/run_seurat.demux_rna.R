@@ -46,6 +46,7 @@ sc_total[["ADT"]] = CreateAssayObject(counts = adt.data[!grepl("HT", rownames(ad
 
 data_dir = paste0(OUTPUT_DIR,"/data/")
 dir.create(data_dir, recursive = T, showWarnings = F)
+hto_reference = read.csv(HTO_DEMUX_CSV)
 
 sub_obj_list = list()
 
@@ -53,7 +54,7 @@ for (idx in seq_len(nrow(aggr_df))) {
   rna_library_id = aggr_df[idx, "sample_id"]
   run_id = basename(gsub("\\/pipeline.*","",aggr_df[idx, "fragments"]))
 
-  hto_reference_sub = HTO_DEMUX_CSV[HTO_DEMUX_CSV$library_id == rna_library_id,]
+  hto_reference_sub = hto_reference[hto_reference$library_id == rna_library_id,]
   htos = hto_reference_sub$hashtag
   sub = subset(sc_total, library_id == rna_library_id)
   DefaultAssay(sub) = "HTO"
