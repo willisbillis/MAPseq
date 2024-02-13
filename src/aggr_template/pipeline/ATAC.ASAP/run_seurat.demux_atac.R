@@ -69,7 +69,7 @@ for (idx in seq_along(asap_library_paths)) {
 for (idx in seq_len(nrow(metadata_df))) {
   asap_library_id = metadata_df[idx, "asap_id"]
   atac_library_id = metadata_df[idx, "atac_id"]
-  features_path = paste0(PROJECT_DIR,"/pipeline/ATAC.ASAP/ASAP/",asap_library_id,"/featurecounts")
+  features_path = paste0(PROJECT_PATH,"/pipeline/ATAC.ASAP/ASAP/",asap_library_id,"/featurecounts")
   hto <- import_kite_counts(features_path)
   cells = barcodes$V1[barcodes$library_id == atac_library_id]
   library_suffix = match(atac_library_id, aggr_df$library_id)
