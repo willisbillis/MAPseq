@@ -62,7 +62,7 @@ for (idx in seq_len(nrow(aggr_df))) {
   print(rownames(sc_sub))
   print(htos)
   print(rowSums(sc_sub))
-  sc_sub = subset(sc_sub, features = htos)
+  sc_sub = sc_total[htos,]
   print(sc_sub)
   sc_sub <- NormalizeData(sc_sub, assay = "HTO", normalization.method = "CLR")
   sc_sub <- HTODemux(sc_sub, assay = "HTO", positive.quantile = 0.99)
