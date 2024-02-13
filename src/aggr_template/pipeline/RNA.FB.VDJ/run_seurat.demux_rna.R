@@ -42,8 +42,8 @@ sc_total$library_id = new_sample_names[as.integer(sub("*.-","",names(sc_total$nC
 
 adt.data = sc.data$`Antibody Capture`
 print(adt.data[1:5,1:5])
-sc_total[["HTO"]] = CreateAssay5Object(counts = adt.data[grepl("HT", rownames(adt.data)),])
-sc_total[["ADT"]] = CreateAssay5Object(counts = adt.data[!grepl("HT", rownames(adt.data)),])
+sc_total[["HTO"]] = CreateAssay5Object(counts = adt.data[grepl("^HT", rownames(adt.data)),])
+sc_total[["ADT"]] = CreateAssay5Object(counts = adt.data[!grepl("^HT", rownames(adt.data)),])
 
 data_dir = paste0(OUTPUT_DIR,"/data/")
 dir.create(data_dir, recursive = T, showWarnings = F)
