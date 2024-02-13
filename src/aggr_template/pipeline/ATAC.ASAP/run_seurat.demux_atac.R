@@ -38,7 +38,7 @@ ATAC_NAMING_ID = Sys.getenv("ATAC_NAMING_ID")[1]
 ASAP_NAMING_ID = Sys.getenv("ASAP_NAMING_ID")[1]
 
 # Set all the local variables for this pipeline
-HTO_DEMUX_PATH = paste0(PROJECT_PATH, "/pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
+HTO_DEMUX_PATH = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 OUTS_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/pipeline/ATAC.ASAP/ATAC/",PROJECT_NAME,"_aggr/outs")
 OUTPUT_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME,"/analysis/ATAC.ASAP/data")
 ################################################################################
