@@ -27,7 +27,7 @@ GEX_FEAT_NAMING_ID = Sys.getenv("GEX_FEAT_NAMING_ID")
 
 # Set all the local variables for this pipeline
 HTO_DEMUX_CSV = paste0(PROJECT_PATH, "/analysis/RNA.FB.VDJ/hashtag_ref_rna.csv")
-OUTS_DIR = paste0(PROJECT_PATH,,"/",PROJECT_NAME"/pipeline/RNA.FB.VDJ/",PROJECT_NAME,"_aggr/outs")
+OUTS_DIR = paste0(PROJECT_PATH,"/",PROJECT_NAME"/pipeline/RNA.FB.VDJ/",PROJECT_NAME,"_aggr/outs")
 OUTPUT_DIR = paste0(PROJECT_PATH, "/analysis/data")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
