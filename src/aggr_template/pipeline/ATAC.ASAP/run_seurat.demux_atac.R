@@ -113,6 +113,12 @@ for (idx in seq_len(nrow(metadata_df))) {
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
   print(rowSums(hashtag))
+  if (sum(rowSums(hashtag) < 20) > 0) {
+    print("[WARNING] Hashtag staining failed for the following hashtags! Excluding from final object.")
+    failed_htos = names(rowSums(hashtag)[rowSums(hashtag) < 20])
+    print(failed_htos)
+    hashtag = subset(hashtag, features != failed_htos)
+  }
   hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99)
 
   hashtag$patient_id = hto_reference_sub$patient_id[match(htos, hashtag$HTO_maxID)]
