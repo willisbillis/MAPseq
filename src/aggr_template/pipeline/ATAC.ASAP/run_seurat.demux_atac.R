@@ -113,7 +113,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
   print(rowSums(hashtag))
-  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99, kfunc = "kmeans")
+  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.9)
 
   hashtag$patient_id = hto_reference_sub$patient_id[match(htos, hashtag$HTO_maxID)]
   hashtag$atac_id = atac_library_id
