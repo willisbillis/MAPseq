@@ -100,29 +100,31 @@ for (idx in seq_len(nrow(metadata_df))) {
   run_id = metadata_df[idx, "run_id"]
   asap_library_id = metadata_df[idx, "asap_id"]
   atac_library_id = metadata_df[idx, "atac_id"]
-  print(asap_library_id)
+  print(paste("Demultiplexing", asap_library_id))
 
   cells = barcodes$V1[barcodes$library_id == atac_library_id]
   hto_reference_sub = hto_reference[hto_reference$library_id == atac_library_id, ]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   htos = gsub("_","-",hto_reference_sub$hashtag)
 
-  print(rowSums(master_ht[,colnames(master_ht) %in% cells]))
-
   library_ht_hto = master_ht[htos, colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
-  hto_count_sums = rowSums(hashtag@assays$HTO@counts)
-  print(hto_count_sums)
+
+  hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
+  names(hto_count_sums) = rownames(hashtag)
+
+  # check for failed hashtags (< 1 HTO count per cell on average)
   if (sum(hto_count_sums < ncol(hashtag)) > 0) {
     print("[WARNING] Hashtag staining failed for the following hashtags! Excluding from final object.")
     failed_htos = names(hto_count_sums[hto_count_sums < ncol(hashtag)])
+    print(hto_reference_sub$patient_id[match(failed_htos, htos)])
     print(failed_htos)
     hashtag = subset(hashtag, features = htos[htos != failed_htos])
   }
-  hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR")
-  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99)
+  hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR", verbose=F)
+  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99, verbose=F)
 
-  hashtag$patient_id = hto_reference_sub$patient_id[match(htos, hashtag$HTO_maxID)]
+  hashtag$patient_id = hto_reference_sub$patient_id[match(htos, hashtag$hash.ID)]
   hashtag$atac_id = atac_library_id
   hashtag$asap_id = asap_library_id
   hashtag$run_id = run_id
@@ -152,9 +154,13 @@ sc_total <- CreateSeuratObject(counts=chrom_assay,
                                meta.data=metadata,
                                project=PROJECT_NAME)
 
-sc_total = sc_total[, colnames(sc_total)[colnames(sc_total) %in% colnames(merged_hashtag)]]
+sc_total = sc_total[,intersect(colnames(merged_hashtag),colnames(sc_total))]
+merged_hashtag = merged_hashtag[, intersect(colnames(merged_hashtag),colnames(sc_total))]
 
-sc_total = merge(sc_total, merged_hashtag)
+sc_total[["HTO"]] = CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
+sc_total = AddMetaData(sc_total, merged_hashtag@meta.data)
 DefaultAssay(sc_total) = "ATAC"
+
+# TODO: any QC that can be run here without human input??
 
 saveRDS(sc_total, paste0(data_dir,"/raw_atac.hto_",PROJECT_NAME,".RDS"))

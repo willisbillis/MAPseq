@@ -67,19 +67,23 @@ for (idx in seq_len(nrow(aggr_df))) {
   sc_sub <- NormalizeData(sc_sub, assay = "HTO", normalization.method = "CLR")
   sc_sub <- HTODemux(sc_sub, assay = "HTO", positive.quantile = 0.99)
 
-  sc_sub$patient_id = hto_reference_sub$patient_id[match(htos, sc_sub$HTO_maxID)]
+  sc_sub$patient_id = hto_reference_sub$patient_id[match(htos, sc_sub$hash.ID)]
   sc_sub$library_id = rna_library_id
   sc_sub$run_id = run_id
 
   sub_obj_list[[idx]] = sc_sub
 }
 
-hto_merged = merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
-hto_merged = JoinLayers(hto_merged)
-sc_total[["HTO"]] = NULL
-merged_all_assays = merge(sc_total, hto_merged)
-DefaultAssay(merged_all_assays) = "RNA"
+merged_hashtag = merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
+merged_hashtag = JoinLayers(merged_hashtag)
+
+sc_total = sc_total[,intersect(colnames(merged_hashtag),colnames(sc_total))]
+merged_hashtag = merged_hashtag[, intersect(colnames(merged_hashtag),colnames(sc_total))]
+
+sc_total[["HTO"]] = CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
+sc_total = AddMetaData(sc_total, merged_hashtag@meta.data)
+DefaultAssay(sc_total) = "RNA"
 
 # TODO: any QC that can be run here without human input??
 
-saveRDS(merged_all_assays, paste0(data_dir,"raw_rna.hto.adt_",PROJECT_NAME,".RDS"))
+saveRDS(sc_total, paste0(data_dir,"raw_rna.hto.adt_",PROJECT_NAME,".RDS"))
