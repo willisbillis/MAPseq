@@ -77,7 +77,6 @@ for (idx in seq_len(nrow(metadata_df))) {
   library_suffix = match(atac_library_id, aggr_df$library_id)
   colnames(hto) = paste0(colnames(hto), "-", library_suffix)
   cmat <- hto[,colnames(hto) %in% cells]
-  print(paste0(dim(cmat)[2]," overlapping cells. (",dim(hto)[2]," in HTO, ",length(cells)," in scATAC)"))
 
   metadata_df[idx, c("HTO_cells","ATAC_cells","overlap","overlap_pct")] = c(dim(hto)[2], length(cells), dim(cmat)[2], 100*dim(cmat)[2]/length(cells))
   
