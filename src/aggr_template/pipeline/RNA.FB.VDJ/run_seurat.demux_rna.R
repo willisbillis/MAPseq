@@ -28,7 +28,7 @@ GEX_FEAT_NAMING_ID <- Sys.getenv("GEX_FEAT_NAMING_ID")
 # Set all the local variables for this pipeline
 HTO_DEMUX_PATH <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
 OUTS_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/RNA.FB.VDJ/", PROJECT_NAME, "_aggr/outs")
-OUTPUT_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/RNA.FB.VDJ/data")
+OUTPUT_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/RNA.FB.VDJ")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
 
