@@ -111,10 +111,11 @@ for (idx in seq_len(nrow(metadata_df))) {
 
   library_ht_hto = master_ht[htos, colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
-  print(rowSums(hashtag))
-  if (sum(rowSums(hashtag) < ncol(hashtag)) > 0) {
+  hto_counts = rowSums(hashtag@assays$HTO@counts)
+  print(hto_counts)
+  if (sum(hto_counts < ncol(hashtag)) > 0) {
     print("[WARNING] Hashtag staining failed for the following hashtags! Excluding from final object.")
-    failed_htos = names(rowSums(hashtag)[rowSums(hashtag) < 20])
+    failed_htos = names(hto_counts[hto_counts < ncol(hashtag)])
     print(failed_htos)
     hashtag = subset(hashtag, features = htos[htos != failed_htos])
   }
