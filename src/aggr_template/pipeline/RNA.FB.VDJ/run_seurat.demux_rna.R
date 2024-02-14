@@ -67,8 +67,8 @@ for (idx in seq_len(nrow(aggr_df))) {
   hto_counts = hto_counts[htos,]
 
   sc_sub = CreateSeuratObject(counts = hto_counts, assay = "HTO")
-  sc_sub <- NormalizeData(sc_sub, assay = "HTO", normalization.method = "CLR")
-  sc_sub <- HTODemux(sc_sub, assay = "HTO", positive.quantile = 0.99)
+  sc_sub <- NormalizeData(sc_sub, assay = "HTO", normalization.method = "CLR", verbose=F)
+  sc_sub <- HTODemux(sc_sub, assay = "HTO", positive.quantile = 0.99, verbose=F)
 
   sc_sub$patient_id = hto_reference_sub$patient_id[match(htos, sc_sub$hash.ID)]
   sc_sub$library_id = rna_library_id
