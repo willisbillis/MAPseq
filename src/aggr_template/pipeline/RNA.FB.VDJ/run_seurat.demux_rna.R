@@ -52,18 +52,18 @@ sub_obj_list = list()
 
 for (idx in seq_len(nrow(aggr_df))) {
   rna_library_id = aggr_df[idx, "sample_id"]
-  run_id = basename(gsub("\\/pipeline.*","",aggr_df[idx, "fragments"]))
+  run_id = basename(gsub("\\/pipeline.*","",aggr_df[idx, "molecule_h5"]))
 
   hto_reference_sub = hto_reference[hto_reference$library_id == rna_library_id,]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   htos = gsub("_","-",hto_reference_sub$hashtag)
   sc_sub = sc_total[,sc_total$library_id == rna_library_id]
-  DefaultAssay(sc_sub) = "HTO"
-  print(rownames(sc_sub))
-  print(htos)
-  print(rowSums(sc_sub))
-  sc_sub = sc_total[htos,]
-  print(sc_sub)
+
+  hto_counts = sc_sub@assays$HTO@layers$counts
+  rownames(hto_counts) = rownames(sc_sub)
+  hto_counts = hto_counts[htos,]
+
+  sc_sub = CreateSeuratObject(counts = hto_counts, assay = "HTO")
   sc_sub <- NormalizeData(sc_sub, assay = "HTO", normalization.method = "CLR")
   sc_sub <- HTODemux(sc_sub, assay = "HTO", positive.quantile = 0.99)
 
@@ -74,9 +74,12 @@ for (idx in seq_len(nrow(aggr_df))) {
   sub_obj_list[[idx]] = sc_sub
 }
 
-merged = merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
-merged = JoinLayers(merged)
-DefaultAssay(merged) = "RNA"
-merged = JoinLayers(merged)
+hto_merged = merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
+hto_merged = JoinLayers(hto_merged)
+sc_total[["HTO"]] = NULL
+merged_all_assays = merge(sc_total, hto_merged)
+DefaultAssay(merged_all_assays) = "RNA"
 
-saveRDS(merged, paste0(data_dir,"raw_rna.hto.adt_",PROJECT_NAME,".RDS"))
+# TODO: any QC that can be run here without human input??
+
+saveRDS(merged_all_assays, paste0(data_dir,"raw_rna.hto.adt_",PROJECT_NAME,".RDS"))
