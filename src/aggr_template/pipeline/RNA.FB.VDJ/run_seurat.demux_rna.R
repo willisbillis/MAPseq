@@ -80,9 +80,6 @@ for (idx in seq_len(nrow(aggr_df))) {
 merged_hashtag = merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
 merged_hashtag = JoinLayers(merged_hashtag)
 
-sc_total = sc_total[,intersect(colnames(merged_hashtag),colnames(sc_total))]
-merged_hashtag = merged_hashtag[, intersect(colnames(merged_hashtag),colnames(sc_total))]
-
 sc_total[["HTO"]] = CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
 sc_total = AddMetaData(sc_total, merged_hashtag@meta.data)
 DefaultAssay(sc_total) = "RNA"
