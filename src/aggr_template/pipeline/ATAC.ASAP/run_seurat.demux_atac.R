@@ -135,8 +135,6 @@ for (idx in seq_len(nrow(metadata_df))) {
 merged_hashtag = merge(hashtag_obj_list[[1]], c(hashtag_obj_list[2:idx]))
 merged_hashtag = JoinLayers(merged_hashtag)
 
-saveRDS(merged_hashtag, paste0(data_dir,"/hto_",PROJECT_NAME,".RDS"))
-
 peak_matrix_file = paste0(OUTS_DIR, "/filtered_peak_bc_matrix.h5")
 metadata_file = paste0(OUTS_DIR, "/singlecell.csv")
 frag_file = paste0(OUTS_DIR, "/fragments.tsv.gz")
