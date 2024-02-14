@@ -13,6 +13,8 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 
+# this is an example change
+
 p_load(Seurat)
 
 set.seed(1234)                # set seed for reproducibility
