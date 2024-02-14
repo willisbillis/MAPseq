@@ -54,10 +54,13 @@ for (idx in seq_len(nrow(aggr_df))) {
   rna_library_id = aggr_df[idx, "sample_id"]
   run_id = basename(gsub("\\/pipeline.*","",aggr_df[idx, "molecule_h5"]))
 
+  print(paste("Demultiplexing", rna_library_id))
+
   hto_reference_sub = hto_reference[hto_reference$library_id == rna_library_id,]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   htos = gsub("_","-",hto_reference_sub$hashtag)
   sc_sub = sc_total[,sc_total$library_id == rna_library_id]
+  DefaultAssay(sc_sub) = "HTO"
 
   hto_counts = sc_sub@assays$HTO@layers$counts
   rownames(hto_counts) = rownames(sc_sub)
