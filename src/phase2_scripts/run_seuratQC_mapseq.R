@@ -172,45 +172,18 @@ stats$Filtered_Average_Expression = round(AggregateExpression(sc, group.by="pati
 
 write.csv(stats, "table_patientID_filtering.stats.csv", quote = F, row.names = F)
 ###############################################################################
-# Clustering and DEP (differentially expressed proteins) for ADT assay
-DefaultAssay(sc) = "ADT"
-
-sc = NormalizeData(sc)
-sc <- ScaleData(sc, features = rownames(sc), verbose = FALSE)
-sc <- RunPCA(sc, features = rownames(sc), approx = FALSE, reduction.name = "adt_pca", reduction.key = "adtpca_", verbose = FALSE)
-sc = RunUMAP(sc, reduction = 'adt_pca', dims = 1:8, verbose = FALSE)
-
-sc <- FindNeighbors(sc, dims = 1:8, reduction = 'adt_pca', verbose = FALSE)
-for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
-  sc = FindClusters(sc, resolution = res, algorithm = 3, verbose = FALSE)
-}
-
-p = clustree(sc, prefix="ADT_snn_res.")
-ggsave("clustree_clusters_adt.png", p,
-       width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
-
-sc$seurat_clusters_adt = sc[[paste0("ADT_snn_res.", 0.25)]]
-Idents(sc) = "seurat_clusters_adt"
-sc$seurat_clusters = NULL
-sc$seurat_clusters_adt = factor(sc$seurat_clusters_adt)
-
-all_markers = FindAllMarkers(sc, verbose = FALSE)
-all_markers = all_markers[all_markers$p_val_adj < 0.05,]
-fwrite(all_markers, "DEP_clusters.res0.25.csv", row.names = F, quote = F)
-
-adt_umap = DimPlot(sc, reduction = "umap", group.by = "seurat_clusters_adt", label = TRUE) + NoLegend()
-###############################################################################
-# Clustering and DEG (differentially expressed genes) for ADT assay
+# Clustering, DEG (differentially expressed genes), and
+#      DEP (differentially expressed proteins) for RNA assay
 DefaultAssay(sc) = "RNA"
 sc = SCTransform(sc, verbose = FALSE)
 
 # Filter out Ig genes from VariableFeatures, they will clog the results as they are highly-variable by nature
 VariableFeatures(sc) = VariableFeatures(sc)[!grepl(igs, VariableFeatures(sc))]
 
-sc = RunPCA(sc, features = VariableFeatures(sc), reduction.name = "rna_pca", reduction.key = "rnapca_", verbose = FALSE)
-sc = RunUMAP(sc, reduction = 'rna_pca', dims = 1:40, verbose = FALSE)
+sc = RunPCA(sc, features = VariableFeatures(sc), verbose = FALSE)
+sc = RunUMAP(sc, reduction = 'pca', dims = 1:40, verbose = FALSE)
 
-sc <- FindNeighbors(sc, dims = 1:40, reduction = 'rna_pca', verbose = FALSE)
+sc <- FindNeighbors(sc, dims = 1:40, reduction = 'pca', verbose = FALSE)
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, algorithm = 3, verbose = FALSE)
 }
@@ -219,22 +192,20 @@ p = clustree(sc, prefix="SCT_snn_res.")
 ggsave("clustree_clusters_rna.png", p,
        width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
 
-sc$seurat_clusters_rna = sc[[paste0("SCT_snn_res.", 0.25)]]
-Idents(sc) = "seurat_clusters_rna"
-sc$seurat_clusters = NULL
-sc$seurat_clusters_rna = factor(sc$seurat_clusters_rna)
+sc$seurat_clusters = sc[[paste0("SCT_snn_res.", 0.25)]]
+Idents(sc) = "seurat_clusters"
+sc$seurat_clusters = factor(sc$seurat_clusters)
 
 DefaultAssay(sc) = "RNA"
 all_markers = FindAllMarkers(sc, verbose = FALSE)
 all_markers = all_markers[all_markers$p_val_adj < 0.05,]
 fwrite(all_markers, "DEG_clusters.res0.25.csv", row.names = F, quote = F)
 
-rna_umap = DimPlot(sc, reduction = "umap", group.by = "seurat_clusters_rna", label = TRUE) + NoLegend()
+DefaultAssay(sc) = "ADT"
+all_markers = FindAllMarkers(sc, verbose = FALSE)
+all_markers = all_markers[all_markers$p_val_adj < 0.05,]
+fwrite(all_markers, "DEP_clusters.res0.25.csv", row.names = F, quote = F)
 ###############################################################################
-# Creating RNA and ADT UMAP figures
-p = rna_umap + adt_umap
-ggsave("umap_rna.adt_clusters.png", p, width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
-
 # save Seurat object
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 ###############################################################################
