@@ -215,6 +215,7 @@ saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 if (FALSE) {
   sc = AddMetaData(sc, t(LayerData(sc, assay="HTO")))
   sc = AddMetaData(sc, t(LayerData(sc, assay="ADT")))
+  DefaultAssay(sc) = "RNA"
   sc = FindVariableFeatures(sc)
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = TRUE,
