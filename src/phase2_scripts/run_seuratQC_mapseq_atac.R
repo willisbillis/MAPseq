@@ -122,10 +122,10 @@ Annotation(sc_total) = annotations
 # Compute some basic QC metrics on the assay
 
 # compute nucleosome signal score per cell
-sc_total = NucleosomeSignal(object=sc_total)
+sc_total = NucleosomeSignal(object=sc_total, verbose = FALSE,)
 
 # compute TSS enrichment score per cell
-sc_total = TSSEnrichment(object=sc_total)
+sc_total = TSSEnrichment(object=sc_total, verbose = FALSE,)
 
 # add blacklist ratio and fraction of reads in peaks
 sc_total$pct_reads_in_peaks = sc_total$peak_region_fragments /
@@ -224,10 +224,10 @@ all_markers = FindAllMarkers(sc, verbose = FALSE)
 all_markers = all_markers[all_markers$p_val_adj < 0.05,]
 gene_names = ClosestFeature(sc, regions=rownames(all_markers))[,c("query_region","gene_name")]
 all_markers$gene = gene_names$gene_name[match(rownames(all_markers), gene_names$query_region)]
-fwrite(all_markers, "DEG_clusters.res0.25.csv", row.names = F, quote = F)
+fwrite(all_markers, "DAR_clusters.res0.25.csv", row.names = F, quote = F)
 ###############################################################################
 # save Seurat object
-saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_atac.hto.adt_", PROJECT_NAME, ".RDS"))
+saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_atac.hto_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
                file=paste0(PROJECT_DIR, "/",

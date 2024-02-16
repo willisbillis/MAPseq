@@ -52,6 +52,9 @@ function create_ms_aggr_run() {
     echo "library_id,hashtag,patient_id" > $1/pipeline/ATAC.ASAP/hashtag_ref_atac.csv
     ln -s $MAPSEQ_REPO_PATH/src/aggr_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
 
+    mkdir -p $1/phase2_scripts
+    ln -s $MAPSEQ_REPO_PATH/src/phase2_scripts/* $1/phase2_scripts
+
     cat $MAPSEQ_REPO_PATH/src/project_config_header.txt >> $1/project_config.txt
     echo -e "\n" >> $1/project_config.txt
     echo "PROJECT_NAME=$1" >> $1/project_config.txt
