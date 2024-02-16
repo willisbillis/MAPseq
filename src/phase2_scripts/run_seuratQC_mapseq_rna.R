@@ -49,21 +49,21 @@ sc_total = readRDS(RAW_SEURAT_PATH)
 DefaultAssay(sc_total) = "HTO"
 ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 
-p = RidgePlot(sc_total,
+p = RidgePlot(sc_total, verbose = FALSE,
               features = rownames(sc_total[["HTO"]]),
               ncol = ncol,
               group.by = "hash.ID")
 ggsave(paste0("ridgeplot_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
-p = RidgePlot(sc_total,
+p = RidgePlot(sc_total, verbose = FALSE,
               features = rownames(sc_total[["HTO"]]),
               ncol = ncol,
               group.by = "HTO_maxID")
 ggsave(paste0("ridgeplot_max_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
-p = RidgePlot(sc_total,
+p = RidgePlot(sc_total, verbose = FALSE,
               features = rownames(sc_total[["HTO"]]),
               ncol = ncol,
               group.by = "HTO_classification.global")
