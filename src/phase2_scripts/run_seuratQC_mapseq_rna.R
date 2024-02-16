@@ -1,16 +1,11 @@
-# run_seuratQC_mapseq.R - created by M Elliott Williams (https://github.com/willisbillis) Feb 2024
+# run_seuratQC_mapseq_rna.R - created by M Elliott Williams (https://github.com/willisbillis) Feb 2024
 
 # Install required packages using the package manager 'pacman'
 if (!require("pacman", quietly = TRUE)) {
   install.packages("pacman")
 }
 library(pacman)
-p_load(Seurat,Signac,GenomeInfoDb,
-    EnsDb.Mmusculus.v79,EnsDb.Hsapiens.v86,
-    ggplot2,data.table,clustree,tidyr,dplyr,
-    tidytext)
-p_load_gh("satijalab/seurat-data")
-p_load_gh("mojaveazure/seurat-disk")
+p_load(Seurat, Signac, ggplot2, clustree)
 p_load_gh("SGDDNB/ShinyCell")
 
 set.seed(1234)                # set seed for reproducibility
@@ -19,15 +14,8 @@ set.seed(1234)                # set seed for reproducibility
 # Signac: DensityScatter function for QC
 # SeuratData: save Seurat object
 # SeuratDisk: save Seurat object
-# GenomeInfoDb: database for genomic annotations
-# EnsDb.Mmusculus.v79: database for mm10 annotations
-# EnsDb.Hsapiens.v86: database for hg38 annotations
 # ggplot2: functions for plotting
-# data.table: write out csv quickly
 # clustree: plotting clusters vs resolution
-# tidyr: for "separate" function
-# dplyr: for "slice_max" function
-# tidytext: reorder_within()
 # ShinyCell: Interact with your data
 
 ###############################################################################
@@ -199,12 +187,12 @@ sc$seurat_clusters = factor(sc$seurat_clusters)
 DefaultAssay(sc) = "RNA"
 all_markers = FindAllMarkers(sc, verbose = FALSE)
 all_markers = all_markers[all_markers$p_val_adj < 0.05,]
-fwrite(all_markers, "DEG_clusters.res0.25.csv", row.names = F, quote = F)
+write.csv(all_markers, "DEG_clusters.res0.25.csv", row.names = F, quote = F)
 
 DefaultAssay(sc) = "ADT"
 all_markers = FindAllMarkers(sc, verbose = FALSE)
 all_markers = all_markers[all_markers$p_val_adj < 0.05,]
-fwrite(all_markers, "DEP_clusters.res0.25.csv", row.names = F, quote = F)
+write.csv(all_markers, "DEP_clusters.res0.25.csv", row.names = F, quote = F)
 ###############################################################################
 # save Seurat object
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
