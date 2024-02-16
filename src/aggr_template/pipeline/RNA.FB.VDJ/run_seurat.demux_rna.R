@@ -90,3 +90,10 @@ DefaultAssay(sc_total) <- "RNA"
 # TODO: any QC that can be run here without human input??
 
 saveRDS(sc_total, paste0(data_dir, "raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+
+# Save the R session environment information
+capture.output(sessionInfo(),
+               file=paste0(OUTPUT_DIR, "/",
+                           PROJECT_NAME,
+                           ".Rsession.Info.",
+                           gsub("\\D", "", Sys.time()), ".txt"))

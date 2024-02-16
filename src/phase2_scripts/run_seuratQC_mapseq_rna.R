@@ -12,8 +12,6 @@ set.seed(1234)                # set seed for reproducibility
 ## Library descriptions ##
 # Seurat: functions for single cell data
 # Signac: DensityScatter function for QC
-# SeuratData: save Seurat object
-# SeuratDisk: save Seurat object
 # ggplot2: functions for plotting
 # clustree: plotting clusters vs resolution
 # ShinyCell: Interact with your data
@@ -23,7 +21,7 @@ set.seed(1234)                # set seed for reproducibility
 
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "LRA_all"
-# REPLACE, path to output dir from MAPseq pipeline
+# REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
 PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq/LRA_all/analysis/RNA.FB.VDJ"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS")
 
@@ -130,7 +128,7 @@ p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt", quantiles=TRUE, log_x
 nFeature_mt_plot <- p +
   geom_hline(yintercept=MAX_PCT_MT,linetype='dashed') +
   geom_vline(xintercept=c(MIN_GENE_READS, MAX_GENE_READS), linetype='dashed')
-ggsave("scatter_nFeatRNA.v.MT_alldata.png", nFeature_mt_plot,
+ggsave("scatter_nFeatRNA.v.MT_filtered.png", nFeature_mt_plot,
        width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
 ###############################################################################
 ###############################################################################
@@ -158,7 +156,7 @@ sc$hash.ID = factor(sc$hash.ID, levels = unique(sc$hash.ID)) # Remove Doublet an
 stats$Filtered_Cells = as.numeric(table(sc$patient_id))
 stats$Filtered_Average_Expression = round(AggregateExpression(sc, group.by="patient_id")$RNA %>% colSums / stats$Filtered_Cells)
 
-write.csv(stats, "table_patientID_filtering.stats.csv", quote = F, row.names = F)
+write.csv(stats, "QC.rna_patientID_filtering.stats.csv", quote = F, row.names = F)
 ###############################################################################
 # Clustering, DEG (differentially expressed genes), and
 #      DEP (differentially expressed proteins) for RNA assay
@@ -169,7 +167,7 @@ sc = SCTransform(sc, verbose = FALSE)
 VariableFeatures(sc) = VariableFeatures(sc)[!grepl(igs, VariableFeatures(sc))]
 
 sc = RunPCA(sc, features = VariableFeatures(sc), verbose = FALSE)
-sc = RunUMAP(sc, reduction = 'pca', dims = 1:40, verbose = FALSE)
+sc = RunUMAP(sc, reduction = 'pca', dims = 1:40, reduction.name="UMAP", verbose = FALSE)
 
 sc <- FindNeighbors(sc, dims = 1:40, reduction = 'pca', verbose = FALSE)
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
@@ -196,6 +194,12 @@ write.csv(all_markers, "DEP_clusters.res0.25.csv", row.names = F, quote = F)
 ###############################################################################
 # save Seurat object
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+# Save the R session environment information
+capture.output(sessionInfo(),
+               file=paste0(PROJECT_DIR, "/",
+                           PROJECT_NAME,
+                           ".Rsession.Info.",
+                           gsub("\\D", "", Sys.time()), ".txt"))
 ###############################################################################
 ###############################################################################
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io

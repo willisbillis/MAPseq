@@ -161,3 +161,10 @@ DefaultAssay(sc_total) = "ATAC"
 # TODO: any QC that can be run here without human input??
 
 saveRDS(sc_total, paste0(data_dir,"/raw_atac.hto_",PROJECT_NAME,".RDS"))
+
+# Save the R session environment information
+capture.output(sessionInfo(),
+               file=paste0(OUTPUT_DIR, "/",
+                           PROJECT_NAME,
+                           ".Rsession.Info.",
+                           gsub("\\D", "", Sys.time()), ".txt"))
