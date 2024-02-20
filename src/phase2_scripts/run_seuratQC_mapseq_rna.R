@@ -49,25 +49,28 @@ sc_total = readRDS(RAW_SEURAT_PATH)
 DefaultAssay(sc_total) = "HTO"
 ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 
-p = RidgePlot(sc_total,
-              features = rownames(sc_total[["HTO"]]),
-              ncol = ncol,
-              group.by = "hash.ID")
-ggsave(paste0("ridgeplot_called_", PROJECT_NAME, ".png"),
+p = VlnPlot(sc_total,
+            features = rownames(sc_total[["HTO"]]),
+            ncol = ncol,
+            group.by = "hash.ID",
+            pt.size = 0)
+ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
-p = RidgePlot(sc_total,
-              features = rownames(sc_total[["HTO"]]),
-              ncol = ncol,
-              group.by = "HTO_maxID")
-ggsave(paste0("ridgeplot_max_", PROJECT_NAME, ".png"),
+p = VlnPlot(sc_total,
+            features = rownames(sc_total[["HTO"]]),
+            ncol = ncol,
+            group.by = "HTO_maxID",
+            pt.size = 0)
+ggsave(paste0("vln_max_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
-p = RidgePlot(sc_total,
-              features = rownames(sc_total[["HTO"]]),
-              ncol = ncol,
-              group.by = "HTO_classification.global")
-ggsave(paste0("ridgeplot_classification_", PROJECT_NAME, ".png"),
+p = VlnPlot(sc_total,
+            features = rownames(sc_total[["HTO"]]),
+            ncol = ncol,
+            group.by = "HTO_classification.global",
+            pt.size = 0)
+ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
 top_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95)],
@@ -138,23 +141,22 @@ ggsave("scatter_nFeatRNA.v.MT_filtered.png", nFeature_mt_plot,
 stats = data.frame(table(sc_total$patient_id))
 colnames(stats) = c("Patients", "Unfiltered_Cells")
 rownames(stats) = stats$Patients
-stats$Unfiltered_Average_Expression = round(AggregateExpression(sc_total, group.by="patient_id")$RNA %>% colSums / stats$Unfiltered_Cells)
-
-stats$Filtered_by_MT_NF = table(sc_total$patient_id, sc_total$nFeature_RNA <= MIN_GENE_READS & sc_total$percent.mt >= MAX_PCT_MT)[, "TRUE"]
-stats$Filtered_by_MT = table(sc_total$patient_id, sc_total$nFeature_RNA <= MIN_GENE_READS)[, "TRUE"] - stats$Filtered_by_MT_NF
-stats$Filtered_by_NF = table(sc_total$patient_id, sc_total$percent.mt >= MAX_PCT_MT)[, "TRUE"] - stats$Filtered_by_MT_NF
+stats$Unfiltered_Average_Expression.RNA = round(AggregateExpression(sc_total, group.by="patient_id")$RNA %>% colSums / stats$Unfiltered_Cells)
+stats$Unfiltered_Average_Expression.ADT = round(AggregateExpression(sc_total, group.by="patient_id")$ADT %>% colSums / stats$Unfiltered_Cells)
 
 sc = subset(sc_total,
-            subset=percent.mt   < MAX_PCT_MT &
-                   nFeature_RNA > MIN_GENE_READS &
-                   nFeature_RNA < MAX_GENE_READS)
+            subset = percent.mt < MAX_PCT_MT &
+              nFeature_RNA > MIN_GENE_READS &
+              nFeature_RNA < MAX_GENE_READS)
 
 # HTO Filter
-sc <- subset(sc, subset = HTO_classification.global == "Singlet")
-sc$hash.ID = factor(sc$hash.ID, levels = unique(sc$hash.ID)) # Remove Doublet and Negative factors
+sc <- subset(sc, subset = HTO_classification.global != "Doublet")
 
-stats$Filtered_Cells = as.numeric(table(sc$patient_id))
-stats$Filtered_Average_Expression = round(AggregateExpression(sc, group.by="patient_id")$RNA %>% colSums / stats$Filtered_Cells)
+patient_id.counts = as.data.frame(table(sc$patient_id))
+stats$Filtered_Cells = patient_id.counts$Freq[match(stats$Patients, patient_id.counts$Var1)]
+stats[is.na(stats)] = 0
+stats$Filtered_Average_Expression.RNA = round(AggregateExpression(sc, group.by="patient_id")$RNA %>% colSums / stats$Filtered_Cells)
+stats$Filtered_Average_Expression.ADT = round(AggregateExpression(sc, group.by="patient_id")$ADT %>% colSums / stats$Filtered_Cells)
 
 write.csv(stats, "QC.rna_patientID_filtering.stats.csv", quote = F, row.names = F)
 ###############################################################################

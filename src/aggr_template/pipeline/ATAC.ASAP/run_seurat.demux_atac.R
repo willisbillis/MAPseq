@@ -156,9 +156,11 @@ merged_hashtag = merged_hashtag[, intersect(colnames(merged_hashtag),colnames(sc
 
 sc_total[["HTO"]] = CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
 sc_total = AddMetaData(sc_total, merged_hashtag@meta.data)
-DefaultAssay(sc_total) = "ATAC"
 
-# TODO: any QC that can be run here without human input??
+# LRA runs 1-7 specific code - replace TSB prefix with naming consistent with TSC HTOs
+rownames(sc_total[["HTO"]]) = gsub("TSB-HTO", "TSB", rownames(sc_total[["HTO"]]))
+
+DefaultAssay(sc_total) = "ATAC"
 
 saveRDS(sc_total, paste0(data_dir,"/raw_atac.hto_",PROJECT_NAME,".RDS"))
 

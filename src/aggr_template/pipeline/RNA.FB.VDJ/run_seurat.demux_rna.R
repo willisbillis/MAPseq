@@ -43,6 +43,10 @@ new_sample_names <- factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordere
 sc_total$library_id <- new_sample_names[as.integer(gsub(".*-", "", colnames(sc_total)))]
 
 adt.data <- sc.data$`Antibody Capture`
+
+# LRA runs 1-7 specific code - replace "TSC" prefix with "anti"
+rownames(adt.data)[!grepl("^HT", rownames(adt.data))] = gsub("TSC-", "anti-", rownames(adt.data)[!grepl("^HT", rownames(adt.data))])
+
 sc_total[["HTO"]] <- CreateAssay5Object(counts = adt.data[grepl("^HT", rownames(adt.data)), ])
 sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data[!grepl("^HT", rownames(adt.data)), ])
 
@@ -86,8 +90,6 @@ merged_hashtag <- JoinLayers(merged_hashtag)
 sc_total[["HTO"]] <- CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
 sc_total <- AddMetaData(sc_total, merged_hashtag@meta.data)
 DefaultAssay(sc_total) <- "RNA"
-
-# TODO: any QC that can be run here without human input??
 
 saveRDS(sc_total, paste0(data_dir, "raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 
