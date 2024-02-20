@@ -5,7 +5,7 @@ if (!require("pacman", quietly = TRUE)) {
   install.packages("pacman")
 }
 library(pacman)
-p_load(Seurat, Signac, ggplot2, clustree)
+p_load(Seurat, Signac, ggplot2, clustree, dplyr)
 p_load_gh("SGDDNB/ShinyCell")
 
 set.seed(1234)                # set seed for reproducibility
@@ -14,6 +14,7 @@ set.seed(1234)                # set seed for reproducibility
 # Signac: DensityScatter function for QC
 # ggplot2: functions for plotting
 # clustree: plotting clusters vs resolution
+# dplyr: pipe command '%>%'
 # ShinyCell: Interact with your data
 
 ###############################################################################
