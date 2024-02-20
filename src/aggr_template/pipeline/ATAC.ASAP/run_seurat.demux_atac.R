@@ -95,6 +95,10 @@ hto_reference = read.csv(HTO_DEMUX_PATH)
 
 hashtag_obj_list = list()
 
+# LRA runs 1-7 specific code - replace TSB prefix with naming consistent with TSC HTOs
+hto_reference_sub$hashtag = gsub("TSB_HTO", "TSB", hto_reference_sub$hashtag)
+rownames(master_ht) = gsub("TSB_HTO", "TSB", rownames(master_ht))
+
 for (idx in seq_len(nrow(metadata_df))) {
   run_id = metadata_df[idx, "run_id"]
   asap_library_id = metadata_df[idx, "asap_id"]
@@ -105,7 +109,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   hto_reference_sub = hto_reference[hto_reference$library_id == atac_library_id, ]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   htos = gsub("_","-",hto_reference_sub$hashtag)
-
+  
   library_ht_hto = master_ht[htos, colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
 
@@ -156,9 +160,6 @@ merged_hashtag = merged_hashtag[, intersect(colnames(merged_hashtag),colnames(sc
 
 sc_total[["HTO"]] = CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
 sc_total = AddMetaData(sc_total, merged_hashtag@meta.data)
-
-# LRA runs 1-7 specific code - replace TSB prefix with naming consistent with TSC HTOs
-rownames(sc_total[["HTO"]]) = gsub("TSB-HTO", "TSB", rownames(sc_total[["HTO"]]))
 
 DefaultAssay(sc_total) = "ATAC"
 
