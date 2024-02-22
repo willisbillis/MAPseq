@@ -47,7 +47,7 @@ adt.data <- sc.data$`Antibody Capture`
 # LRA runs 1-7 specific code - replace "TSC" prefix with "anti"
 rownames(adt.data)[grepl("^TSC_", rownames(adt.data))] = gsub("TSC_", "anti-", rownames(adt.data)[grepl("^TSC_", rownames(adt.data))])
 
-sc_total[["HTO"]] <- CreateAssay5Object(counts = adt.data[grepl("^TSC", rownames(adt.data)), ])
+sc_total[["HTO"]] <- CreateAssay5Object(counts = adt.data[grepl("^HTC", rownames(adt.data)), ])
 sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data[!grepl("^anti-", rownames(adt.data)), ])
 
 data_dir <- paste0(OUTPUT_DIR, "/data/")
