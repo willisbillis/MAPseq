@@ -48,7 +48,7 @@ adt.data <- sc.data$`Antibody Capture`
 rownames(adt.data)[grepl("^TSC_", rownames(adt.data))] = gsub("TSC_", "anti-", rownames(adt.data)[grepl("^TSC_", rownames(adt.data))])
 
 sc_total[["HTO"]] <- CreateAssay5Object(counts = adt.data[grepl("^HTC", rownames(adt.data)), ])
-sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data[!grepl("^anti-", rownames(adt.data)), ])
+sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data[grepl("^anti-", rownames(adt.data)), ])
 
 data_dir <- paste0(OUTPUT_DIR, "/data/")
 dir.create(data_dir, recursive = T, showWarnings = F)
