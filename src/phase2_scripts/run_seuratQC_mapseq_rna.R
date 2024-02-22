@@ -154,7 +154,7 @@ sc = subset(sc_total,
 # HTO Filter
 sc <- subset(sc, subset = HTO_classification.global != "Doublet")
 DefaultAssay(sc) = "ADT"
-VariableFeatures(bm) <- rownames(bm[["ADT"]])
+VariableFeatures(sc) <- rownames(sc[["ADT"]])
 sc = NormalizeData(sc, normalization.method = 'CLR', margin = 2)
 sc = ScaleData(sc)
 
