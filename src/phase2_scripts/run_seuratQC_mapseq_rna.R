@@ -144,6 +144,7 @@ colnames(stats) = c("Patients", "Unfiltered_Cells")
 rownames(stats) = stats$Patients
 stats$Unfiltered_Average_Expression.RNA = round(AggregateExpression(sc_total, group.by="patient_id")$RNA %>% colSums / stats$Unfiltered_Cells)
 stats$Unfiltered_Average_Expression.ADT = round(AggregateExpression(sc_total, group.by="patient_id")$ADT %>% colSums / stats$Unfiltered_Cells)
+stats$Unfiltered_Average_Expression.HTO = round(AggregateExpression(sc_total, group.by="patient_id")$HTO %>% colSums / stats$Unfiltered_Cells)
 
 sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
@@ -152,12 +153,17 @@ sc = subset(sc_total,
 
 # HTO Filter
 sc <- subset(sc, subset = HTO_classification.global != "Doublet")
+DefaultAssay(sc) = "ADT"
+VariableFeatures(bm) <- rownames(bm[["ADT"]])
+sc = NormalizeData(sc, normalization.method = 'CLR', margin = 2)
+sc = ScaleData(sc)
 
 patient_id.counts = as.data.frame(table(sc$patient_id))
 stats$Filtered_Cells = patient_id.counts$Freq[match(stats$Patients, patient_id.counts$Var1)]
 stats[is.na(stats)] = 0
 stats$Filtered_Average_Expression.RNA = round(AggregateExpression(sc, group.by="patient_id")$RNA %>% colSums / stats$Filtered_Cells)
 stats$Filtered_Average_Expression.ADT = round(AggregateExpression(sc, group.by="patient_id")$ADT %>% colSums / stats$Filtered_Cells)
+stats$Filtered_Average_Expression.HTO = round(AggregateExpression(sc, group.by="patient_id")$HTO %>% colSums / stats$Filtered_Cells)
 
 write.csv(stats, "QC.rna_patientID_filtering.stats.csv", quote = F, row.names = F)
 ###############################################################################
@@ -185,13 +191,11 @@ sc$seurat_clusters = sc[[paste0("SCT_snn_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
-DefaultAssay(sc) = "RNA"
-all_markers = FindAllMarkers(sc, verbose = FALSE)
+all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
 all_markers = all_markers[all_markers$p_val_adj < 0.05,]
 write.csv(all_markers, "DEG_clusters.res0.25.csv", row.names = F, quote = F)
 
-DefaultAssay(sc) = "ADT"
-all_markers = FindAllMarkers(sc, verbose = FALSE)
+all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05,]
 write.csv(all_markers, "DEP_clusters.res0.25.csv", row.names = F, quote = F)
 ###############################################################################
