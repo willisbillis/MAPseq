@@ -45,7 +45,7 @@ sc_total$library_id <- new_sample_names[as.integer(gsub(".*-", "", colnames(sc_t
 adt.data <- sc.data$`Antibody Capture`
 
 # LRA runs 1-7 specific code - replace "TSC" prefix with "anti"
-rownames(adt.data)[grepl("^TSC-", rownames(adt.data))] = gsub("TSC-", "anti-", rownames(adt.data)[grepl("^TSC-", rownames(adt.data))])
+rownames(adt.data)[grepl("^TSC_", rownames(adt.data))] = gsub("TSC_", "anti-", rownames(adt.data)[grepl("^TSC-", rownames(adt.data))])
 
 sc_total[["HTO"]] <- CreateAssay5Object(counts = adt.data[grepl("^TSC", rownames(adt.data)), ])
 sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data[!grepl("^anti-", rownames(adt.data)), ])
