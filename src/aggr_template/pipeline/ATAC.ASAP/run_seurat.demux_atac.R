@@ -96,7 +96,7 @@ hto_reference = read.csv(HTO_DEMUX_PATH)
 hashtag_obj_list = list()
 
 # LRA runs 1-7 specific code - replace TSB prefix with naming consistent with TSC HTOs
-hto_reference_sub$hashtag = gsub("TSB_HTO", "TSB", hto_reference_sub$hashtag)
+hto_reference$hashtag = gsub("TSB_HTO", "TSB", hto_reference$hashtag)
 rownames(master_ht) = gsub("TSB_HTO", "TSB", rownames(master_ht))
 
 for (idx in seq_len(nrow(metadata_df))) {
