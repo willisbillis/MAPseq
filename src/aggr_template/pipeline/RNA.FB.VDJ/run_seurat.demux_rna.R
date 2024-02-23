@@ -64,24 +64,37 @@ for (idx in seq_len(nrow(aggr_df))) {
 
   hto_reference_sub <- hto_reference[hto_reference$library_id == rna_library_id, ]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
-  htos <- gsub("_", "-", hto_reference_sub$hashtag)
+  hto_reference_sub$hashtag <- gsub("_", "-", hto_reference_sub$hashtag)
   sc_sub <- sc_total[, colnames(sc_total)[sc_total$library_id == rna_library_id]]
   DefaultAssay(sc_sub) <- "HTO"
 
   hto_counts <- sc_sub@assays$HTO@layers$counts
   rownames(hto_counts) = rownames(sc_sub)
   colnames(hto_counts) = colnames(sc_sub) 
-  hto_counts <- hto_counts[htos, ]
+  hto_counts <- hto_counts[hto_reference_sub$hashtag, ]
+  hashtag <- CreateSeuratObject(counts = hto_counts, assay = "HTO")
+  
+  hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
+  names(hto_count_sums) = rownames(hashtag)
 
-  sc_sub <- CreateSeuratObject(counts = hto_counts, assay = "HTO")
-  sc_sub <- NormalizeData(sc_sub, assay = "HTO", normalization.method = "CLR", verbose = F)
-  sc_sub <- HTODemux(sc_sub, assay = "HTO", positive.quantile = 0.99, verbose = F)
+  # check for failed hashtags (< 1 HTO count per cell on average)
+  if (sum(hto_count_sums < ncol(hashtag)) > 0) {
+    print("[WARNING] Hashtag staining failed for the following hashtags! Excluding from final object.")
+    failed_htos = names(hto_count_sums[hto_count_sums < ncol(hashtag)])
+    print(hto_reference_sub$patient_id[match(failed_htos, hto_reference_sub$hashtag)])
+    print(failed_htos)
+    hto_reference_sub = hto_reference_sub[!(hto_reference_sub$hashtag %in% failed_htos), ]
+    hashtag = subset(hashtag, features = hto_reference_sub$hashtag)
+  }
 
-  sc_sub$patient_id <- hto_reference_sub$patient_id[match(htos, sc_sub$hash.ID)]
-  sc_sub$library_id <- rna_library_id
-  sc_sub$run_id <- run_id
+  hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR", verbose = F)
+  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99, verbose = F)
 
-  sub_obj_list[[idx]] <- sc_sub
+  hashtag$patient_id <- hto_reference_sub$patient_id[match(hashtag$hash.ID, hto_reference_sub$hashtag)]
+  hashtag$library_id <- rna_library_id
+  hashtag$run_id <- run_id
+
+  sub_obj_list[[idx]] <- hashtag
 }
 
 merged_hashtag <- merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
