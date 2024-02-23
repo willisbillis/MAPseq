@@ -29,6 +29,7 @@ PROJECT_NAME = "LRA_all"
 # REPLACE, path to ATAC.ASAP analysis dir from MAPseq pipeline
 PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq/LRA_all/analysis/ATAC.ASAP"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_atac.hto_", PROJECT_NAME, ".RDS")
+HTO_DEMUX_PATH = paste0(PROJECT_DIR,"/../../pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 
 GENOME = "GRCh38"                     # REPLACE (GRCh38, GRCm38, or GRCm39)
 OUTPUT_FIG_WIDTH =  8               # inches, width of output figures
@@ -180,10 +181,14 @@ ggsave("scatter_peakfrags.v.TSSe_filtered.png",
 # Filtering of cells based on QC criteria
 
 # Expression Filter
-stats = data.frame(table(sc_total$patient_id))
-colnames(stats) = c("Patients", "Unfiltered_Cells")
-rownames(stats) = stats$Patients
-stats$Unfiltered_Average_Accessibility = round(AggregateExpression(sc_total, group.by="patient_id")$ATAC %>% colSums / stats$Unfiltered_Cells)
+hto_reference = read.csv(HTO_DEMUX_PATH)
+stats = data.frame(Patients = hto_reference$patient_id)
+patient_id.counts = as.data.frame(table(sc_total$patient_id))
+stats$Unfiltered_Cells = patient_id.counts$Freq[match(stats$Patients, patient_id.counts$Var1)]
+stats[is.na(stats)] = 0
+cell_counts = round(AggregateExpression(sc_total, group.by="patient_id")$ATAC %>% colSums)
+stats$Unfiltered_Average_Accessibility = cell_counts[match(stats$Patients, names(cell_counts))] /
+       stats$Unfiltered_Cells
 
 sc <- subset(sc_total,
              peak_region_fragments > MIN_PEAK_FRAGMENTS &
@@ -199,7 +204,10 @@ sc <- subset(sc, subset = HTO_classification.global != "Doublet")
 patient_id.counts = as.data.frame(table(sc$patient_id))
 stats$Filtered_Cells = patient_id.counts$Freq[match(stats$Patients, patient_id.counts$Var1)]
 stats[is.na(stats)] = 0
-stats$Filtered_Average_Accessibility = round(AggregateExpression(sc, group.by="patient_id")$ATAC %>% colSums / stats$Filtered_Cells)
+cell_counts = round(AggregateExpression(sc, group.by="patient_id")$ATAC %>% colSums)
+stats$Filtered_Average_Accessibility = cell_counts[match(stats$Patients, names(cell_counts))] /
+       stats$Filtered_Cells
+stats[is.na(stats)] = 0
 
 write.csv(stats, "QC.atac_patientID_filtering.stats.csv", quote = F, row.names = F)
 ###############################################################################
