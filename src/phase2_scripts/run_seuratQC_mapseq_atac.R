@@ -65,10 +65,10 @@ p = VlnPlot(sc_total,
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
-top_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95)],
-       sc_total$HTO_secondID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95)]))
-bot_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin < quantile(sc_total$HTO_margin, 0.05)],
-       sc_total$HTO_secondID[sc_total$HTO_margin < quantile(sc_total$HTO_margin, 0.05)]))
+top_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95, na.rm=T)],
+       sc_total$HTO_secondID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95, na.rm=T)]))
+bot_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin < quantile(sc_total$HTO_margin, 0.05, na.rm=T)],
+       sc_total$HTO_secondID[sc_total$HTO_margin < quantile(sc_total$HTO_margin, 0.05, na.rm=T)]))
 
 top_confusion_matrix$Var1 = as.character(top_confusion_matrix$Var1)
 top_confusion_matrix$Var2 = as.character(top_confusion_matrix$Var2)
@@ -127,10 +127,10 @@ Annotation(sc_total) = annotations
 # Compute some basic QC metrics on the assay
 
 # compute nucleosome signal score per cell
-sc_total = NucleosomeSignal(object=sc_total, verbose = FALSE,)
+sc_total = NucleosomeSignal(object=sc_total, verbose = FALSE)
 
 # compute TSS enrichment score per cell
-sc_total = TSSEnrichment(object=sc_total, verbose = FALSE,)
+sc_total = TSSEnrichment(object=sc_total, verbose = FALSE)
 
 # add blacklist ratio and fraction of reads in peaks
 sc_total$pct_reads_in_peaks = sc_total$peak_region_fragments /
