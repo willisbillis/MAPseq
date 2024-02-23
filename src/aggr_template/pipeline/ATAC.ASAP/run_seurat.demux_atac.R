@@ -108,9 +108,9 @@ for (idx in seq_len(nrow(metadata_df))) {
   cells = barcodes$V1[barcodes$library_id == atac_library_id]
   hto_reference_sub = hto_reference[hto_reference$library_id == atac_library_id, ]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
-  htos = gsub("_","-",hto_reference_sub$hashtag)
+  hto_reference_sub$hashtag = gsub("_","-",hto_reference_sub$hashtag)
   
-  library_ht_hto = master_ht[htos, colnames(master_ht) %in% cells]
+  library_ht_hto = master_ht[hto_reference_sub$hashtag, colnames(master_ht) %in% cells]
   hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
 
   hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
@@ -120,14 +120,14 @@ for (idx in seq_len(nrow(metadata_df))) {
   if (sum(hto_count_sums < ncol(hashtag)) > 0) {
     print("[WARNING] Hashtag staining failed for the following hashtags! Excluding from final object.")
     failed_htos = names(hto_count_sums[hto_count_sums < ncol(hashtag)])
-    print(hto_reference_sub$patient_id[match(failed_htos, htos)])
     print(failed_htos)
-    hashtag = subset(hashtag, features = htos[htos != failed_htos])
+    hto_reference_sub = hto_reference_sub[!(hto_reference_sub$hashtag %in% failed_htos), ]
+    hashtag = subset(hashtag, features = hto_reference_sub$hashtag)
   }
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR", verbose=F)
   hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99, verbose=F)
 
-  hashtag$patient_id = hto_reference_sub$patient_id[match(htos, hashtag$hash.ID)]
+  hashtag$patient_id = hto_reference_sub$patient_id[match(hashtag$hash.ID, hto_reference_sub$hashtag)]
   hashtag$atac_id = atac_library_id
   hashtag$asap_id = asap_library_id
   hashtag$run_id = run_id
@@ -146,16 +146,13 @@ metadata <- read.csv(file=metadata_file, header=TRUE, row.names=1)
 
 chrom_assay <- CreateChromatinAssay(counts=counts,
                                     sep=c(":", "-"),
-                                    fragments=frag_file,
-                                    min.cells = 10,
-                                    min.features = 200)
+                                    fragments=frag_file)
 
 sc_total <- CreateSeuratObject(counts=chrom_assay,
                                assay="ATAC",
                                meta.data=metadata,
                                project=PROJECT_NAME)
 
-sc_total = sc_total[,intersect(colnames(merged_hashtag),colnames(sc_total))]
 merged_hashtag = merged_hashtag[, intersect(colnames(merged_hashtag),colnames(sc_total))]
 
 sc_total[["HTO"]] = CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
