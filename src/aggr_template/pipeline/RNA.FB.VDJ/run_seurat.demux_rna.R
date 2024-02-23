@@ -77,7 +77,7 @@ for (idx in seq_len(nrow(aggr_df))) {
   sc_sub <- NormalizeData(sc_sub, assay = "HTO", normalization.method = "CLR", verbose = F)
   sc_sub <- HTODemux(sc_sub, assay = "HTO", positive.quantile = 0.99, verbose = F)
 
-  sc_sub$patient_id <- hto_reference_sub$patient_id[match(sc_sub$hash.ID, htos)]
+  sc_sub$patient_id <- hto_reference_sub$patient_id[match(htos, sc_sub$hash.ID)]
   sc_sub$library_id <- rna_library_id
   sc_sub$run_id <- run_id
 

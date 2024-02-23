@@ -127,7 +127,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR", verbose=F)
   hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99, verbose=F)
 
-  hashtag$patient_id = hto_reference_sub$patient_id[match(hashtag$hash.ID, htos)]
+  hashtag$patient_id = hto_reference_sub$patient_id[match(htos, hashtag$hash.ID)]
   hashtag$atac_id = atac_library_id
   hashtag$asap_id = asap_library_id
   hashtag$run_id = run_id
