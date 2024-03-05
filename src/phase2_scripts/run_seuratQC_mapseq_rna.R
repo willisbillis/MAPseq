@@ -190,20 +190,81 @@ stats[is.na(stats)] = 0
 
 write.csv(stats, "QC.rna_patientID_filtering.stats.csv", quote = F, row.names = F)
 ###############################################################################
-# Clustering, DEG (differentially expressed genes), and
-#      DEP (differentially expressed proteins) for RNA assay
-DefaultAssay(sc) = "RNA"
-sc = SCTransform(sc, verbose = FALSE)
+# Batch correction, Clustering, DEG (differentially expressed genes), and
+#     DEP (differentially expressed proteins) for RNA assay
 
-# Filter out Ig genes from VariableFeatures, they will clog the results as they are highly-variable by nature
-VariableFeatures(sc) = VariableFeatures(sc)[!grepl(igs, VariableFeatures(sc))]
+#### RNA RPCA Batch correction ####
+sc_rna = split(sc[["RNA"]], f = sc$patient_id)
+sc_rna <- SCTransform(sc_rna, verbose = FALSE)
 
-sc = RunPCA(sc, features = VariableFeatures(sc), verbose = FALSE)
-sc = RunUMAP(sc, reduction = 'pca', dims = 1:40, reduction.name="UMAP", verbose = FALSE)
+# Filter out Ig genes from VariableFeatures, they will clog the results as
+#     they are highly-variable by nature
+non_ig_mask = !grepl(igs, VariableFeatures(sc_rna))
+VariableFeatures(sc_rna) = VariableFeatures(sc_rna)[non_ig_mask]
+sc_rna <- RunPCA(sc_rna, npcs = 40, assay = "RNA",
+                 reduction.name = "rna.pca", verbose = TRUE)
 
-sc <- FindNeighbors(sc, dims = 1:40, reduction = 'pca', verbose = FALSE)
+sc_rna <- FindNeighbors(sc_rna, dims = 1:40, reduction = "rna.pca")
+sc_rna <- FindClusters(sc_rna, resolution = 2,
+                       cluster.name = "unintegrated_clusters")
+
+sc_rna <- RunUMAP(sc_rna, dims = 1:40, reduction = "rna.pca",
+                  reduction.name = "umap.rna.unintegrated")
+# visualize by batch and cell type annotation
+# cell type annotations were previously added by Azimuth
+DimPlot(obj, reduction = "umap.unintegrated", group.by = c("Method", "predicted.celltype.l2"))
+
+combined_features <- SelectIntegrationFeatures(object.list = sc_rna,
+                                               nfeatures = 3000)
+sc_rna <- PrepSCTIntegration(object.list = sc_rna,
+                             anchor.features = combined_features,
+                             verbose = FALSE)
+
+sc_rna <- IntegrateLayers(
+  object = sc_rna, method = RPCAIntegration,
+  max.features = 3000,
+  dims = 1:40, normalization.method = "SCT",
+  new.assay.name = "SCT",
+  orig.reduction = "rna.pca", new.reduction = "integrated.rna.rpca",
+  verbose = FALSE
+)
+
+#### ADT RPCA Batch correction ####
+sc_adt = split(sc[["ADT"]], f = sc$patient_id)
+VariableFeatures(sc_adt) <- rownames(sc_adt[["ADT"]])
+sc_adt <- NormalizeData(sc_adt, normalization.method = "CLR", margin = 2)
+
+# Select features that are repeatedly variable across datasets for integration
+#     run PCA on each dataset using these features
+features <- rownames(sc[["ADT"]])
+sc_adt <- ScaleData(sc_adt, features = features,
+                    do.center = TRUE,
+                    do.scale = FALSE,
+                    verbose = FALSE)
+sc_adt <- RunPCA(x, features = features, npcs = 40, reduction.name = "adt.pca",
+                 verbose = FALSE)
+sc_adt <- IntegrateLayers(
+  object = sc_adt, method = RPCAIntegration,
+  features = features,
+  dims = 1:40, normalization.method = "LogNormalize",
+  new.assay.name = "ADT",
+  orig.reduction = "adt.pca", new.reduction = "integrated.adt.rpca",
+  verbose = FALSE
+)
+
+sc = merge(sc_rna, sc_adt)
+
+#### WNN Integration of RNA and ADT assays ####
+sc <- FindMultiModalNeighbors(
+  sc, reduction.list = list("integrated.rna.pca", "integrated.adt.pca"),
+  dims.list = list(1:40, 1:40)
+)
+sc = RunUMAP(sc, n.name = "weighted.nn",  reduction.name = "wnn.umap",
+             reduction.key = "wnnUMAP_", dims = 1:40, verbose = FALSE)
+
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
-  sc = FindClusters(sc, resolution = res, algorithm = 3, verbose = FALSE)
+  sc = FindClusters(sc, resolution = res, graph.name = "wsnn",
+                    algorithm = 3, verbose = FALSE)
 }
 
 p = clustree(sc, prefix="SCT_snn_res.")
