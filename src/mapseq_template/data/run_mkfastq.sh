@@ -19,7 +19,7 @@ cd $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR/reports
 
 ## ATAC.ASAP mkfastq demultiplexing
-if [[ $(wc -l ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
+if [ $(wc -l ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]; then
     CR_atac_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
     echo "$(date) Running Cell Ranger ATAC version $CR_atac_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
 
@@ -32,7 +32,7 @@ if [[ $(wc -l ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
     #     NB: This checks to see if this variable is already set.
     #     See https://stackoverflow.com/a/13864829
     ATAC_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_ATAC/outs/fastq_path/*/ | grep -v "Reports\|Stats")
-    if [[ -z ${ATAC_FLOWCELL_ID+x} ]]; then
+    if [ -z ${ATAC_FLOWCELL_ID+x} ]; then
         echo "ATAC_FLOWCELL_ID=$(basename $ATAC_FC_PATH)" >> ../project_config.txt
     fi
 
@@ -42,7 +42,7 @@ if [[ $(wc -l ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
 fi
 
 ## RNA.FB.BCR mkfastq demultiplexing
-if [[ $(wc -l ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
+if [ $(wc -l ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]; then
     CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
     echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
 
@@ -55,7 +55,7 @@ if [[ $(wc -l ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
     #     NB: This checks to see if this variable is already set.
     #     See https://stackoverflow.com/a/13864829
     RNA_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_RNA/outs/fastq_path/*/ | grep -v "Reports\|Stats")
-    if [[ -z ${RNA_FLOWCELL_ID+x} ]]; then
+    if [ -z ${RNA_FLOWCELL_ID+x} ]; then
         echo "RNA_FLOWCELL_ID=$(basename $RNA_FC_PATH)" >> ../project_config.txt
     fi
 
