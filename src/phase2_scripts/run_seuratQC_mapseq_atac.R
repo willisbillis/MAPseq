@@ -88,7 +88,7 @@ worst_htos = c(bot_confusion_matrix$Var1[1], bot_confusion_matrix$Var2[1])
 
 confusion_matrix_all = rbind(top_confusion_matrix, bot_confusion_matrix)
 colnames(confusion_matrix_all) = c("HT_1st", "HT_2nd", "mixing_degree")
-write.csv(confusion_matrix_all, paste0("HTB.combos_",PROJECT_NAME,"metrics.csv"), quote = F, row.names = F)
+write.csv(confusion_matrix_all, paste0("HTB.combos_",PROJECT_NAME,"_metrics.csv"), quote = F, row.names = F)
 
 Idents(sc_total) = "hash.ID"
 
