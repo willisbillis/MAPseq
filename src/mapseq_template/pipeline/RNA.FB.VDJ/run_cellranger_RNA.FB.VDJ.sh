@@ -69,7 +69,6 @@ for sample in "${rna_samples[@]}"; do
         ## NO VDJ SAMPLES DETECTED, RUN CR COUNT
         # Create the config csv for the sample being run
         printf '%s\n' fastqs sample library_type | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        fq_path=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
         gex_sample=$sample
         # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $GEX_FEAT_NAMING_ID
         hashtag_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$GEX_FEAT_NAMING_ID/p")
