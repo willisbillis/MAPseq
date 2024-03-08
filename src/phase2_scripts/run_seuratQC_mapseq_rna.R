@@ -5,10 +5,16 @@ if (!require("pacman", quietly = TRUE)) {
   install.packages("pacman")
 }
 library(pacman)
-p_load(Seurat, Signac, ggplot2, clustree, dplyr)
+p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel)
 p_load_gh("SGDDNB/ShinyCell")
 
-set.seed(1234)                # set seed for reproducibility
+# make sure you are running Seurat v5
+options(Seurat.object.assay.version = "v5")
+# silence random number warning
+options(future.rng.onMisuse = "ignore")
+# set seed for reproducibility
+set.seed(1234)
+
 ## Library descriptions ##
 # Seurat: functions for single cell data
 # Signac: DensityScatter function for QC
@@ -16,7 +22,18 @@ set.seed(1234)                # set seed for reproducibility
 # clustree: plotting clusters vs resolution
 # dplyr: pipe command '%>%'
 # ShinyCell: Interact with your data
+###############################################################################
+#### SET RESOURCE LIMITS ####
+max_cores = 32
+max_mem = 128
+if (max_cores == -1) {
+  max_cores = detectCores()
+}
+if (max_mem != -1) {
+  options("future.globals.maxSize" = (max_mem / max_cores) * 1024^3)
+}
 
+plan("multicore", workers = max_cores)
 ###############################################################################
 ## OPTIONS
 
@@ -194,94 +211,131 @@ write.csv(stats, "QC.rna_patientID_filtering.stats.csv", quote = F, row.names = 
 #     DEP (differentially expressed proteins) for RNA assay
 
 #### RNA RPCA Batch correction ####
-sc_rna = split(sc[["RNA"]], f = sc$patient_id)
-sc_rna <- SCTransform(sc_rna, verbose = FALSE)
+DefaultAssay(sc) = "RNA"
+sc[["RNA"]] = split(sc[["RNA"]], f = sc$patient_id)
+sc <- SCTransform(sc, verbose = FALSE)
 
 # Filter out Ig genes from VariableFeatures, they will clog the results as
 #     they are highly-variable by nature
-non_ig_mask = !grepl(igs, VariableFeatures(sc_rna))
-VariableFeatures(sc_rna) = VariableFeatures(sc_rna)[non_ig_mask]
-sc_rna <- RunPCA(sc_rna, npcs = 40, assay = "RNA",
-                 reduction.name = "rna.pca", verbose = TRUE)
+non_ig_mask = !grepl(igs, VariableFeatures(sc))
+VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
+sc <- RunPCA(sc, npcs = 40,
+             reduction.name = "rna.pca", verbose = FALSE)
+sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
+                    verbose = FALSE)
+sc <- FindClusters(sc, resolution = 2,
+                   cluster.name = "unintegrated_rna.clusters",
+                   verbose = FALSE)
+sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
+              reduction.name = "umap.rna.unintegrated",
+              verbose = FALSE)
+# visualize by batch annotations
+p = DimPlot(sc, reduction = "umap.rna.unintegrated", group.by = "patient_id")
+ggsave("umap_rna.unintegrated_patient_id.pdf", p, width = 8, height = 6)
+ggsave("umap_rna.unintegrated_patient_id.png", p, width = 8, height = 6)
 
-sc_rna <- FindNeighbors(sc_rna, dims = 1:40, reduction = "rna.pca")
-sc_rna <- FindClusters(sc_rna, resolution = 2,
-                       cluster.name = "unintegrated_clusters")
-
-sc_rna <- RunUMAP(sc_rna, dims = 1:40, reduction = "rna.pca",
-                  reduction.name = "umap.rna.unintegrated")
-# visualize by batch and cell type annotation
-# cell type annotations were previously added by Azimuth
-DimPlot(obj, reduction = "umap.unintegrated", group.by = c("Method", "predicted.celltype.l2"))
-
-combined_features <- SelectIntegrationFeatures(object.list = sc_rna,
-                                               nfeatures = 3000)
-sc_rna <- PrepSCTIntegration(object.list = sc_rna,
-                             anchor.features = combined_features,
-                             verbose = FALSE)
-
-sc_rna <- IntegrateLayers(
-  object = sc_rna, method = RPCAIntegration,
-  max.features = 3000,
-  dims = 1:40, normalization.method = "SCT",
-  new.assay.name = "SCT",
+sc <- IntegrateLayers(
+  object = sc, method = RPCAIntegration,
+  dims = 1:40, assay = "SCT", k.weight = 50,
+  normalization.method = "SCT",
   orig.reduction = "rna.pca", new.reduction = "integrated.rna.rpca",
   verbose = FALSE
 )
+sc = JoinLayers(sc)
+
+sc <- FindNeighbors(sc, reduction = "integrated.rna.rpca",
+                    dims = 1:40, verbose = FALSE)
+sc <- FindClusters(sc, resolution = 2, cluster.name = "rna.clusters",
+                   verbose = FALSE)
+sc <- RunUMAP(sc, reduction = "integrated.rna.rpca",
+              dims = 1:40, reduction.name = "umap.rna",
+              verbose = FALSE)
+p <- DimPlot(sc, reduction = "integrated.rna.rpca", group.by = "patient_id")
+ggsave("umap_rna.integrated_patient_id.pdf", p, width = 8, height = 6)
+ggsave("umap_rna.integrated_patient_id.png", p, width = 8, height = 6)
 
 #### ADT RPCA Batch correction ####
-sc_adt = split(sc[["ADT"]], f = sc$patient_id)
-VariableFeatures(sc_adt) <- rownames(sc_adt[["ADT"]])
-sc_adt <- NormalizeData(sc_adt, normalization.method = "CLR", margin = 2)
-
-# Select features that are repeatedly variable across datasets for integration
-#     run PCA on each dataset using these features
-features <- rownames(sc[["ADT"]])
-sc_adt <- ScaleData(sc_adt, features = features,
-                    do.center = TRUE,
-                    do.scale = FALSE,
+DefaultAssay(sc) = "ADT"
+sc[["ADT"]] = split(sc[["ADT"]], f = sc$patient_id)
+VariableFeatures(sc) <- rownames(sc[["ADT"]])
+sc <- NormalizeData(sc, normalization.method = "CLR", margin = 2,
                     verbose = FALSE)
-sc_adt <- RunPCA(x, features = features, npcs = 40, reduction.name = "adt.pca",
-                 verbose = FALSE)
-sc_adt <- IntegrateLayers(
-  object = sc_adt, method = RPCAIntegration,
-  features = features,
+
+features <- rownames(sc[["ADT"]])
+sc <- ScaleData(sc, features = features,
+                do.center = TRUE,
+                do.scale = FALSE,
+                verbose = FALSE)
+sc <- RunPCA(sc, npcs = 40,
+             reduction.name = "adt.pca", verbose = FALSE)
+sc <- FindNeighbors(sc, dims = 1:40, reduction = "adt.pca",
+                    verbose = FALSE)
+sc <- FindClusters(sc, resolution = 2,
+                   cluster.name = "unintegrated_adt.clusters",
+                   verbose = FALSE)
+sc <- RunUMAP(sc, dims = 1:40, reduction = "adt.pca",
+              reduction.name = "umap.adt.unintegrated",
+              verbose = FALSE)
+# visualize by batch annotations
+p = DimPlot(sc, reduction = "umap.adt.unintegrated", group.by = "patient_id")
+ggsave("umap_adt.unintegrated_patient_id.pdf", p, width = 8, height = 6)
+ggsave("umap_adt.unintegrated_patient_id.png", p, width = 8, height = 6)
+
+sc <- IntegrateLayers(
+  object = sc, method = RPCAIntegration,
+  features = features, assay = "ADT", k.weight = 50,
   dims = 1:40, normalization.method = "LogNormalize",
-  new.assay.name = "ADT",
   orig.reduction = "adt.pca", new.reduction = "integrated.adt.rpca",
   verbose = FALSE
 )
+sc = JoinLayers(sc)
 
-sc = merge(sc_rna, sc_adt)
+sc <- FindNeighbors(sc, reduction = "integrated.adt.rpca",
+                    dims = 1:40, verbose = FALSE)
+sc <- FindClusters(sc, resolution = 2, cluster.name = "adt.clusters",
+                   verbose = FALSE)
+sc <- RunUMAP(sc, reduction = "integrated.adt.rpca",
+              dims = 1:40, reduction.name = "umap.adt",
+              verbose = FALSE)
+p <- DimPlot(sc, reduction = "integrated.adt.rpca", group.by = "patient_id")
+ggsave("umap_adt.integrated_patient_id.pdf", p, width = 8, height = 6)
+ggsave("umap_adt.integrated_patient_id.png", p, width = 8, height = 6)
 
 #### WNN Integration of RNA and ADT assays ####
 sc <- FindMultiModalNeighbors(
-  sc, reduction.list = list("integrated.rna.pca", "integrated.adt.pca"),
-  dims.list = list(1:40, 1:40)
+  sc, reduction.list = list("integrated.rna.rpca", "integrated.adt.rpca"),
+  dims.list = list(1:40, 1:40), verbose = FALSE
 )
-sc = RunUMAP(sc, n.name = "weighted.nn",  reduction.name = "wnn.umap",
-             reduction.key = "wnnUMAP_", dims = 1:40, verbose = FALSE)
+sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
+             reduction.key = "wnnUMAP_", verbose = FALSE)
+p <- DimPlot(sc, reduction = "wnn.umap", group.by = "patient_id")
+ggsave("umap_rna.adt.wnn_patient_id.pdf", p, width = 8, height = 6)
+ggsave("umap_rna.adt.wnn_patient_id.png", p, width = 8, height = 6)
 
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = "wsnn",
                     algorithm = 3, verbose = FALSE)
 }
 
-p = clustree(sc, prefix="SCT_snn_res.")
+p = clustree(sc, prefix="wsnn_res.")
 ggsave("clustree_clusters_rna.png", p,
        width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
 
-sc$seurat_clusters = sc[[paste0("SCT_snn_res.", 0.25)]]
+sc$seurat_clusters = sc[[paste0("wsnn_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
+DefaultAssay(sc) = "RNA"
+sc = JoinLayers(sc)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
-all_markers = all_markers[all_markers$p_val_adj < 0.05,]
-write.csv(all_markers, "DEG_clusters.res0.25.csv", row.names = F, quote = F)
+all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
+write.csv(all_markers, "DEG_wsnn.clusters.res0.25.csv",
+          row.names = FALSE, quote = FALSE)
 
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
-all_markers = all_markers[all_markers$p_val_adj < 0.05,]
-write.csv(all_markers, "DEP_clusters.res0.25.csv", row.names = F, quote = F)
+all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
+write.csv(all_markers, "DEP_wsnn.clusters.res0.25.csv",
+          row.names = FALSE, quote = FALSE)
 ###############################################################################
 # save Seurat object
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
