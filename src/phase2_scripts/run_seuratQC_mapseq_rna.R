@@ -5,9 +5,13 @@ if (!require("pacman", quietly = TRUE)) {
   install.packages("pacman")
 }
 library(pacman)
-p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel)
+p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate)
 p_load_gh("SGDDNB/ShinyCell")
+p_load_gh("cellgeni/sceasy")
 
+# Set python path to ensure reticulate packages can be used
+python_path = system("which python", intern = TRUE)
+use_python(python_path)
 # make sure you are running Seurat v5
 options(Seurat.object.assay.version = "v5")
 # silence random number warning
@@ -25,7 +29,7 @@ set.seed(1234)
 ###############################################################################
 #### SET RESOURCE LIMITS ####
 max_cores = 32
-max_mem = 128
+max_mem = 32
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -302,26 +306,30 @@ ggsave("umap_adt.integrated_patient_id.pdf", p, width = 8, height = 6)
 ggsave("umap_adt.integrated_patient_id.png", p, width = 8, height = 6)
 
 #### WNN Integration of RNA and ADT assays ####
-sc <- FindMultiModalNeighbors(
-  sc, reduction.list = list("integrated.rna.rpca", "integrated.adt.rpca"),
-  dims.list = list(1:40, 1:40), verbose = FALSE
-)
-sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
-             reduction.key = "wnnUMAP_", verbose = FALSE)
-p <- DimPlot(sc, reduction = "wnn.umap", group.by = "patient_id")
-ggsave("umap_rna.adt.wnn_patient_id.pdf", p, width = 8, height = 6)
-ggsave("umap_rna.adt.wnn_patient_id.png", p, width = 8, height = 6)
+if (FALSE) {
+  sc <- FindMultiModalNeighbors(
+    sc, reduction.list = list("integrated.rna.rpca", "integrated.adt.rpca"),
+    dims.list = list(1:40, 1:40), verbose = FALSE
+  )
+  sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
+              reduction.key = "wnnUMAP_", verbose = FALSE)
+  p <- DimPlot(sc, reduction = "wnn.umap", group.by = "patient_id")
+  ggsave("umap_rna.adt.wnn_patient_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_rna.adt.wnn_patient_id.png", p, width = 8, height = 6)
+}
 
+# Different cluster resolutions for SCT
+graph = "SCT_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
-  sc = FindClusters(sc, resolution = res, graph.name = "wsnn",
+  sc = FindClusters(sc, resolution = res, graph.name = graph,
                     algorithm = 3, verbose = FALSE)
 }
 
-p = clustree(sc, prefix="wsnn_res.")
+p = clustree(sc, prefix = paste0(graph, "_res."))
 ggsave("clustree_clusters_rna.png", p,
        width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
 
-sc$seurat_clusters = sc[[paste0("wsnn_res.", 0.25)]]
+sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
@@ -329,12 +337,12 @@ DefaultAssay(sc) = "RNA"
 sc = JoinLayers(sc)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
-write.csv(all_markers, "DEG_wsnn.clusters.res0.25.csv",
+write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
-write.csv(all_markers, "DEP_wsnn.clusters.res0.25.csv",
+write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 ###############################################################################
 # save Seurat object
@@ -346,18 +354,44 @@ capture.output(sessionInfo(),
                            ".Rsession.Info.",
                            gsub("\\D", "", Sys.time()), ".txt"))
 ###############################################################################
+# Optional Additonal Analyses
 ###############################################################################
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
 #      token with rsconnect
 if (FALSE) {
-  sc = AddMetaData(sc, t(LayerData(sc, assay="HTO")))
-  sc = AddMetaData(sc, t(LayerData(sc, assay="ADT")))
-  DefaultAssay(sc) = "RNA"
+  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
+  sct_cts = LayerData(sc, assay="SCT", layer = "counts")
+  adt_data = LayerData(sc, assay="ADT", layer = "data")
+  sct_data = LayerData(sc, assay="SCT", layer = "data")
+  sct_act_cts = rbind(sct_cts, adt_cts)
+  sct_act_data = rbind(sct_data, adt_data)
+  sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts, data = sct_act_data)
+  DefaultAssay(sc) = "SCT_ADT"
   sc = FindVariableFeatures(sc)
   sc_conf = createConfig(sc)
-  makeShinyApp(sc, sc_conf, gene.mapping = TRUE,
-               shiny.title = paste0(PROJECT_NAME, " RNA + HTO + ADT"),
+  makeShinyApp(sc, sc_conf, gene.mapping = FALSE,
+               shiny.title = paste0(PROJECT_NAME, " RNA + ADT + HTO"),
                shiny.dir = paste0("shiny_",PROJECT_NAME,"_rna"),
-               gex.assay="RNA")
+               gex.assay="SCT_ADT")
   rsconnect::deployApp(paste0("shiny_",PROJECT_NAME,"_rna"))
+}
+###############################################################################
+# Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
+if (FALSE) {
+  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
+  sct_cts = LayerData(sc, assay="SCT", layer = "counts")
+  adt_data = LayerData(sc, assay="ADT", layer = "data")
+  sct_data = LayerData(sc, assay="SCT", layer = "data")
+  sct_act_cts = rbind(sct_cts, adt_cts)
+  sct_act_data = rbind(sct_data, adt_data)
+  sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
+                                       data = sct_act_data)
+  DefaultAssay(sc) = "SCT_ADT"
+  sc[["SCT_ADT"]] = as(sc[["SCT_ADT"]], Class = "Assay")
+  sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
+  sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
+  sc[["SCT"]] = as(sc[["SCT"]], Class = "Assay")
+  sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
+  sceasy::convertFormat(sc, from = "seurat", to = "anndata",
+                        outFile = paste0("qc_sct.adt_",PROJECT_NAME,".h5ad"))
 }
