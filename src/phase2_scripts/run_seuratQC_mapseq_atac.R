@@ -6,9 +6,17 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
-clustree, dplyr)
+       clustree, dplyr, future, parallel, reticulate)
 p_load_gh("SGDDNB/ShinyCell")
+p_load_gh("cellgeni/sceasy")
 
+# Set python path to ensure reticulate packages can be used
+python_path = system("which python", intern = TRUE)
+use_python(python_path)
+# make sure you are running Seurat v5
+options(Seurat.object.assay.version = "v5")
+# silence random number warning
+options(future.rng.onMisuse = "ignore")
 set.seed(1234)                # set seed for reproducibility
 ## Library descriptions ##
 # Seurat: functions for single cell data
@@ -21,6 +29,18 @@ set.seed(1234)                # set seed for reproducibility
 # dplyr: pipe command '%>%'
 # ShinyCell: Interact with your data
 
+###############################################################################
+#### SET RESOURCE LIMITS ####
+max_cores = 32
+max_mem = 32
+if (max_cores == -1) {
+  max_cores = detectCores()
+}
+if (max_mem != -1) {
+  options("future.globals.maxSize" = (max_mem / max_cores) * 1024^3)
+}
+
+plan("multicore", workers = max_cores)
 ###############################################################################
 ## OPTIONS
 
@@ -217,30 +237,64 @@ write.csv(stats, "QC.atac_patientID_filtering.stats.csv", quote = F, row.names =
 ###############################################################################
 # Clustering, DAR (differentially expressed genes) for ATAC assay
 DefaultAssay(sc) = "ATAC"
+sc[["ATAC"]] = split(sc[["ATAC"]], f = sc$patient_id)
 sc = RunTFIDF(sc, min.cells=1)
 sc = FindTopFeatures(sc, min.cutoff="q0")
-sc = RunSVD(sc)
-sc = RunUMAP(sc, reduction = 'lsi', dims = 2:40, reduction.name="UMAP", verbose = FALSE)
+sc <- RunSVD(sc, n = 40,
+             reduction.name = "atac.lsi", verbose = FALSE)
+sc <- FindNeighbors(sc, dims = 2:40, reduction = "atac.lsi",
+                    verbose = FALSE)
+sc <- FindClusters(sc, resolution = 2,
+                   cluster.name = "unintegrated_atac.clusters",
+                   verbose = FALSE)
+sc <- RunUMAP(sc, dims = 2:40, reduction = "atac.lsi",
+              reduction.name = "umap.atac.unintegrated",
+              verbose = FALSE)
+# visualize by batch annotations
+p = DimPlot(sc, reduction = "umap.atac.unintegrated", group.by = "patient_id")
+ggsave("umap_atac.unintegrated_patient_id.pdf", p, width = 8, height = 6)
+ggsave("umap_atac.unintegrated_patient_id.png", p, width = 8, height = 6)
 
-sc <- FindNeighbors(sc, dims = 2:40, reduction = 'lsi', verbose = FALSE)
+sc <- IntegrateLayers(
+  object = sc, method = RPCAIntegration,
+  dims = 2:40, assay = "ATAC", k.weight = 50,
+  normalization.method = "LogNormalize",
+  orig.reduction = "atac.lsi", new.reduction = "integrated.atac.rpca",
+  verbose = FALSE
+)
+sc = JoinLayers(sc)
+
+sc <- FindNeighbors(sc, reduction = "integrated.atac.rpca",
+                    dims = 2:40, verbose = FALSE)
+sc <- RunUMAP(sc, reduction = "integrated.atac.rpca",
+              dims = 2:40, reduction.name = "umap.atac",
+              verbose = FALSE)
+p <- DimPlot(sc, reduction = "integrated.atac.rpca", group.by = "patient_id")
+ggsave("umap_rna.integrated_patient_id.pdf", p, width = 8, height = 6)
+ggsave("umap_rna.integrated_patient_id.png", p, width = 8, height = 6)
+
+# Different cluster resolutions for ATAC
+graph = "ATAC_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
-  sc = FindClusters(sc, resolution = res, algorithm = 3, verbose = FALSE)
+  sc = FindClusters(sc, resolution = res, graph.name = graph,
+                    algorithm = 3, verbose = FALSE)
 }
 
-p = clustree(sc, prefix="ATAC_snn_res.")
-ggsave("clustree_clusters_atac.png", p,
+p = clustree(sc, prefix = paste0(graph, "_res."))
+ggsave("clustree_clusters_rna.png", p,
        width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
 
-sc$seurat_clusters = sc[[paste0("ATAC_snn_res.", 0.25)]]
+sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
-DefaultAssay(sc) = "ATAC"
-all_markers = FindAllMarkers(sc, verbose = FALSE)
-all_markers = all_markers[all_markers$p_val_adj < 0.05,]
-gene_names = ClosestFeature(sc, regions=rownames(all_markers))[,c("query_region","gene_name")]
-all_markers$gene = gene_names$gene_name[match(rownames(all_markers), gene_names$query_region)]
-fwrite(all_markers, "DAR_clusters.res0.25.csv", row.names = F, quote = F)
+all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ATAC")
+all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
+closest_feats = ClosestFeature(sc, regions=rownames(all_markers))
+all_markers$gene = closest_feats$gene_name[match(rownames(all_markers),
+                                                 closest_feats$query_region)]
+write.csv(all_markers, paste("DAR_", graph, ".clusters.res0.25.csv"),
+          row.names = FALSE, quote = FALSE)
 ###############################################################################
 # save Seurat object
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_atac.hto_", PROJECT_NAME, ".RDS"))
@@ -257,8 +311,8 @@ capture.output(sessionInfo(),
 if (FALSE) {
   sc = AddMetaData(sc, t(LayerData(sc, assay="HTO")))
   DefaultAssay(sc) = "ATAC"
-  gene.activities = GeneActivity(sc)
-  sc[["pseudoRNA"]] <- CreateAssayObject(counts = gene.activities)
+  gene_activities = GeneActivity(sc)
+  sc[["pseudoRNA"]] <- CreateAssayObject(counts = gene_activities)
   sc <- NormalizeData(
     object = sc,
     assay = "pseudoRNA",
@@ -270,7 +324,7 @@ if (FALSE) {
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = TRUE,
                shiny.title = paste0(PROJECT_NAME, " ATAC (pseudoRNA) + HTO"),
-               shiny.dir = paste0("shiny_",PROJECT_NAME,"_atac"),
+               shiny.dir = paste0("shiny_", PROJECT_NAME, "_atac"),
                gex.assay="pseudoRNA")
-  rsconnect::deployApp(paste0("shiny_",PROJECT_NAME,"_atac"))
+  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "_atac"))
 }

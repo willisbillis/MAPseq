@@ -26,6 +26,7 @@ set.seed(1234)
 # clustree: plotting clusters vs resolution
 # dplyr: pipe command '%>%'
 # ShinyCell: Interact with your data
+
 ###############################################################################
 #### SET RESOURCE LIMITS ####
 max_cores = 32
