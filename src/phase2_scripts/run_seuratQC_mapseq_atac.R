@@ -6,7 +6,7 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
-       clustree, dplyr, future, parallel, reticulate)
+       clustree, dplyr, future, parallel, reticulate, harmony)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
@@ -237,46 +237,124 @@ write.csv(stats, "QC.atac_patientID_filtering.stats.csv", quote = F, row.names =
 ###############################################################################
 # Clustering, DAR (differentially expressed genes) for ATAC assay
 DefaultAssay(sc) = "ATAC"
-sc[["ATAC"]] = split(sc[["ATAC"]], f = sc$patient_id)
-sc = RunTFIDF(sc, min.cells=1)
-sc = FindTopFeatures(sc, min.cutoff="q0")
-sc <- RunSVD(sc, n = 40,
-             reduction.name = "atac.lsi", verbose = FALSE)
-sc <- FindNeighbors(sc, dims = 2:40, reduction = "atac.lsi",
+batch_column = "endotype"
+n_dims = 30
+
+sc_na = sc[, colnames(sc)[is.na(sc$endotype)]]
+sc <- sc[, colnames(sc)[!is.na(sc$endotype)]]
+sc_na$label_exists = FALSE
+sc$label_exists = TRUE
+
+sc <- RunTFIDF(sc, min.cells = 1)
+sc <- FindTopFeatures(sc, min.cutoff = "q0")
+sc <- RunSVD(sc, n = n_dims, reduction.name = "atac.lsi",
+             verbose = FALSE)
+
+sc <- FindNeighbors(sc, dims = 2:n_dims, reduction = "atac.lsi",
+                    verbose = FALSE)
+sc <- RunUMAP(sc, dims = 2:n_dims, reduction = "atac.lsi",
+              reduction.name = "umap.atac.unintegrated",
+              return.model = TRUE, verbose = FALSE)
+# visualize by batch annotations
+p = DimPlot(sc, reduction = "umap.atac.unintegrated", group.by = batch_column)
+ggsave(paste0("umap_atac.unintegrated_", batch_column, ".pdf"), p,
+       width = 8, height = 6)
+ggsave(paste0("umap_atac.unintegrated_", batch_column, ".png"), p,
+       width = 8, height = 6)
+
+sc <- RunHarmony(
+  object = sc,
+  group.by.vars = batch_column,
+  reduction.use = "atac.lsi",
+  assay.use = "ATAC",
+  project.dim = FALSE
+)
+sc <- FindNeighbors(sc, reduction = "harmony",
+                    dims = 2:n_dims, verbose = FALSE)
+sc <- RunUMAP(sc, reduction = "harmony",
+              dims = 2:n_dims, reduction.name = "umap.atac",
+              return.model = TRUE, verbose = FALSE)
+
+p <- DimPlot(sc, reduction = "umap.atac", group.by = batch_column)
+ggsave(paste0("umap_atac.integrated_", batch_column, "_known.labels.pdf"), p,
+       width = 8, height = 6)
+ggsave(paste0("umap_atac.integrated_", batch_column, "_known.labels.png"), p,
+       width = 8, height = 6)
+
+# find transfer anchors
+sc_na = RunTFIDF(sc_na, min.cells = 1)
+sc_na = FindTopFeatures(sc_na, min.cutoff = "q0")
+sc_na <- RunSVD(sc_na, n = n_dims, reduction.name = "atac.lsi",
+                verbose = FALSE)
+
+transfer_anchors <- FindTransferAnchors(
+  reference = sc,
+  query = sc_na,
+  reference.reduction = "atac.lsi",
+  reduction = "lsiproject",
+  dims = 2:n_dims
+)
+
+# map query onto the reference dataset
+sc_na <- MapQuery(
+  anchorset = transfer_anchors,
+  reference = sc,
+  query = sc_na,
+  refdata = sc$endotype,
+  reference.reduction = "atac.lsi",
+  new.reduction.name = "ref.lsi",
+  reduction.model = "umap.atac.unintegrated"
+)
+sc_na[[batch_column]] = sc_na$predicted.id
+sc <- merge(sc, sc_na)
+
+# Run dimensionality reduction and clustering on the new
+#      fully annotated dataset
+sc <- RunTFIDF(sc, min.cells = 1)
+sc <- FindTopFeatures(sc, min.cutoff = "q0")
+sc <- RunSVD(sc, n = n_dims, reduction.name = "atac.lsi",
+             verbose = FALSE)
+sc <- FindNeighbors(sc, dims = 2:n_dims, reduction = "atac.lsi",
                     verbose = FALSE)
 sc <- FindClusters(sc, resolution = 2,
                    cluster.name = "unintegrated_atac.clusters",
                    verbose = FALSE)
-sc <- RunUMAP(sc, dims = 2:40, reduction = "atac.lsi",
+sc <- RunUMAP(sc, dims = 2:n_dims, reduction = "atac.lsi",
               reduction.name = "umap.atac.unintegrated",
               verbose = FALSE)
+
 # visualize by batch annotations
-p = DimPlot(sc, reduction = "umap.atac.unintegrated", group.by = "patient_id")
-ggsave("umap_atac.unintegrated_patient_id.pdf", p, width = 8, height = 6)
-ggsave("umap_atac.unintegrated_patient_id.png", p, width = 8, height = 6)
+p = DimPlot(sc, reduction = "umap.atac.unintegrated", group.by = batch_column,
+            split.by = "label_exists")
+ggsave(paste0("umap_atac.unintegrated_", batch_column, "_label.split.pdf"), p,
+       width = 16, height = 6)
+ggsave(paste0("umap_atac.unintegrated_", batch_column, "_label.split.png"), p,
+       width = 16, height = 6)
 
-sc <- IntegrateLayers(
-  object = sc, method = RPCAIntegration,
-  dims = 2:40, assay = "ATAC", k.weight = 50,
-  normalization.method = "LogNormalize",
-  orig.reduction = "atac.lsi", new.reduction = "integrated.atac.rpca",
-  verbose = FALSE
+sc <- RunHarmony(
+  object = sc,
+  group.by.vars = batch_column,
+  reduction.use = "atac.lsi",
+  assay.use = "ATAC",
+  project.dim = FALSE
 )
-sc = JoinLayers(sc)
+sc <- FindNeighbors(sc, reduction = "harmony",
+                    dims = 2:n_dims, verbose = FALSE)
+sc <- RunUMAP(sc, reduction = "harmony",
+              dims = 2:n_dims, reduction.name = "umap.atac",
+              return.model = TRUE, verbose = FALSE)
 
-sc <- FindNeighbors(sc, reduction = "integrated.atac.rpca",
-                    dims = 2:40, verbose = FALSE)
-sc <- RunUMAP(sc, reduction = "integrated.atac.rpca",
-              dims = 2:40, reduction.name = "umap.atac",
-              verbose = FALSE)
-p <- DimPlot(sc, reduction = "integrated.atac.rpca", group.by = "patient_id")
-ggsave("umap_rna.integrated_patient_id.pdf", p, width = 8, height = 6)
-ggsave("umap_rna.integrated_patient_id.png", p, width = 8, height = 6)
+p <- DimPlot(sc, reduction = "umap.atac", group.by = batch_column,
+             split.by = "label_exists")
+ggsave(paste0("umap_atac.integrated_", batch_column, ".pdf"), p,
+       width = 16, height = 6)
+ggsave(paste0("umap_atac.integrated_", batch_column, ".png"), p,
+       width = 16, height = 6)
 
 # Different cluster resolutions for ATAC
 graph = "ATAC_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
-  sc = FindClusters(sc, resolution = res, graph.name = graph,
+  sc <- FindClusters(sc, resolution = res, graph.name = graph,
                     algorithm = 3, verbose = FALSE)
 }
 
@@ -309,7 +387,7 @@ capture.output(sessionInfo(),
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
 #      token with rsconnect
 if (FALSE) {
-  sc = AddMetaData(sc, t(LayerData(sc, assay="HTO")))
+  sc <- AddMetaData(sc, t(LayerData(sc, assay="HTO")))
   DefaultAssay(sc) = "ATAC"
   gene_activities = GeneActivity(sc)
   sc[["pseudoRNA"]] <- CreateAssayObject(counts = gene_activities)
@@ -320,7 +398,7 @@ if (FALSE) {
     scale.factor = median(sc$nCount_pseudoRNA)
   )
   DefaultAssay(sc) = "pseudoRNA"
-  sc = FindVariableFeatures(sc)
+  sc <- FindVariableFeatures(sc)
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = TRUE,
                shiny.title = paste0(PROJECT_NAME, " ATAC (pseudoRNA) + HTO"),
