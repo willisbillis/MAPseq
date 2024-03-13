@@ -376,6 +376,7 @@ write.csv(all_markers, paste("DAR_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
 non_hc = subset(sc, endotype != "Healthy_Control_Donor")
+sym_diff <- function(a, b) setdiff(union(a, b), intersect(a, b))
 for (cl_num in unique(Idents(sc))) {
   cons_markers = FindConservedMarkers(non_hc, ident.1 = cl_num,
                                       assay = "ATAC",
@@ -387,6 +388,10 @@ for (cl_num in unique(Idents(sc))) {
   if (!exists("all_cons_markers")) {
     all_cons_markers = cons_markers
   } else {
+    if (ncol(cons_markers) != ncol(all_cons_markers)) {
+      missing_cols = sym_diff(names(cons_markers), names(all_cons_markers))
+      cons_markers[missing_cols] = NA
+    }
     all_cons_markers = rbind(all_cons_markers, cons_markers)
   }
 }

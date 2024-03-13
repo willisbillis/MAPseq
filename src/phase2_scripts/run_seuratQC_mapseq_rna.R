@@ -348,18 +348,23 @@ write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
 non_hc = subset(sc, endotype != "Healthy_Control_Donor")
+sym_diff <- function(a, b) setdiff(union(a, b), intersect(a, b))
 for (cl_num in unique(Idents(non_hc))) {
   cons_markers = FindConservedMarkers(non_hc, ident.1 = cl_num,
                                       assay = "RNA",
                                       grouping.var = "endotype")
   cons_markers$cluster = cl_num
+  cons_markers$gene = rownames(cons_markers)
   if (!exists("all_cons_markers")) {
     all_cons_markers = cons_markers
   } else {
+    if (ncol(cons_markers) != ncol(all_cons_markers)) {
+      missing_cols = sym_diff(names(cons_markers), names(all_cons_markers))
+      cons_markers[missing_cols] = NA
+    }
     all_cons_markers = rbind(all_cons_markers, cons_markers)
   }
 }
-all_cons_markers$gene = rownames(all_cons_markers)
 write.csv(all_cons_markers,
           "DEG_nonHC_conserved.markers_cluster.v.endotype.csv",
           quote = FALSE, row.names = FALSE)
@@ -384,7 +389,8 @@ if (FALSE) {
   sct_data = LayerData(sc, assay="SCT", layer = "data")
   sct_act_cts = rbind(sct_cts, adt_cts)
   sct_act_data = rbind(sct_data, adt_data)
-  sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts, data = sct_act_data)
+  sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
+                                       data = sct_act_data)
   DefaultAssay(sc) = "SCT_ADT"
   sc = FindVariableFeatures(sc)
   sc_conf = createConfig(sc)
