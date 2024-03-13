@@ -308,6 +308,7 @@ sc_na <- MapQuery(
 )
 sc_na[[batch_column]] = sc_na$predicted.id
 sc <- merge(sc, sc_na)
+sc = JoinLayers(sc, assay = "HTO")
 
 # Run dimensionality reduction and clustering on the new
 #      fully annotated dataset
