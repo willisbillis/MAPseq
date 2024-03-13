@@ -5,7 +5,8 @@ if (!require("pacman", quietly = TRUE)) {
   install.packages("pacman")
 }
 library(pacman)
-p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate)
+p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate,
+       multtest, metap)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
@@ -345,6 +346,23 @@ all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
+
+non_hc = subset(sc, endotype != "Healthy_Control_Donor")
+for (cl_num in unique(Idents(non_hc))) {
+  cons_markers = FindConservedMarkers(non_hc, ident.1 = cl_num,
+                                      assay = "RNA",
+                                      grouping.var = "endotype")
+  cons_markers$cluster = cl_num
+  if (!exists("all_cons_markers")) {
+    all_cons_markers = cons_markers
+  } else {
+    all_cons_markers = rbind(all_cons_markers, cons_markers)
+  }
+}
+all_cons_markers$gene = rownames(all_cons_markers)
+write.csv(all_cons_markers,
+          "DEG_nonHC_conserved.markers_cluster.v.endotype.csv",
+          quote = FALSE, row.names = FALSE)
 ###############################################################################
 # save Seurat object
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))

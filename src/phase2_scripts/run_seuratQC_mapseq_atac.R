@@ -6,7 +6,8 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
-       clustree, dplyr, future, parallel, reticulate, harmony)
+       clustree, dplyr, future, parallel, reticulate, harmony, multtest,
+       metap)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
@@ -373,6 +374,25 @@ all_markers$gene = closest_feats$gene_name[match(rownames(all_markers),
                                                  closest_feats$query_region)]
 write.csv(all_markers, paste("DAR_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
+
+non_hc = subset(sc, endotype != "Healthy_Control_Donor")
+for (cl_num in unique(Idents(sc))) {
+  cons_markers = FindConservedMarkers(non_hc, ident.1 = cl_num,
+                                      assay = "ATAC",
+                                      grouping.var = "endotype")
+  closest_feats = ClosestFeature(non_hc, regions=rownames(cons_markers))
+  cons_markers$gene = closest_feats$gene_name[match(rownames(cons_markers),
+                                                    closest_feats$query_region)]
+  cons_markers$cluster = cl_num
+  if (!exists("all_cons_markers")) {
+    all_cons_markers = cons_markers
+  } else {
+    all_cons_markers = rbind(all_cons_markers, cons_markers)
+  }
+}
+write.csv(all_cons_markers,
+          "DAR_nonHC_conserved.markers_cluster.v.endotype.csv",
+          quote = FALSE, row.names = FALSE)
 ###############################################################################
 # save Seurat object
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_atac.hto_", PROJECT_NAME, ".RDS"))
