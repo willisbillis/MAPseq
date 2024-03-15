@@ -60,12 +60,6 @@ wait
 
 # compile reports from each step
 mkdir -p $PROJECT_PATH/reports
-if [[ -d $PROJECT_PATH/data/reports ]]; then
-    cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
-fi
-if [[ -d $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports ]]; then
-    cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
-fi
-if [[ -d $PROJECT_PATH/pipeline/ATAC.ASAP/reports ]]; then
-    cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
-fi
+cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
+cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
+cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
