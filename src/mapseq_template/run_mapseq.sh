@@ -48,7 +48,7 @@ if [[ $(wc -c <<< $rna_fqs) -gt 1 ]]; then
 fi
 
 # check for any fastqs from ATAC.ASAP
-atac_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/*fastq.gz 2> /dev/nulls)
+atac_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/*fastq.gz 2> /dev/null)
 if [[ $(wc -c <<< $atac_fqs) -gt 1 ]]; then
     cd $PROJECT_PATH/pipeline/ATAC.ASAP
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
