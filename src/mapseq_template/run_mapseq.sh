@@ -21,18 +21,17 @@ atac_fqs=$(ls $ATAC_DIR/*fastq.gz 2> /dev/null)
 if [ $(wc -c <<< $rna_fqs) -gt 1 || $(wc -c <<< $atac_fqs) -gt 1 ]; then
     # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
     cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
-else
-    # mv the fastqs from the data directory
-    if [ $(wc -c <<< $rna_fqs) -gt 1 ]; then
-        RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
-        mkdir -p $RNA_FASTQ_PATH
-        cp $RNA_DIR/*fastq.gz $RNA_FASTQ_PATH
-    fi
-    if [ $(wc -c <<< $atac_fqs) -gt 1 ]; then
-        ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
-        mkdir -p $ATAC_FASTQ_PATH
-        cp $ATAC_DIR/*fastq.gz $ATAC_FASTQ_PATH
-    fi
+fi
+
+# mv the fastqs from the data directory
+if [ $(wc -c <<< $rna_fqs) -gt 1 ]; then
+    RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
+    mkdir -p $RNA_FASTQ_PATH
+    cp $RNA_DIR/*fastq.gz $RNA_FASTQ_PATH
+if [ $(wc -c <<< $atac_fqs) -gt 1 ]; then
+    ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
+    mkdir -p $ATAC_FASTQ_PATH
+    cp $ATAC_DIR/*fastq.gz $ATAC_FASTQ_PATH
 fi
 
 # check for any fastqs from RNA.FB.VDJ
