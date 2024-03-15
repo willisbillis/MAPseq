@@ -27,11 +27,17 @@ fi
 if [[ $(wc -c <<< $rna_fqs) -gt 1 ]]; then
     RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
     mkdir -p $RNA_FASTQ_PATH
-    ln -s "$(readlink -e "$RNA_DIR/*fastq.gz")" "$RNA_FASTQ_PATH"
+    rna_samples=($(ls $RNA_DIR/*fastq.gz))
+    for sample in "${rna_samples[@]}"; do
+        ln -s "$(readlink -e "$sample")" "$RNA_FASTQ_PATH"
+    done
 if [[ $(wc -c <<< $atac_fqs) -gt 1 ]]; then
     ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
     mkdir -p $ATAC_FASTQ_PATH
-    ln -s "$(readlink -e "$ATAC_DIR/*fastq.gz")" "$ATAC_FASTQ_PATH"
+    rna_samples=($(ls $RNA_DIR/*fastq.gz))
+    for sample in "${rna_samples[@]}"; do
+        ln -s "$(readlink -e "$sample")" "$ATAC_FASTQ_PATH"
+    done
 fi
 
 # check for any fastqs from RNA.FB.VDJ
