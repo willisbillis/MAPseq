@@ -16,7 +16,7 @@ source ./project_config.txt
 # TODO: add unit tests here
 
 rna_fqs=$(ls $RNA_DIR/*fastq*)
-atac_fqs=%(ls $ATAC_DIR/*fastq*)
+atac_fqs=$(ls $ATAC_DIR/*fastq*)
 
 if [ $(wc -c <<< $rna_fqs) > 0 | $(wc -c <<< $atac_fqs) > 0 ]; then
     # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
