@@ -12,7 +12,7 @@
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
-FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID
+FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
 OUTPUT_DIR=$PROJECT_PATH/pipeline/RNA.FB.VDJ
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.vdj_mapping.log
 ################################################################################

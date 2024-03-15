@@ -28,15 +28,17 @@ if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]; then
         --delete-undetermined \
         --localcores=$NCPU --localmem=$MEM
 
-    # Save Flowcell ID to project config for finding fastqs laters
-    #     NB: This checks to see if this variable is already set.
-    #     See https://stackoverflow.com/a/13864829
-    ATAC_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_ATAC/outs/fastq_path/*/ | grep -v "Reports\|Stats")
-    if [ -z ${ATAC_FLOWCELL_ID+x} ]; then
-        echo "ATAC_FLOWCELL_ID=$(basename $ATAC_FC_PATH)" >> ../project_config.txt
-    fi
 
-    mkfastq_report_dir=$OUTPUT_DIR/${PROJECT_NAME}_ATAC/outs/fastq_path/Reports/html/$(basename $ATAC_FC_PATH)/all/all/all
+    ATAC_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_ATAC/outs/fastq_path/*/ | grep -v "Reports\|Stats")
+    # Standardize where fastqs live between given FQs and non-demuxed FQs
+    NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
+    mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID/* $NEW_FQ_PATH
+    # rearrange mkfastq outputs
+    mkdir -p $NEW_FQ_PATH/mkfastq_outputs
+    mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
+    rm -r $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path
+
+    mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$(basename $ATAC_FC_PATH)/all/all/all
     cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_ATAC.html
     cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_ATAC.html
 fi
@@ -51,15 +53,16 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]; then
         --delete-undetermined \
         --localcores=$NCPU --localmem=$MEM
 
-    # Save Flowcell ID to project config for finding fastqs later
-    #     NB: This checks to see if this variable is already set.
-    #     See https://stackoverflow.com/a/13864829
     RNA_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_RNA/outs/fastq_path/*/ | grep -v "Reports\|Stats")
-    if [ -z ${RNA_FLOWCELL_ID+x} ]; then
-        echo "RNA_FLOWCELL_ID=$(basename $RNA_FC_PATH)" >> ../project_config.txt
-    fi
+    # Standardize where fastqs live between given FQs and non-demuxed FQs
+    NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
+    mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID/* $NEW_FQ_PATH
+    # rearrange mkfastq outputs
+    mkdir -p $NEW_FQ_PATH/mkfastq_outputs
+    mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
+    rm -r $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path
 
-    mkfastq_report_dir=$OUTPUT_DIR/${PROJECT_NAME}_ATAC/outs/fastq_path/Reports/html/$(basename $RNA_FC_PATH)/all/all/all
+    mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$(basename $RNA_FC_PATH)/all/all/all
     cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_RNA.html
     cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_RNA.html
 fi

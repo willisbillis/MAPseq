@@ -15,16 +15,35 @@ source ./project_config.txt
 ################################################################################
 # TODO: add unit tests here
 
-# demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
-cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
+rna_fqs=$(ls $RNA_DIR/*fastq*)
+atac_fqs=%(ls $ATAC_DIR/*fastq*)
+
+if [ $(wc -c <<< $rna_fqs) > 0 | $(wc -c <<< $atac_fqs) > 0 ]; then
+    # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
+    cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
+else
+    # mv the fastqs from the data directory
+    if [ $(wc -c <<< $rna_fqs) > 0  ]; then
+        RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
+        mkdir -p $RNA_FASTQ_PATH
+        cp $RNA_DIR/*fastq* $RNA_FASTQ_PATH
+    fi
+    if [ $(wc -c <<< $atac_fqs) > 0  ]; then
+        ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
+        mkdir -p $ATAC_FASTQ_PATH
+        cp $ATAC_DIR/*fastq* $ATAC_FASTQ_PATH
+    fi
+fi
 
 # check for any fastqs from RNA.FB.VDJ
-if [ -d "$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs" ]; then
+rna_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/*fastq*)
+if [ $(wc -c <<< $rna_fqs) > 0 ]; then
     cd $PROJECT_PATH/pipeline/RNA.FB.VDJ && $PROJECT_PATH/pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh &
 fi
 
 # check for any fastqs from ATAC.ASAP
-if [ -d "$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs" ]; then
+atac_fqs=%(ls $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/*fastq*)
+if [ $(wc -c <<< $atac_fqs) > 0 ]; then
     cd $PROJECT_PATH/pipeline/ATAC.ASAP
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
         $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh &

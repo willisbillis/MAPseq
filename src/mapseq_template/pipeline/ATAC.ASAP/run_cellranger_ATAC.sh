@@ -12,7 +12,7 @@
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
-FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID
+FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ATAC
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_atac_mapping.log
 ################################################################################
