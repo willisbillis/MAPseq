@@ -31,6 +31,7 @@ if [[ $(wc -c <<< $rna_fqs) -gt 1 && $(wc -c <<< $RNA_FASTQ_PATH/*gz) == 1 ]]; t
     for sample in "${rna_samples[@]}"; do
         ln -s $(realpath $sample) $RNA_FASTQ_PATH
     done
+fi
 ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
 if [[ $(wc -c <<< $atac_fqs) -gt 1 && $(wc -c <<< $ATAC_FASTQ_PATH/*gz) == 1 ]]; then
     mkdir -p $ATAC_FASTQ_PATH
