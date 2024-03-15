@@ -24,15 +24,15 @@ if [[ $(wc -c <<< $rna_fqs) == 1 && $(wc -c <<< $atac_fqs) == 1 ]]; then
 fi
 
 # mv the fastqs from the data directory
-if [[ $(wc -c <<< $rna_fqs) -gt 1 ]]; then
-    RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
+RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
+if [[ $(wc -c <<< $rna_fqs) -gt 1 && $(wc -c <<< $RNA_FASTQ_PATH/*gz) == 1 ]]; then
     mkdir -p $RNA_FASTQ_PATH
-    rna_samples=($(ls $RNA_DIR/*fastq.gz))
+    rna_samples=$(ls $RNA_DIR/*fastq.gz)
     for sample in "${rna_samples[@]}"; do
         ln -s $(realpath $sample) $RNA_FASTQ_PATH
     done
-if [[ $(wc -c <<< $atac_fqs) -gt 1 ]]; then
-    ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
+ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
+if [[ $(wc -c <<< $atac_fqs) -gt 1 && $(wc -c <<< $ATAC_FASTQ_PATH/*gz) == 1 ]]; then
     mkdir -p $ATAC_FASTQ_PATH
     atac_samples=($(ls $ATAC_DIR/*fastq.gz))
     for sample in "${atac_samples[@]}"; do
