@@ -98,11 +98,13 @@ p = VlnPlot(sc_total,
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
+# grab top and bottom 5% of cells, their top called HT and second called HT
 top_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95, na.rm=T)],
        sc_total$HTO_secondID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95, na.rm=T)]))
 bot_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin < quantile(sc_total$HTO_margin, 0.05, na.rm=T)],
        sc_total$HTO_secondID[sc_total$HTO_margin < quantile(sc_total$HTO_margin, 0.05, na.rm=T)]))
 
+# remove HT pairs where HTs were the same or from different preps
 top_confusion_matrix$Var1 = as.character(top_confusion_matrix$Var1)
 top_confusion_matrix$Var2 = as.character(top_confusion_matrix$Var2)
 top_confusion_matrix = top_confusion_matrix[!(top_confusion_matrix$Var1 ==
@@ -115,9 +117,11 @@ bot_confusion_matrix = bot_confusion_matrix[!(bot_confusion_matrix$Var1 ==
                                                 bot_confusion_matrix$Var2), ]
 bot_confusion_matrix = bot_confusion_matrix[bot_confusion_matrix$Freq != 0, ]
 
+# join bot and top matrices and add a column for HT pair ID
 confusion_matrix_all = rbind(top_confusion_matrix, bot_confusion_matrix)
 confusion_matrix_all$combo_id = paste0(confusion_matrix_all$Var1, "_",
                                        confusion_matrix_all$Var2)
+# sort each combo ID so that HT2_HT1 is relabeled as HT1_HT2, for example
 for (hto1 in confusion_matrix_all$Var1) {
   for (hto2 in confusion_matrix_all$Var2) {
     if (sum(order(c(hto1, hto2)) == c(1, 2)) != 2) {
@@ -128,12 +132,15 @@ for (hto1 in confusion_matrix_all$Var1) {
     }
   }
 }
+
+# aggregate by run and average
 conf_mtx_tots = aggregate(confusion_matrix_all$Freq,
                           by = list(confusion_matrix_all$combo_id),
                           FUN = mean)
 conf_mtx_tots = separate(conf_mtx_tots, Group.1, into = c("HT_1st", "HT_2nd"),
                          sep = "_")
 colnames(conf_mtx_tots) = c("HT_1st", "HT_2nd", "total_mixing_degree")
+# sort and grab top pairs and worst pairs
 conf_mtx_tots = conf_mtx_tots[order(conf_mtx_tots$total_mixing_degree),]
 best_htos = c(conf_mtx_tots$HT_1st[1],
               conf_mtx_tots$HT_2nd[1])
