@@ -15,35 +15,35 @@ source ./project_config.txt
 ################################################################################
 # TODO: add unit tests here
 
-rna_fqs=$(ls $RNA_DIR/*fastq*)
-atac_fqs=$(ls $ATAC_DIR/*fastq*)
+rna_fqs=$(ls $RNA_DIR/*fastq.gz 2> /dev/null)
+atac_fqs=$(ls $ATAC_DIR/*fastq.gz 2> /dev/null)
 
-if [ $(wc -c <<< $rna_fqs) > 0 | $(wc -c <<< $atac_fqs) > 0 ]; then
+if [ $(wc -c <<< $rna_fqs) -gt 1 || $(wc -c <<< $atac_fqs) -gt 1 ]; then
     # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
     cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
 else
     # mv the fastqs from the data directory
-    if [ $(wc -c <<< $rna_fqs) > 0  ]; then
+    if [ $(wc -c <<< $rna_fqs) -gt 1 ]; then
         RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
         mkdir -p $RNA_FASTQ_PATH
-        cp $RNA_DIR/*fastq* $RNA_FASTQ_PATH
+        cp $RNA_DIR/*fastq.gz $RNA_FASTQ_PATH
     fi
-    if [ $(wc -c <<< $atac_fqs) > 0  ]; then
+    if [ $(wc -c <<< $atac_fqs) -gt 1 ]; then
         ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
         mkdir -p $ATAC_FASTQ_PATH
-        cp $ATAC_DIR/*fastq* $ATAC_FASTQ_PATH
+        cp $ATAC_DIR/*fastq.gz $ATAC_FASTQ_PATH
     fi
 fi
 
 # check for any fastqs from RNA.FB.VDJ
-rna_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/*fastq*)
-if [ $(wc -c <<< $rna_fqs) > 0 ]; then
+rna_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/*fastq.gz 2> /dev/null)
+if [ $(wc -c <<< $rna_fqs) -gt 1 ]; then
     cd $PROJECT_PATH/pipeline/RNA.FB.VDJ && $PROJECT_PATH/pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh &
 fi
 
 # check for any fastqs from ATAC.ASAP
-atac_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/*fastq*)
-if [ $(wc -c <<< $atac_fqs) > 0 ]; then
+atac_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/*fastq.gz 2> /dev/nulls)
+if [ $(wc -c <<< $atac_fqs) -gt 1 ]; then
     cd $PROJECT_PATH/pipeline/ATAC.ASAP
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
         $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh &
