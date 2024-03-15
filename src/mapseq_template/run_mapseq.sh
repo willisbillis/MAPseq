@@ -15,12 +15,16 @@ source ./project_config.txt
 ################################################################################
 # TODO: add unit tests here
 
+# compile reports from each step
+mkdir -p $PROJECT_PATH/reports
+
 rna_fqs=$(ls $RNA_DIR/*fastq.gz 2> /dev/null)
 atac_fqs=$(ls $ATAC_DIR/*fastq.gz 2> /dev/null)
 
 if [[ $(wc -c <<< $rna_fqs) == 1 && $(wc -c <<< $atac_fqs) == 1 ]]; then
     # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
     cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
+    cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
 fi
 
 # mv the fastqs from the data directory
@@ -45,6 +49,7 @@ fi
 rna_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/*fastq.gz 2> /dev/null)
 if [[ $(wc -c <<< $rna_fqs) -gt 1 ]]; then
     cd $PROJECT_PATH/pipeline/RNA.FB.VDJ && $PROJECT_PATH/pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh &
+    cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
 fi
 
 # check for any fastqs from ATAC.ASAP
@@ -54,12 +59,5 @@ if [[ $(wc -c <<< $atac_fqs) -gt 1 ]]; then
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
         $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh &
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_cellranger_ATAC.sh &
+    cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
 fi
-
-wait
-
-# compile reports from each step
-mkdir -p $PROJECT_PATH/reports
-cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
-cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
-cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
