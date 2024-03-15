@@ -29,14 +29,14 @@ if [[ $(wc -c <<< $rna_fqs) -gt 1 ]]; then
     mkdir -p $RNA_FASTQ_PATH
     rna_samples=($(ls $RNA_DIR/*fastq.gz))
     for sample in "${rna_samples[@]}"; do
-        ln -s "$(readlink -e "$sample")" "$RNA_FASTQ_PATH"
+        ln -s $(realpath $sample) $RNA_FASTQ_PATH
     done
 if [[ $(wc -c <<< $atac_fqs) -gt 1 ]]; then
     ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
     mkdir -p $ATAC_FASTQ_PATH
-    rna_samples=($(ls $RNA_DIR/*fastq.gz))
-    for sample in "${rna_samples[@]}"; do
-        ln -s "$(readlink -e "$sample")" "$ATAC_FASTQ_PATH"
+    atac_samples=($(ls $ATAC_DIR/*fastq.gz))
+    for sample in "${atac_samples[@]}"; do
+        ln -s $(realpath $sample) $ATAC_FASTQ_PATH
     done
 fi
 
