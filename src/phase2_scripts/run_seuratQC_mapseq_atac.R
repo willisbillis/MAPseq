@@ -87,48 +87,33 @@ p = VlnPlot(sc_total,
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
-top_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95, na.rm=T)],
-       sc_total$HTO_secondID[sc_total$HTO_margin > quantile(sc_total$HTO_margin, 0.95, na.rm=T)]))
-bot_confusion_matrix = as.data.frame(table(sc_total$HTO_maxID[sc_total$HTO_margin < quantile(sc_total$HTO_margin, 0.05, na.rm=T)],
-       sc_total$HTO_secondID[sc_total$HTO_margin < quantile(sc_total$HTO_margin, 0.05, na.rm=T)]))
-
-top_confusion_matrix$Var1 = as.character(top_confusion_matrix$Var1)
-top_confusion_matrix$Var2 = as.character(top_confusion_matrix$Var2)
-top_confusion_matrix = top_confusion_matrix[!(top_confusion_matrix$Var1 ==
-                                                top_confusion_matrix$Var2), ]
-top_confusion_matrix = top_confusion_matrix[top_confusion_matrix$Freq != 0, ]
-
-bot_confusion_matrix$Var1 = as.character(bot_confusion_matrix$Var1)
-bot_confusion_matrix$Var2 = as.character(bot_confusion_matrix$Var2)
-bot_confusion_matrix = bot_confusion_matrix[!(bot_confusion_matrix$Var1 ==
-                                                bot_confusion_matrix$Var2), ]
-bot_confusion_matrix = bot_confusion_matrix[bot_confusion_matrix$Freq != 0, ]
-
-confusion_matrix_all = rbind(top_confusion_matrix, bot_confusion_matrix)
-confusion_matrix_all$combo_id = paste0(confusion_matrix_all$Var1, "_",
-                                       confusion_matrix_all$Var2)
-for (hto1 in confusion_matrix_all$Var1) {
-  for (hto2 in confusion_matrix_all$Var2) {
+sc_total$combo_id = paste0(sc_total$HTO_maxID, "_", sc_total$HTO_secondID)
+for (hto1 in unique(sc_total$HTO_maxID)) {
+  for (hto2 in unique(sc_total$HTO_secondID)) {
     if (sum(order(c(hto1, hto2)) == c(1, 2)) != 2) {
       combo_id = paste0(hto2, "_", hto1)
-      confusion_matrix_all$combo_id[confusion_matrix_all$Var2 == hto2 &
-                                      confusion_matrix_all$Var1 == hto1] =
-        combo_id
+      sc_total$combo_id[sc_total$HTO_secondID == hto2 &
+                          sc_total$HTO_maxID == hto1] = combo_id
     }
   }
 }
-conf_mtx_tots = aggregate(confusion_matrix_all$Freq,
-                                    by = list(confusion_matrix_all$combo_id),
-                                    FUN = sum)
-conf_mtx_tots = separate(conf_mtx_tots, Group.1, into = c("HT_1st", "HT_2nd"), sep = "_")
-colnames(conf_mtx_tots) = c("HT_1st", "HT_2nd", "total_mixing_degree")
-conf_mtx_tots = conf_mtx_tots[order(conf_mtx_tots$total_mixing_degree),]
-best_htos = c(conf_mtx_tots$HT_1st[1],
-              conf_mtx_tots$HT_2nd[1])
-worst_htos = c(conf_mtx_tots$HT_1st[nrow(conf_mtx_tots)],
-               conf_mtx_tots$HT_2nd[nrow(conf_mtx_tots)])
+margin_stats = aggregate(sc_total$HTO_margin,
+                         by = list(sc_total$combo_id), FUN = mean)
 
-write.csv(conf_mtx_tots,
+margin_stats = separate(margin_stats, Group.1,
+                        into = c("HT_1st", "HT_2nd"), sep = "_")
+colnames(margin_stats) = c("HT_1st", "HT_2nd", "total_mixing_degree")
+margin_stats = margin_stats[complete.cases(margin_stats), ]
+margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
+# sort and grab top pairs and worst pairs
+margin_stats = margin_stats[order(margin_stats$total_mixing_degree),]
+best_htos = c(margin_stats$HT_1st[1],
+              margin_stats$HT_2nd[1])
+margin_stats = margin_stats[order(-margin_stats$total_mixing_degree),]
+worst_htos = c(margin_stats$HT_1st[1],
+              margin_stats$HT_2nd[1])
+
+write.csv(margin_stats,
           paste0("HTB.combos_",PROJECT_NAME,"_metrics.csv"),
           quote = FALSE, row.names = FALSE)
 
