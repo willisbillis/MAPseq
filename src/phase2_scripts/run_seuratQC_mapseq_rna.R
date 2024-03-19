@@ -109,11 +109,11 @@ for (hto1 in unique(sc_total$HTO_maxID)) {
   }
 }
 margin_stats = aggregate(sc_total$HTO_margin,
-                         by = list(sc_total$combo_id), FUN = mean)
+                         by = list(sc_total$combo_id, sc_total$library_id), FUN = mean)
 
 margin_stats = separate(margin_stats, Group.1,
                         into = c("HT_1st", "HT_2nd"), sep = "_")
-colnames(margin_stats) = c("HT_1st", "HT_2nd", "total_mixing_degree")
+colnames(margin_stats) = c("HT_1st", "HT_2nd", "library_id", "total_mixing_degree")
 margin_stats = margin_stats[complete.cases(margin_stats), ]
 margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
 # sort and grab top pairs and worst pairs
