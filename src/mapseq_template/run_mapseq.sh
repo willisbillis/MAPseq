@@ -48,8 +48,8 @@ fi
 # check for any fastqs from RNA.FB.VDJ
 rna_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/*fastq.gz 2> /dev/null)
 if [[ $(wc -c <<< $rna_fqs) -gt 1 ]]; then
-    cd $PROJECT_PATH/pipeline/RNA.FB.VDJ && $PROJECT_PATH/pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh &
-    cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
+    cd $PROJECT_PATH/pipeline/RNA.FB.VDJ && $PROJECT_PATH/pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh &&
+        cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
 fi
 
 # check for any fastqs from ATAC.ASAP
@@ -58,6 +58,6 @@ if [[ $(wc -c <<< $atac_fqs) -gt 1 ]]; then
     cd $PROJECT_PATH/pipeline/ATAC.ASAP
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
         $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh &
-    $PROJECT_PATH/pipeline/ATAC.ASAP/run_cellranger_ATAC.sh &
-    cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
+    $PROJECT_PATH/pipeline/ATAC.ASAP/run_cellranger_ATAC.sh &&
+        cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
 fi
