@@ -21,7 +21,7 @@ mkdir -p $PROJECT_PATH/reports
 rna_fqs=$(ls $RNA_DIR/*fastq.gz 2> /dev/null)
 atac_fqs=$(ls $ATAC_DIR/*fastq.gz 2> /dev/null)
 
-if echo $(wc -c <<< $rna_fqs) == 1 && echo $(wc -c <<< $atac_fqs) == 1; then
+if $(wc -c <<< $rna_fqs) == 1 && $(wc -c <<< $atac_fqs) == 1; then
     # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
     cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
     cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
@@ -30,7 +30,7 @@ fi
 # mv the fastqs from the data directory
 RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
 stored_rna_fqs=$(ls $RNA_FASTQ_PATH/*gz 2> /dev/null)
-if echo $(wc -c <<< $rna_fqs) > 1 && echo $(wc -c <<< $stored_rna_fqs) == 1; then
+if $(wc -c <<< $rna_fqs) > 1 && $(wc -c <<< $stored_rna_fqs) == 1; then
     mkdir -p $RNA_FASTQ_PATH
     rna_samples=$(ls $RNA_DIR/*fastq.gz)
     for sample in "${rna_samples[@]}"; do
@@ -39,7 +39,7 @@ if echo $(wc -c <<< $rna_fqs) > 1 && echo $(wc -c <<< $stored_rna_fqs) == 1; the
 fi
 ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
 stored_atac_fqs=$(ls $ATAC_FASTQ_PATH/*gz 2> /dev/null)
-if echo $(wc -c <<< $atac_fqs) > 1 && echo $(wc -c <<< $stored_atac_fqs) == 1; then
+if $(wc -c <<< $atac_fqs) > 1 && $(wc -c <<< $stored_atac_fqs) == 1; then
     mkdir -p $ATAC_FASTQ_PATH
     atac_samples=($(ls $ATAC_DIR/*fastq.gz))
     for sample in "${atac_samples[@]}"; do
@@ -49,14 +49,14 @@ fi
 
 # check for any fastqs from RNA.FB.VDJ
 rna_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/*fastq.gz 2> /dev/null)
-if echo $(wc -c <<< $rna_fqs) > 1; then
+if $(wc -c <<< $rna_fqs) > 1; then
     cd $PROJECT_PATH/pipeline/RNA.FB.VDJ && $PROJECT_PATH/pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh &&
         cp $PROJECT_PATH/pipeline/RNA.FB.VDJ/reports/* $PROJECT_PATH/reports
 fi
 
 # check for any fastqs from ATAC.ASAP
 atac_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/*fastq.gz 2> /dev/null)
-if echo $(wc -c <<< $atac_fqs) > 1; then
+if $(wc -c <<< $atac_fqs) > 1; then
     cd $PROJECT_PATH/pipeline/ATAC.ASAP
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
         $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh &
