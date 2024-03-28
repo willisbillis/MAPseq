@@ -27,6 +27,7 @@ set.seed(1234)
 # clustree: plotting clusters vs resolution
 # dplyr: pipe command '%>%'
 # ShinyCell: Interact with your data
+# sceasy: convert seurat object to anndata format
 
 ###############################################################################
 #### SET RESOURCE LIMITS ####
@@ -44,9 +45,9 @@ plan("multicore", workers = max_cores)
 ## OPTIONS
 
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "LRA_all"
+PROJECT_NAME = "ACV02_aggr001"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq/LRA_all/analysis/RNA.FB.VDJ"
+PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/ACV02/ACV02_aggr001/analysis/RNA.FB.VDJ"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS")
 HTO_DEMUX_PATH = paste0(PROJECT_DIR,"/../../pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
 
@@ -80,7 +81,8 @@ p = VlnPlot(sc_total,
             group.by = "hash.ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       p, height = OUTPUT_FIG_HEIGHT,
+       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
@@ -88,7 +90,8 @@ p = VlnPlot(sc_total,
             group.by = "HTO_maxID",
             pt.size = 0)
 ggsave(paste0("vln_max_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       p, height = OUTPUT_FIG_HEIGHT,
+       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
@@ -96,7 +99,8 @@ p = VlnPlot(sc_total,
             group.by = "HTO_classification.global",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       p, height = OUTPUT_FIG_HEIGHT,
+       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
 
 sc_total$combo_id = paste0(sc_total$HTO_maxID, "_", sc_total$HTO_secondID)
 for (hto1 in unique(sc_total$HTO_maxID)) {
@@ -109,11 +113,15 @@ for (hto1 in unique(sc_total$HTO_maxID)) {
   }
 }
 margin_stats = aggregate(sc_total$HTO_margin,
-                         by = list(sc_total$combo_id, sc_total$library_id), FUN = mean)
+                         by = list(sc_total$combo_id,
+                                   sc_total$library_id),
+                         FUN = mean)
+sc_total$combo_id = NULL
 
 margin_stats = separate(margin_stats, Group.1,
                         into = c("HT_1st", "HT_2nd"), sep = "_")
-colnames(margin_stats) = c("HT_1st", "HT_2nd", "library_id", "total_mixing_degree")
+colnames(margin_stats) = c("HT_1st", "HT_2nd",
+                           "library_id", "hto_separation")
 margin_stats = margin_stats[complete.cases(margin_stats), ]
 margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
 # sort and grab top pairs and worst pairs
@@ -140,7 +148,7 @@ p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in% c(
 ggsave(paste0("scatter_worst.hto.separation_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
 
-sc_total = subset(sc_total, HTO_classification.global == "Singlet")
+sc_total = subset(sc_total, HTO_classification.global != "Doublet")
 
 DefaultAssay(sc_total) = "RNA"
 sc_total <- NormalizeData(sc_total)
@@ -164,8 +172,8 @@ MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell; set plasma c
 
 p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt", quantiles=TRUE, log_x=TRUE)
 nFeature_mt_plot <- p +
-  geom_hline(yintercept=MAX_PCT_MT,linetype='dashed') +
-  geom_vline(xintercept=c(MIN_GENE_READS, MAX_GENE_READS), linetype='dashed')
+  geom_hline(yintercept=MAX_PCT_MT,linetype = "dashed") +
+  geom_vline(xintercept=c(MIN_GENE_READS, MAX_GENE_READS), linetype = "dashed")
 ggsave("scatter_nFeatRNA.v.MT_filtered.png", nFeature_mt_plot,
        width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
 ###############################################################################
@@ -174,19 +182,55 @@ ggsave("scatter_nFeatRNA.v.MT_filtered.png", nFeature_mt_plot,
 
 # Expression Filter
 hto_reference = read.csv(HTO_DEMUX_PATH)
-stats = data.frame(Patients = hto_reference$patient_id)
-patient_id.counts = as.data.frame(table(sc_total$patient_id))
-stats$Unfiltered_Cells = patient_id.counts$Freq[match(stats$Patients, patient_id.counts$Var1)]
-stats[is.na(stats)] = 0
-cell_counts.rna = round(AggregateExpression(sc_total, group.by="patient_id")$RNA %>% colSums)
-cell_counts.adt = round(AggregateExpression(sc_total, group.by="patient_id")$ADT %>% colSums)
-cell_counts.hto = round(AggregateExpression(sc_total, group.by="patient_id")$HTO %>% colSums)
+# adjust metadata to accomodate Seurat's AggregateExpression
+sc_total$library_id = gsub("_", "-", sc_total$library_id)
+sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
+hto_reference$library_id = gsub("_", "-", hto_reference$library_id)
+hto_reference$patient_id = gsub("_", "-", hto_reference$patient_id)
+# pair hto reference with seurat object
+hto_reference$match_id = paste(hto_reference$library_id,
+                               hto_reference$patient_id,
+                               hto_reference$hashtag,
+                               sep = "-")
+sc_total$match_id = paste(sc_total$library_id,
+                          sc_total$patient_id,
+                          sc_total$hash.ID,
+                          sep = "-")
+# add metadata from hto reference to seurat object
+for (column_id in names(hto_reference)[4:ncol(hto_reference)]) {
+  sc_total@meta.data[[column_id]] = hto_reference[[column_id]][match(sc_total$match_id, hto_reference$match_id)]
+}
 
-stats$Unfiltered_Average_Expression.RNA = cell_counts.rna[match(stats$Patients, names(cell_counts.rna))] /
+# create new column for unique sample ID - adjust as needed for each dataset
+hto_reference$sample_id = paste(hto_reference$library_id,
+                                hto_reference$patient_id,
+                                hto_reference$visit,
+                                sep = "-")
+sc_total$sample_id = paste(sc_total$library_id,
+                           sc_total$patient_id,
+                           sc_total$visit,
+                           sep = "-")
+stats = data.frame(match_id = hto_reference$match_id)
+
+if (ncol(hto_reference) > 3) {
+  stats = merge(stats, hto_reference[, 3:ncol(hto_reference)], by="match_id")
+} else {
+  stats$sample_id = hto_reference$sample_id[match(stats$match_id, hto_reference$match_id)]
+}
+stats$match_id = NULL
+sc_total$match_id = NULL
+sample_id.counts = as.data.frame(table(sc_total$sample_id))
+stats$Unfiltered_Cells = sample_id.counts$Freq[match(stats$sample_id, sample_id.counts$Var1)]
+stats[is.na(stats)] = 0
+cell_counts.rna = round(AggregateExpression(sc_total, group.by="sample_id")$RNA %>% colSums)
+cell_counts.adt = round(AggregateExpression(sc_total, group.by="sample_id")$ADT %>% colSums)
+cell_counts.hto = round(AggregateExpression(sc_total, group.by="sample_id")$HTO %>% colSums)
+
+stats$Unfiltered_Average_Expression.RNA = cell_counts.rna[match(stats$sample_id, names(cell_counts.rna))] /
   stats$Unfiltered_Cells
-stats$Unfiltered_Average_Expression.ADT = cell_counts.adt[match(stats$Patients, names(cell_counts.adt))] /
+stats$Unfiltered_Average_Expression.ADT = cell_counts.adt[match(stats$sample_id, names(cell_counts.adt))] /
   stats$Unfiltered_Cells
-stats$Unfiltered_Average_Expression.HTO = cell_counts.hto[match(stats$Patients, names(cell_counts.hto))] /
+stats$Unfiltered_Average_Expression.HTO = cell_counts.hto[match(stats$sample_id, names(cell_counts.hto))] /
   stats$Unfiltered_Cells
 
 sc = subset(sc_total,
@@ -195,36 +239,35 @@ sc = subset(sc_total,
               nFeature_RNA < MAX_GENE_READS)
 
 # HTO Filter
-sc <- subset(sc, subset = HTO_classification.global != "Doublet")
 DefaultAssay(sc) = "ADT"
 VariableFeatures(sc) <- rownames(sc[["ADT"]])
-sc = NormalizeData(sc, normalization.method = 'CLR', margin = 2)
+sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
 sc = ScaleData(sc)
 
-patient_id.counts = as.data.frame(table(sc$patient_id))
-stats$Filtered_Cells = patient_id.counts$Freq[match(stats$Patients, patient_id.counts$Var1)]
+sample_id.counts = as.data.frame(table(sc$sample_id))
+stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id, sample_id.counts$Var1)]
 stats[is.na(stats)] = 0
 
-cell_counts.rna = round(AggregateExpression(sc, group.by="patient_id")$RNA %>% colSums)
-cell_counts.adt = round(AggregateExpression(sc, group.by="patient_id")$ADT %>% colSums)
-cell_counts.hto = round(AggregateExpression(sc, group.by="patient_id")$HTO %>% colSums)
+cell_counts.rna = round(AggregateExpression(sc, group.by="sample_id")$RNA %>% colSums)
+cell_counts.adt = round(AggregateExpression(sc, group.by="sample_id")$ADT %>% colSums)
+cell_counts.hto = round(AggregateExpression(sc, group.by="sample_id")$HTO %>% colSums)
 
-stats$Filtered_Average_Expression.RNA = cell_counts.rna[match(stats$Patients, names(cell_counts.rna))] /
+stats$Filtered_Average_Expression.RNA = cell_counts.rna[match(stats$sample_id, names(cell_counts.rna))] /
   stats$Filtered_Cells
-stats$Filtered_Average_Expression.ADT = cell_counts.adt[match(stats$Patients, names(cell_counts.adt))] /
+stats$Filtered_Average_Expression.ADT = cell_counts.adt[match(stats$sample_id, names(cell_counts.adt))] /
   stats$Filtered_Cells
-stats$Filtered_Average_Expression.HTO = cell_counts.hto[match(stats$Patients, names(cell_counts.hto))] /
+stats$Filtered_Average_Expression.HTO = cell_counts.hto[match(stats$sample_id, names(cell_counts.hto))] /
   stats$Filtered_Cells
 stats[is.na(stats)] = 0
 
-write.csv(stats, "QC.rna_patientID_filtering.stats.csv", quote = F, row.names = F)
+write.csv(stats, "QC.rna_sampleID_filtering.stats.csv", quote = F, row.names = F)
 ###############################################################################
 # Batch correction, Clustering, DEG (differentially expressed genes), and
 #     DEP (differentially expressed proteins) for RNA assay
 
 #### RNA RPCA Batch correction ####
 DefaultAssay(sc) = "RNA"
-sc[["RNA"]] = split(sc[["RNA"]], f = sc$patient_id)
+sc[["RNA"]] = split(sc[["RNA"]], f = sc$sample_id)
 sc <- SCTransform(sc, verbose = FALSE)
 
 # Filter out Ig genes from VariableFeatures, they will clog the results as
@@ -268,7 +311,7 @@ ggsave("umap_rna.integrated_patient_id.png", p, width = 8, height = 6)
 
 #### ADT RPCA Batch correction ####
 DefaultAssay(sc) = "ADT"
-sc[["ADT"]] = split(sc[["ADT"]], f = sc$patient_id)
+sc[["ADT"]] = split(sc[["ADT"]], f = sc$sample_id)
 VariableFeatures(sc) <- rownames(sc[["ADT"]])
 sc <- NormalizeData(sc, normalization.method = "CLR", margin = 2,
                     verbose = FALSE)
