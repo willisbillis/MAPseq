@@ -412,19 +412,17 @@ if (FALSE) {
   ggsave("umap_adt.integrated_sample_id.pdf", p, width = 8, height = 6)
   ggsave("umap_adt.integrated_sample_id.png", p, width = 8, height = 6)
 
-  #### WNN Integration of RNA and ADT assays ####
-  if (FALSE) {
-    sc <- FindMultiModalNeighbors(
-      sc, reduction.list = list("integrated.rna.harmony",
-                                "integrated.adt.harmony"),
-      dims.list = list(1:40, 1:40), verbose = FALSE
-    )
-    sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
-                 reduction.key = "wnnUMAP_", verbose = FALSE)
-    p <- DimPlot(sc, reduction = "wnn.umap", group.by = "sample_id")
-    ggsave("umap_rna.adt.wnn_sample_id.pdf", p, width = 8, height = 6)
-    ggsave("umap_rna.adt.wnn_sample_id.png", p, width = 8, height = 6)
-  }
+  #### (Optional) WNN Integration of RNA and ADT assays ####
+  sc <- FindMultiModalNeighbors(
+    sc, reduction.list = list("integrated.rna.harmony",
+                              "integrated.adt.harmony"),
+    dims.list = list(1:40, 1:40), verbose = FALSE
+  )
+  sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
+                reduction.key = "wnnUMAP_", verbose = FALSE)
+  p <- DimPlot(sc, reduction = "wnn.umap", group.by = "sample_id")
+  ggsave("umap_rna.adt.wnn_sample_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_rna.adt.wnn_sample_id.png", p, width = 8, height = 6)
 }
 ###############################################################################
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
