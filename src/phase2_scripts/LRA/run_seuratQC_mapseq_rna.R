@@ -1,4 +1,5 @@
-# run_seuratQC_mapseq_rna.R - created by M Elliott Williams (https://github.com/willisbillis) Feb 2024
+# run_seuratQC_mapseq_rna.R
+# created by M Elliott Williams (https://github.com/willisbillis) Feb 2024
 
 # Install required packages using the package manager 'pacman'
 if (!require("pacman", quietly = TRUE)) {
@@ -6,14 +7,14 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate,
-       multtest, metap, tidyr)
+       multtest, metap, tidyr, scDblFinder, BiocParallel)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
 # Set python path to ensure reticulate packages can be used
 python_path = system("which python", intern = TRUE)
 use_python(python_path)
-# make sure you are running Seurat v5
+# make sure Seurat v5 is used
 options(Seurat.object.assay.version = "v5")
 # silence random number warning
 options(future.rng.onMisuse = "ignore")
@@ -31,6 +32,7 @@ set.seed(1234)
 
 ###############################################################################
 #### SET RESOURCE LIMITS ####
+###############################################################################
 max_cores = 32
 max_mem = 32
 if (max_cores == -1) {
@@ -42,21 +44,24 @@ if (max_mem != -1) {
 
 plan("multicore", workers = max_cores)
 ###############################################################################
-## OPTIONS
-
+#### OPTIONS ####
+###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "ACV02_aggr001"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
 PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/ACV02/ACV02_aggr001/analysis/RNA.FB.VDJ"
-RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS")
-HTO_DEMUX_PATH = paste0(PROJECT_DIR,"/../../pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
+RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
+                         PROJECT_NAME, ".RDS")
+HTO_DEMUX_PATH = paste0(PROJECT_DIR,
+                        "/../../pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
 
 GENOME = "hg38"                     # REPLACE, hg38 or mm10
 OUTPUT_FIG_WIDTH =  8               # inches, width of output figures
-OUTPUT_FIG_HEIGHT = 8
-
+OUTPUT_FIG_HEIGHT = 8               # inches, height of output figures
 ###############################################################################
-# TODO: Read a file of Ig instead of pattern matching?
+#### LOAD DATA AND SET VARIABLES ####
+###############################################################################
+# TODO: Read a file of Ig instead of pattern matching
 if (GENOME == "hg38") {
   mt_pattern = "^MT-"
   igs = "^IGH|^IGK|^IGL"
@@ -71,7 +76,9 @@ if (GENOME == "hg38") {
 
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
-
+###############################################################################
+#### PLOT DEMULTIPLEXING RESULTS (ADT) ####
+###############################################################################
 DefaultAssay(sc_total) = "HTO"
 ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 
@@ -82,7 +89,7 @@ p = VlnPlot(sc_total,
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
@@ -91,7 +98,7 @@ p = VlnPlot(sc_total,
             pt.size = 0)
 ggsave(paste0("vln_max_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
@@ -100,8 +107,11 @@ p = VlnPlot(sc_total,
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
+###############################################################################
+#### CALCULATE QC METRICS (ADT) ####
+###############################################################################
 sc_total$combo_id = paste0(sc_total$HTO_maxID, "_", sc_total$HTO_secondID)
 for (hto1 in unique(sc_total$HTO_maxID)) {
   for (hto2 in unique(sc_total$HTO_secondID)) {
@@ -127,10 +137,12 @@ margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
 # sort and grab top pairs and worst pairs
 margin_stats = margin_stats[order(margin_stats$total_mixing_degree),]
 best_htos = c(margin_stats$HT_1st[1],
-              margin_stats$HT_2nd[1])
+              margin_stats$HT_2nd[1],
+              "Doublet")
 margin_stats = margin_stats[order(-margin_stats$total_mixing_degree),]
 worst_htos = c(margin_stats$HT_1st[1],
-              margin_stats$HT_2nd[1])
+               margin_stats$HT_2nd[1],
+              "Doublet")
 
 write.csv(margin_stats,
           paste0("HTC.combos_",PROJECT_NAME,"_metrics.csv"),
@@ -138,25 +150,41 @@ write.csv(margin_stats,
 
 Idents(sc_total) = "hash.ID"
 
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in% c(best_htos, "Doublet")],
-    feature1 = best_htos[1], feature2 = best_htos[2])
+p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
+                                                          best_htos],
+                   feature1 = best_htos[1], feature2 = best_htos[2])
 ggsave(paste0("scatter_best.hto.separation_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
 
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in% c(worst_htos, "Doublet")],
-    feature1 = worst_htos[1], feature2 = worst_htos[2])
+p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
+                                                          worst_htos],
+                   feature1 = worst_htos[1], feature2 = worst_htos[2])
 ggsave(paste0("scatter_worst.hto.separation_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
 
 sc_total = subset(sc_total, HTO_classification.global != "Doublet")
-
+###############################################################################
+#### CALCULATE QC METRICS (RNA) ####
+###############################################################################
+# Doublet Detection
 DefaultAssay(sc_total) = "RNA"
-sc_total <- NormalizeData(sc_total)
+sc_v3 = sc_total
+sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class="Assay")
+sce <- scDblFinder(as.SingleCellExperiment(sc_v3),
+                   samples="library_id", BPPARAM=MulticoreParam(max_cores))
+sc_total$scDblFinder.score <- sce$scDblFinder.score
+
+# Ig and mitochondrial reads detection
 sc_total[["percent.Ig"]] <- PercentageFeatureSet(sc_total, pattern = igs)
 sc_total[["percent.mt"]] <- PercentageFeatureSet(sc_total, pattern = mt_pattern)
 
-p = DensityScatter(sc_total, "percent.Ig", "percent.mt", quantiles=TRUE)
+p = DensityScatter(sc_total, "percent.Ig", "percent.mt", quantiles = TRUE)
 ggsave("scatter_pct.Ig.v.pct.mt_alldata.png",
+       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
+
+p = DensityScatter(sc_total, "scDblFinder.score", "percent.mt",
+                   quantiles = TRUE)
+ggsave("scatter_pct.dbl.v.pct.mt_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 p = DensityScatter(sc_total, "nCount_RNA", "nFeature_RNA",
@@ -164,23 +192,26 @@ p = DensityScatter(sc_total, "nCount_RNA", "nFeature_RNA",
 ggsave("scatter_nCountRNA.v.nFeatRNA_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
+#### RNA CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
+DBL_LIMIT = 0.5       # REPLACE, maximum scDblFinder score to permit
 MIN_GENE_READS = 100   # REPLACE, minimum genes with reads per cell
-MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell; set plasma cell limit to Inf
+MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
+#                                (set plasma cell limit to Inf)
 
-p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt", quantiles=TRUE, log_x=TRUE)
-nFeature_mt_plot <- p +
-  geom_hline(yintercept=MAX_PCT_MT,linetype = "dashed") +
-  geom_vline(xintercept=c(MIN_GENE_READS, MAX_GENE_READS), linetype = "dashed")
-ggsave("scatter_nFeatRNA.v.MT_filtered.png", nFeature_mt_plot,
+p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt",
+                   quantiles=TRUE, log_x=TRUE)
+nfeat_mt_plot <- p +
+  geom_hline(yintercept = MAX_PCT_MT, linetype = "dashed") +
+  geom_vline(xintercept = c(MIN_GENE_READS, MAX_GENE_READS),
+             linetype = "dashed")
+ggsave("scatter_nFeatRNA.v.pct.mt_filtered.png", nfeat_mt_plot,
        width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
 ###############################################################################
+#### QUANTIFY QC FILTERING ####
 ###############################################################################
-# Filtering of cells based on QC criteria
-
-# Expression Filter
 hto_reference = read.csv(HTO_DEMUX_PATH)
 # adjust metadata to accomodate Seurat's AggregateExpression
 sc_total$library_id = gsub("_", "-", sc_total$library_id)
@@ -197,10 +228,11 @@ sc_total$match_id = paste(sc_total$library_id,
                           sc_total$hash.ID,
                           sep = "-")
 # add metadata from hto reference to seurat object
-for (column_id in names(hto_reference)[4:ncol(hto_reference)]) {
-  sc_total@meta.data[[column_id]] = hto_reference[[column_id]][match(sc_total$match_id, hto_reference$match_id)]
+for (col_id in names(hto_reference)[4:ncol(hto_reference)]) {
+  sc_id = sc_total$match_id
+  hto_id = hto_reference$match_id
+  sc_total@meta.data[[col_id]] = hto_reference[[col_id]][match(sc_id, hto_id)]
 }
-
 # create new column for unique sample ID - adjust as needed for each dataset
 hto_reference$sample_id = paste(hto_reference$library_id,
                                 hto_reference$patient_id,
@@ -215,26 +247,38 @@ stats = data.frame(match_id = hto_reference$match_id)
 if (ncol(hto_reference) > 3) {
   stats = merge(stats, hto_reference[, 3:ncol(hto_reference)], by="match_id")
 } else {
-  stats$sample_id = hto_reference$sample_id[match(stats$match_id, hto_reference$match_id)]
+  stats$sample_id = hto_reference$sample_id[match(stats$match_id,
+                                                  hto_reference$match_id)]
 }
 stats$match_id = NULL
 sc_total$match_id = NULL
-sample_id.counts = as.data.frame(table(sc_total$sample_id))
-stats$Unfiltered_Cells = sample_id.counts$Freq[match(stats$sample_id, sample_id.counts$Var1)]
+sample_id_counts = as.data.frame(table(sc_total$sample_id))
+stats$Unfiltered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+                                                     sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
-cell_counts.rna = round(AggregateExpression(sc_total, group.by="sample_id")$RNA %>% colSums)
-cell_counts.adt = round(AggregateExpression(sc_total, group.by="sample_id")$ADT %>% colSums)
-cell_counts.hto = round(AggregateExpression(sc_total, group.by="sample_id")$HTO %>% colSums)
+cells_rna = round(AggregateExpression(sc_total,
+                                      group.by = "sample_id")$RNA %>%
+                    colSums)
+cells_adt = round(AggregateExpression(sc_total,
+                                      group.by = "sample_id")$ADT %>%
+                    colSums)
+cells_hto = round(AggregateExpression(sc_total,
+                                      group.by = "sample_id")$HTO %>%
+                    colSums)
 
-stats$Unfiltered_Average_Expression.RNA = cell_counts.rna[match(stats$sample_id, names(cell_counts.rna))] /
+stats$Unfiltered_Avg_Expression.RNA = cells_rna[match(stats$sample_id,
+                                                      names(cells_rna))] /
   stats$Unfiltered_Cells
-stats$Unfiltered_Average_Expression.ADT = cell_counts.adt[match(stats$sample_id, names(cell_counts.adt))] /
+stats$Unfiltered_Avg_Expression.ADT = cells_adt[match(stats$sample_id,
+                                                      names(cells_adt))] /
   stats$Unfiltered_Cells
-stats$Unfiltered_Average_Expression.HTO = cell_counts.hto[match(stats$sample_id, names(cell_counts.hto))] /
+stats$Unfiltered_Avg_Expression.HTO = cells_hto[match(stats$sample_id,
+                                                      names(cells_hto))] /
   stats$Unfiltered_Cells
 
 sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
+              scDblFinder.score < DBL_LIMIT &
               nFeature_RNA > MIN_GENE_READS &
               nFeature_RNA < MAX_GENE_READS)
 
@@ -244,32 +288,138 @@ VariableFeatures(sc) <- rownames(sc[["ADT"]])
 sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
 sc = ScaleData(sc)
 
-sample_id.counts = as.data.frame(table(sc$sample_id))
-stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id, sample_id.counts$Var1)]
+sample_id_counts = as.data.frame(table(sc$sample_id))
+stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+                                                   sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 
-cell_counts.rna = round(AggregateExpression(sc, group.by="sample_id")$RNA %>% colSums)
-cell_counts.adt = round(AggregateExpression(sc, group.by="sample_id")$ADT %>% colSums)
-cell_counts.hto = round(AggregateExpression(sc, group.by="sample_id")$HTO %>% colSums)
+cells_rna = round(AggregateExpression(sc, group.by="sample_id")$RNA %>% colSums)
+cells_adt = round(AggregateExpression(sc, group.by="sample_id")$ADT %>% colSums)
+cells_hto = round(AggregateExpression(sc, group.by="sample_id")$HTO %>% colSums)
 
-stats$Filtered_Average_Expression.RNA = cell_counts.rna[match(stats$sample_id, names(cell_counts.rna))] /
+stats$Filtered_Avg_Expression.RNA = cells_rna[match(stats$sample_id,
+                                                    names(cells_rna))] /
   stats$Filtered_Cells
-stats$Filtered_Average_Expression.ADT = cell_counts.adt[match(stats$sample_id, names(cell_counts.adt))] /
+stats$Filtered_Avg_Expression.ADT = cells_adt[match(stats$sample_id,
+                                                    names(cells_adt))] /
   stats$Filtered_Cells
-stats$Filtered_Average_Expression.HTO = cell_counts.hto[match(stats$sample_id, names(cell_counts.hto))] /
+stats$Filtered_Avg_Expression.HTO = cells_hto[match(stats$sample_id,
+                                                    names(cells_hto))] /
   stats$Filtered_Cells
 stats[is.na(stats)] = 0
-
-write.csv(stats, "QC.rna_sampleID_filtering.stats.csv", quote = F, row.names = F)
+write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
+          quote = FALSE, row.names = FALSE)
 ###############################################################################
-# Batch correction, Clustering, DEG (differentially expressed genes), and
-#     DEP (differentially expressed proteins) for RNA assay
+#### BATCH CORRECTION (OPTIONAL) ####
+###############################################################################
+if (FALSE) {
+  #### RNA Harmony Batch correction ####
+  DefaultAssay(sc) = "RNA"
+  sc[["RNA"]] = split(sc[["RNA"]], f = sc$sample_id)
+  sc <- SCTransform(sc, verbose = FALSE)
 
-#### RNA RPCA Batch correction ####
+  # Filter out Ig genes from VariableFeatures, they will clog the results as
+  #     they are highly-variable by nature
+  non_ig_mask = !grepl(igs, VariableFeatures(sc))
+  VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
+  sc <- RunPCA(sc, npcs = 40,
+              reduction.name = "rna.pca", verbose = FALSE)
+  sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
+                      verbose = FALSE)
+  sc <- FindClusters(sc, resolution = 2,
+                    cluster.name = "unintegrated_rna.clusters",
+                    verbose = FALSE)
+  sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
+                reduction.name = "umap.rna.unintegrated",
+                verbose = FALSE)
+  # visualize by batch annotations
+  p = DimPlot(sc, reduction = "umap.rna.unintegrated", group.by = "patient_id")
+  ggsave("umap_rna.unintegrated_patient_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_rna.unintegrated_patient_id.png", p, width = 8, height = 6)
+
+  sc <- IntegrateLayers(
+    object = sc, method = HarmonyIntegration,
+    orig = "rna.pca", new.reduction = "integrated.rna.harmony",
+    verbose = FALSE
+  )
+  sc = JoinLayers(sc, assay = "RNA")
+
+  sc <- FindNeighbors(sc, reduction = "integrated.rna.harmony",
+                      dims = 1:40, verbose = FALSE)
+  sc <- FindClusters(sc, resolution = 2, cluster.name = "rna.clusters",
+                     verbose = FALSE)
+  sc <- RunUMAP(sc, reduction = "integrated.rna.harmony",
+                dims = 1:40, reduction.name = "umap.rna",
+                verbose = FALSE)
+  p <- DimPlot(sc, reduction = "integrated.rna.harmony",
+               group.by = "patient_id")
+  ggsave("umap_rna.integrated_patient_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_rna.integrated_patient_id.png", p, width = 8, height = 6)
+
+  #### ADT Harmony Batch correction ####
+  DefaultAssay(sc) = "ADT"
+  sc[["ADT"]] = split(sc[["ADT"]], f = sc$sample_id)
+  VariableFeatures(sc) <- rownames(sc[["ADT"]])
+  sc <- NormalizeData(sc, normalization.method = "CLR", margin = 2,
+                      verbose = FALSE)
+  sc <- ScaleData(sc, features = rownames(sc[["ADT"]]),
+                  do.center = TRUE,
+                  do.scale = FALSE,
+                  verbose = FALSE)
+  sc <- RunPCA(sc, npcs = 40,
+               reduction.name = "adt.pca", verbose = FALSE)
+  sc <- FindNeighbors(sc, dims = 1:40, reduction = "adt.pca",
+                      verbose = FALSE)
+  sc <- FindClusters(sc, resolution = 2,
+                     cluster.name = "unintegrated_adt.clusters",
+                     verbose = FALSE)
+  sc <- RunUMAP(sc, dims = 1:40, reduction = "adt.pca",
+                reduction.name = "umap.adt.unintegrated",
+                verbose = FALSE)
+  # visualize by batch annotations
+  p = DimPlot(sc, reduction = "umap.adt.unintegrated", group.by = "patient_id")
+  ggsave("umap_adt.unintegrated_patient_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_adt.unintegrated_patient_id.png", p, width = 8, height = 6)
+
+  sc <- IntegrateLayers(
+    object = sc, method = HarmonyIntegration,
+    features = rownames(sc[["ADT"]]),
+    orig = "adt.pca", new.reduction = "integrated.adt.harmony",
+    verbose = FALSE
+  )
+  sc = JoinLayers(sc)
+
+  sc <- FindNeighbors(sc, reduction = "integrated.adt.harmony",
+                      dims = 1:40, verbose = FALSE)
+  sc <- FindClusters(sc, resolution = 2, cluster.name = "adt.clusters",
+                     verbose = FALSE)
+  sc <- RunUMAP(sc, reduction = "integrated.adt.harmony",
+                dims = 1:40, reduction.name = "umap.adt",
+                verbose = FALSE)
+  p <- DimPlot(sc, reduction = "integrated.adt.harmony",
+               group.by = "patient_id")
+  ggsave("umap_adt.integrated_patient_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_adt.integrated_patient_id.png", p, width = 8, height = 6)
+
+  #### WNN Integration of RNA and ADT assays ####
+  if (FALSE) {
+    sc <- FindMultiModalNeighbors(
+      sc, reduction.list = list("integrated.rna.harmony",
+                                "integrated.adt.harmony"),
+      dims.list = list(1:40, 1:40), verbose = FALSE
+    )
+    sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
+                 reduction.key = "wnnUMAP_", verbose = FALSE)
+    p <- DimPlot(sc, reduction = "wnn.umap", group.by = "patient_id")
+    ggsave("umap_rna.adt.wnn_patient_id.pdf", p, width = 8, height = 6)
+    ggsave("umap_rna.adt.wnn_patient_id.png", p, width = 8, height = 6)
+  }
+}
+###############################################################################
+#### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
+###############################################################################
 DefaultAssay(sc) = "RNA"
-sc[["RNA"]] = split(sc[["RNA"]], f = sc$sample_id)
-sc <- SCTransform(sc, verbose = FALSE)
-
+sc <- SCTransform(sc)
 # Filter out Ig genes from VariableFeatures, they will clog the results as
 #     they are highly-variable by nature
 non_ig_mask = !grepl(igs, VariableFeatures(sc))
@@ -278,96 +428,27 @@ sc <- RunPCA(sc, npcs = 40,
              reduction.name = "rna.pca", verbose = FALSE)
 sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
                     verbose = FALSE)
-sc <- FindClusters(sc, resolution = 2,
-                   cluster.name = "unintegrated_rna.clusters",
-                   verbose = FALSE)
 sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
-              reduction.name = "umap.rna.unintegrated",
+              reduction.name = "umap.rna",
               verbose = FALSE)
-# visualize by batch annotations
-p = DimPlot(sc, reduction = "umap.rna.unintegrated", group.by = "patient_id")
-ggsave("umap_rna.unintegrated_patient_id.pdf", p, width = 8, height = 6)
-ggsave("umap_rna.unintegrated_patient_id.png", p, width = 8, height = 6)
+###############################################################################
+#### CLUSTERING AND ANNOTATION ####
+###############################################################################
+# Annotate PBMC cell types using Azimuth's PBMC reference
+sc_v3 = sc
+sc_v3[["ADT"]] = NULL
+sc_v3[["RNA"]] = NULL
+sc_v3[["SCT"]] = as(sc_v3[["SCT"]], Class = "Assay")
+sc_v3 <- RunAzimuth(sc_v3, reference = "pbmcref")
 
-sc <- IntegrateLayers(
-  object = sc, method = RPCAIntegration,
-  dims = 1:40, assay = "SCT", k.weight = 50,
-  normalization.method = "SCT",
-  orig.reduction = "rna.pca", new.reduction = "integrated.rna.rpca",
-  verbose = FALSE
-)
-sc = JoinLayers(sc)
+sc$predicted.celltype.l1 = sc_v3$predicted.celltype.l1
+sc$predicted.celltype.l2 = sc_v3$predicted.celltype.l2
+sc$predicted.celltype.l3 = sc_v3$predicted.celltype.l3
+sc$predicted.celltype.l1.score = sc_v3$predicted.celltype.l1.score
+sc$predicted.celltype.l2.score = sc_v3$predicted.celltype.l2.score
+sc$predicted.celltype.l3.score = sc_v3$predicted.celltype.l3.score
 
-sc <- FindNeighbors(sc, reduction = "integrated.rna.rpca",
-                    dims = 1:40, verbose = FALSE)
-sc <- FindClusters(sc, resolution = 2, cluster.name = "rna.clusters",
-                   verbose = FALSE)
-sc <- RunUMAP(sc, reduction = "integrated.rna.rpca",
-              dims = 1:40, reduction.name = "umap.rna",
-              verbose = FALSE)
-p <- DimPlot(sc, reduction = "integrated.rna.rpca", group.by = "patient_id")
-ggsave("umap_rna.integrated_patient_id.pdf", p, width = 8, height = 6)
-ggsave("umap_rna.integrated_patient_id.png", p, width = 8, height = 6)
-
-#### ADT RPCA Batch correction ####
-DefaultAssay(sc) = "ADT"
-sc[["ADT"]] = split(sc[["ADT"]], f = sc$sample_id)
-VariableFeatures(sc) <- rownames(sc[["ADT"]])
-sc <- NormalizeData(sc, normalization.method = "CLR", margin = 2,
-                    verbose = FALSE)
-
-features <- rownames(sc[["ADT"]])
-sc <- ScaleData(sc, features = features,
-                do.center = TRUE,
-                do.scale = FALSE,
-                verbose = FALSE)
-sc <- RunPCA(sc, npcs = 40,
-             reduction.name = "adt.pca", verbose = FALSE)
-sc <- FindNeighbors(sc, dims = 1:40, reduction = "adt.pca",
-                    verbose = FALSE)
-sc <- FindClusters(sc, resolution = 2,
-                   cluster.name = "unintegrated_adt.clusters",
-                   verbose = FALSE)
-sc <- RunUMAP(sc, dims = 1:40, reduction = "adt.pca",
-              reduction.name = "umap.adt.unintegrated",
-              verbose = FALSE)
-# visualize by batch annotations
-p = DimPlot(sc, reduction = "umap.adt.unintegrated", group.by = "patient_id")
-ggsave("umap_adt.unintegrated_patient_id.pdf", p, width = 8, height = 6)
-ggsave("umap_adt.unintegrated_patient_id.png", p, width = 8, height = 6)
-
-sc <- IntegrateLayers(
-  object = sc, method = RPCAIntegration,
-  features = features, assay = "ADT", k.weight = 50,
-  dims = 1:40, normalization.method = "LogNormalize",
-  orig.reduction = "adt.pca", new.reduction = "integrated.adt.rpca",
-  verbose = FALSE
-)
-sc = JoinLayers(sc)
-
-sc <- FindNeighbors(sc, reduction = "integrated.adt.rpca",
-                    dims = 1:40, verbose = FALSE)
-sc <- FindClusters(sc, resolution = 2, cluster.name = "adt.clusters",
-                   verbose = FALSE)
-sc <- RunUMAP(sc, reduction = "integrated.adt.rpca",
-              dims = 1:40, reduction.name = "umap.adt",
-              verbose = FALSE)
-p <- DimPlot(sc, reduction = "integrated.adt.rpca", group.by = "patient_id")
-ggsave("umap_adt.integrated_patient_id.pdf", p, width = 8, height = 6)
-ggsave("umap_adt.integrated_patient_id.png", p, width = 8, height = 6)
-
-#### WNN Integration of RNA and ADT assays ####
-if (FALSE) {
-  sc <- FindMultiModalNeighbors(
-    sc, reduction.list = list("integrated.rna.rpca", "integrated.adt.rpca"),
-    dims.list = list(1:40, 1:40), verbose = FALSE
-  )
-  sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
-              reduction.key = "wnnUMAP_", verbose = FALSE)
-  p <- DimPlot(sc, reduction = "wnn.umap", group.by = "patient_id")
-  ggsave("umap_rna.adt.wnn_patient_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_rna.adt.wnn_patient_id.png", p, width = 8, height = 6)
-}
+sc@reductions$ref.umap = sc_v3@reductions$ref.umap
 
 # Different cluster resolutions for SCT
 graph = "SCT_snn"
@@ -384,6 +465,7 @@ sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
+# DEG testing between clusters
 DefaultAssay(sc) = "RNA"
 sc = JoinLayers(sc)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
@@ -391,11 +473,13 @@ all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
+# DEP testing between clusters
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
+# Conserved markers between clusters
 non_hc = subset(sc, endotype != "Healthy_Control_Donor")
 sym_diff <- function(a, b) setdiff(union(a, b), intersect(a, b))
 for (cl_num in unique(Idents(non_hc))) {
@@ -418,7 +502,8 @@ write.csv(all_cons_markers,
           "DEG_nonHC_conserved.markers_cluster.v.endotype.csv",
           quote = FALSE, row.names = FALSE)
 ###############################################################################
-# save Seurat object
+# SAVE SEURAT OBJECT AND SESSION INFO
+###############################################################################
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
