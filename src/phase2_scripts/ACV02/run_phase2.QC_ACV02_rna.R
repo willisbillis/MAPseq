@@ -342,9 +342,9 @@ if (FALSE) {
                 reduction.name = "umap.rna.unintegrated",
                 verbose = FALSE)
   # visualize by batch annotations
-  p = DimPlot(sc, reduction = "umap.rna.unintegrated", group.by = "patient_id")
-  ggsave("umap_rna.unintegrated_patient_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_rna.unintegrated_patient_id.png", p, width = 8, height = 6)
+  p = DimPlot(sc, reduction = "umap.rna.unintegrated", group.by = "sample_id")
+  ggsave("umap_rna.unintegrated_sample_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_rna.unintegrated_sample_id.png", p, width = 8, height = 6)
 
   sc <- IntegrateLayers(
     object = sc, method = HarmonyIntegration,
@@ -362,9 +362,9 @@ if (FALSE) {
                 dims = 1:40, reduction.name = "umap.rna",
                 verbose = FALSE)
   p <- DimPlot(sc, reduction = "integrated.rna.harmony",
-               group.by = "patient_id")
-  ggsave("umap_rna.integrated_patient_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_rna.integrated_patient_id.png", p, width = 8, height = 6)
+               group.by = "sample_id")
+  ggsave("umap_rna.integrated_sample_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_rna.integrated_sample_id.png", p, width = 8, height = 6)
 
   #### ADT Harmony Batch correction ####
   DefaultAssay(sc) = "ADT"
@@ -387,9 +387,9 @@ if (FALSE) {
                 reduction.name = "umap.adt.unintegrated",
                 verbose = FALSE)
   # visualize by batch annotations
-  p = DimPlot(sc, reduction = "umap.adt.unintegrated", group.by = "patient_id")
-  ggsave("umap_adt.unintegrated_patient_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_adt.unintegrated_patient_id.png", p, width = 8, height = 6)
+  p = DimPlot(sc, reduction = "umap.adt.unintegrated", group.by = "sample_id")
+  ggsave("umap_adt.unintegrated_sample_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_adt.unintegrated_sample_id.png", p, width = 8, height = 6)
 
   sc <- IntegrateLayers(
     object = sc, method = HarmonyIntegration,
@@ -408,9 +408,9 @@ if (FALSE) {
                 dims = 1:40, reduction.name = "umap.adt",
                 verbose = FALSE)
   p <- DimPlot(sc, reduction = "integrated.adt.harmony",
-               group.by = "patient_id")
-  ggsave("umap_adt.integrated_patient_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_adt.integrated_patient_id.png", p, width = 8, height = 6)
+               group.by = "sample_id")
+  ggsave("umap_adt.integrated_sample_id.pdf", p, width = 8, height = 6)
+  ggsave("umap_adt.integrated_sample_id.png", p, width = 8, height = 6)
 
   #### WNN Integration of RNA and ADT assays ####
   if (FALSE) {
@@ -421,9 +421,9 @@ if (FALSE) {
     )
     sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
                  reduction.key = "wnnUMAP_", verbose = FALSE)
-    p <- DimPlot(sc, reduction = "wnn.umap", group.by = "patient_id")
-    ggsave("umap_rna.adt.wnn_patient_id.pdf", p, width = 8, height = 6)
-    ggsave("umap_rna.adt.wnn_patient_id.png", p, width = 8, height = 6)
+    p <- DimPlot(sc, reduction = "wnn.umap", group.by = "sample_id")
+    ggsave("umap_rna.adt.wnn_sample_id.pdf", p, width = 8, height = 6)
+    ggsave("umap_rna.adt.wnn_sample_id.png", p, width = 8, height = 6)
   }
 }
 ###############################################################################
