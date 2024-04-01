@@ -191,6 +191,16 @@ p = DensityScatter(sc_total, "nCount_RNA", "nFeature_RNA",
                    quantiles = TRUE, log_x = TRUE, log_y = TRUE)
 ggsave("scatter_nCountRNA.v.nFeatRNA_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
+
+p = DensityScatter(sc_total, "nCount_HTO", "nCount_RNA",
+                   quantiles = TRUE, log_x = TRUE, log_y = TRUE)
+ggsave("scatter_nCountHTO.v.nCountRNA_alldata.png",
+       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
+
+p = DensityScatter(sc_total, "nFeature_HTO", "nFeature_RNA",
+                   quantiles = TRUE, log_x = TRUE, log_y = TRUE)
+ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
+       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### RNA CUTOFFS ####
 ###############################################################################
