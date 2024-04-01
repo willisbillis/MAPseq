@@ -10,6 +10,7 @@ processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) da
 * Cell Ranger ATAC [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/installation)
 * kallisto [(install here)](https://pachterlab.github.io/kallisto/download)
 * bustools [(install here)](https://bustools.github.io/download)
+* cellbender [(install here)](https://cellbender.readthedocs.io/en/latest/installation/index.html)
 
 ### Questions and Issues ###
 
@@ -21,17 +22,7 @@ Resources
 
 Citing
 ------
-If you make use of this software for your work we would appreciate it if you woud cite the paper from XXXX:
-
-    @article(firstauthor2024lramapseq,
-        title={LRA MAPseq title},
-        author={..., Williams, M. Elliott, ..., Scharer, Christopher D., Boss, Jeremy},
-        journal={XXXX},
-        volume={X},
-        number={X},
-        pages={X},
-        year={2024}
-    }
+If you make use of this software for your work we would appreciate it if you would include the citation in any subsequent work. You may cite it using the dropdown menu in the top right of this page.
 
 Known Issues
 ------------
