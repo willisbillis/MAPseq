@@ -167,7 +167,7 @@ ggsave("scatter_nCountRNA.v.nFeatRNA_alldata.png",
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
-MIN_GENE_READS = 300   # REPLACE, minimum genes with reads per cell
+MIN_GENE_READS = 100   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell; set plasma cell limit to Inf
 
 p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt", quantiles=TRUE, log_x=TRUE)
