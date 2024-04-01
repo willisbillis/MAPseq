@@ -1,13 +1,10 @@
-# run_seuratQC_mapseq_rna.R
-# created by M Elliott Williams (https://github.com/willisbillis) Feb 2024
-
 # Install required packages using the package manager 'pacman'
 if (!require("pacman", quietly = TRUE)) {
   install.packages("pacman")
 }
 library(pacman)
 p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate,
-       multtest, metap, tidyr, scDblFinder, BiocParallel)
+       tidyr, Azimuth, scDblFinder, BiocParallel)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
@@ -27,6 +24,13 @@ set.seed(1234)
 # ggplot2: functions for plotting
 # clustree: plotting clusters vs resolution
 # dplyr: pipe command '%>%'
+# future: multiprocessing limits
+# parallel: multiprocessing limits
+# reticulate: set which python to use
+# tidyr: separate function
+# Azimuth: cell type annotation
+# scDblFinder: doublet detection
+# BiocParallel: parallelization for scDblFinder
 # ShinyCell: Interact with your data
 # sceasy: convert seurat object to anndata format
 
@@ -77,7 +81,7 @@ if (GENOME == "hg38") {
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
 ###############################################################################
-#### PLOT DEMULTIPLEXING RESULTS (ADT) ####
+#### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
 DefaultAssay(sc_total) = "HTO"
 ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
@@ -478,29 +482,6 @@ all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
-
-# Conserved markers between clusters
-non_hc = subset(sc, endotype != "Healthy_Control_Donor")
-sym_diff <- function(a, b) setdiff(union(a, b), intersect(a, b))
-for (cl_num in unique(Idents(non_hc))) {
-  cons_markers = FindConservedMarkers(non_hc, ident.1 = cl_num,
-                                      assay = "RNA",
-                                      grouping.var = "endotype")
-  cons_markers$cluster = cl_num
-  cons_markers$gene = rownames(cons_markers)
-  if (!exists("all_cons_markers")) {
-    all_cons_markers = cons_markers
-  } else {
-    if (ncol(cons_markers) != ncol(all_cons_markers)) {
-      missing_cols = sym_diff(names(cons_markers), names(all_cons_markers))
-      cons_markers[missing_cols] = NA
-    }
-    all_cons_markers = rbind(all_cons_markers, cons_markers)
-  }
-}
-write.csv(all_cons_markers,
-          "DEG_nonHC_conserved.markers_cluster.v.endotype.csv",
-          quote = FALSE, row.names = FALSE)
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################
