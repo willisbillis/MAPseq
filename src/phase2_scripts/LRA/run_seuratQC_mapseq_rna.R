@@ -326,9 +326,9 @@ if (FALSE) {
               reduction.name = "rna.pca", verbose = FALSE)
   sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
                       verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2,
-                    cluster.name = "unintegrated_rna.clusters",
-                    verbose = FALSE)
+  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
+                     cluster.name = "unintegrated_rna.clusters",
+                     verbose = FALSE)
   sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
                 reduction.name = "umap.rna.unintegrated",
                 verbose = FALSE)
@@ -346,7 +346,8 @@ if (FALSE) {
 
   sc <- FindNeighbors(sc, reduction = "integrated.rna.harmony",
                       dims = 1:40, verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, cluster.name = "rna.clusters",
+  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
+                     cluster.name = "rna.clusters",
                      verbose = FALSE)
   sc <- RunUMAP(sc, reduction = "integrated.rna.harmony",
                 dims = 1:40, reduction.name = "umap.rna",
@@ -370,7 +371,7 @@ if (FALSE) {
                reduction.name = "adt.pca", verbose = FALSE)
   sc <- FindNeighbors(sc, dims = 1:40, reduction = "adt.pca",
                       verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2,
+  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
                      cluster.name = "unintegrated_adt.clusters",
                      verbose = FALSE)
   sc <- RunUMAP(sc, dims = 1:40, reduction = "adt.pca",
@@ -391,7 +392,8 @@ if (FALSE) {
 
   sc <- FindNeighbors(sc, reduction = "integrated.adt.harmony",
                       dims = 1:40, verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, cluster.name = "adt.clusters",
+  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
+                     cluster.name = "adt.clusters",
                      verbose = FALSE)
   sc <- RunUMAP(sc, reduction = "integrated.adt.harmony",
                 dims = 1:40, reduction.name = "umap.adt",
@@ -454,7 +456,7 @@ sc@reductions$ref.umap = sc_v3@reductions$ref.umap
 graph = "SCT_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = graph,
-                    algorithm = 3, verbose = FALSE)
+                    algorithm = 4, verbose = FALSE)
 }
 
 p = clustree(sc, prefix = paste0(graph, "_res."))

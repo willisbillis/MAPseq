@@ -11,6 +11,7 @@ processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) da
 * kallisto [(install here)](https://pachterlab.github.io/kallisto/download)
 * bustools [(install here)](https://bustools.github.io/download)
 * cellbender [(install here)](https://cellbender.readthedocs.io/en/latest/installation/index.html)
+* leidenalg [(install here)](https://leidenalg.readthedocs.io/en/stable/install.html)
 
 ### Questions and Issues ###
 
