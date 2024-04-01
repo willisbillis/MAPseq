@@ -65,6 +65,7 @@ for sample in "${rna_samples[@]}"; do
         cellranger multi --id $sample \
         --csv $SAMPLE_CONFIG_CSV \
         --localcores $NCPU --localmem $MEM
+
         cp $sample/outs/per_sample_outs/$sample/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
     else
         ## NO VDJ SAMPLES DETECTED, RUN CR COUNT
@@ -81,6 +82,7 @@ for sample in "${rna_samples[@]}"; do
             --transcriptome $GEX_REF_PATH --feature-ref $GEX_FEAT_REF_PATH \
             --libraries $SAMPLE_CONFIG_CSV \
             --localcores $NCPU --localmem $MEM
+        
         cp $sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
     fi
 done

@@ -32,7 +32,7 @@ OUTPUT_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/RNA.FB.VDJ")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
 
-sc.data <- Read10X(data.dir = paste0(OUTS_DIR, "/count/filtered_feature_bc_matrix/"))
+sc.data <- Read10X_h5(data.dir = paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix.h5"))
 sc_total <- CreateSeuratObject(
   counts = sc.data$`Gene Expression`,
   assay = "RNA",
