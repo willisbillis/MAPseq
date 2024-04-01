@@ -236,12 +236,12 @@ for (col_id in names(hto_reference)[4:ncol(hto_reference)]) {
 # create new column for unique sample ID - adjust as needed for each dataset
 hto_reference$sample_id = paste(hto_reference$library_id,
                                 hto_reference$patient_id,
-                                hto_reference$visit,
                                 sep = "-")
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
-                           sc_total$visit,
                            sep = "-")
+neg_cells_mask = sc_total$HTO_classification.global == "Negative"
+sc_total$sample_id[neg_cells_mask] = "Negative"
 stats = data.frame(match_id = hto_reference$match_id)
 
 if (ncol(hto_reference) > 3) {
@@ -252,29 +252,32 @@ if (ncol(hto_reference) > 3) {
 }
 stats$match_id = NULL
 sc_total$match_id = NULL
+neg_df = data.frame(sample_id = "Negative")
+neg_df[names(stats)[names(stats) != "sample_id"]] = NA
+stats = rbind(stats, neg_df)
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
 stats$Unfiltered_Cells = sample_id.counts$Freq[match(stats$sample_id,
                                                      sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
-cells_rna = round(AggregateExpression(sc_total,
-                                      group.by = "sample_id")$RNA %>%
-                    colSums)
-cells_adt = round(AggregateExpression(sc_total,
-                                      group.by = "sample_id")$ADT %>%
-                    colSums)
-cells_hto = round(AggregateExpression(sc_total,
-                                      group.by = "sample_id")$HTO %>%
-                    colSums)
+cells_rna = AggregateExpression(sc_total,
+                                group.by = "sample_id")$RNA %>%
+  colSums
+cells_adt = AggregateExpression(sc_total,
+                                group.by = "sample_id")$ADT %>%
+  colSums
+cells_hto = AggregateExpression(sc_total,
+                                group.by = "sample_id")$HTO %>%
+  colSums
 
-stats$Unfiltered_Avg_Expression.RNA = cells_rna[match(stats$sample_id,
-                                                      names(cells_rna))] /
-  stats$Unfiltered_Cells
-stats$Unfiltered_Avg_Expression.ADT = cells_adt[match(stats$sample_id,
-                                                      names(cells_adt))] /
-  stats$Unfiltered_Cells
-stats$Unfiltered_Avg_Expression.HTO = cells_hto[match(stats$sample_id,
-                                                      names(cells_hto))] /
-  stats$Unfiltered_Cells
+stats$Unfiltered_Avg_Expression.RNA = round(cells_rna[match(stats$sample_id,
+                                                            names(cells_rna))] /
+                                              stats$Unfiltered_Cells)
+stats$Unfiltered_Avg_Expression.ADT = round(cells_adt[match(stats$sample_id,
+                                                            names(cells_adt))] /
+                                              stats$Unfiltered_Cells)
+stats$Unfiltered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
+                                                            names(cells_hto))] /
+                                              stats$Unfiltered_Cells)
 
 sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
@@ -293,19 +296,19 @@ stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
                                                    sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 
-cells_rna = round(AggregateExpression(sc, group.by="sample_id")$RNA %>% colSums)
-cells_adt = round(AggregateExpression(sc, group.by="sample_id")$ADT %>% colSums)
-cells_hto = round(AggregateExpression(sc, group.by="sample_id")$HTO %>% colSums)
+cells_rna = AggregateExpression(sc, group.by="sample_id")$RNA %>% colSums
+cells_adt = AggregateExpression(sc, group.by="sample_id")$ADT %>% colSums
+cells_hto = AggregateExpression(sc, group.by="sample_id")$HTO %>% colSums
 
-stats$Filtered_Avg_Expression.RNA = cells_rna[match(stats$sample_id,
-                                                    names(cells_rna))] /
-  stats$Filtered_Cells
-stats$Filtered_Avg_Expression.ADT = cells_adt[match(stats$sample_id,
-                                                    names(cells_adt))] /
-  stats$Filtered_Cells
-stats$Filtered_Avg_Expression.HTO = cells_hto[match(stats$sample_id,
-                                                    names(cells_hto))] /
-  stats$Filtered_Cells
+stats$Filtered_Avg_Expression.RNA = round(cells_rna[match(stats$sample_id,
+                                                          names(cells_rna))] /
+                                            stats$Filtered_Cells)
+stats$Filtered_Avg_Expression.ADT = round(cells_adt[match(stats$sample_id,
+                                                          names(cells_adt))] /
+                                            stats$Filtered_Cells)
+stats$Filtered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
+                                                          names(cells_hto))] /
+                                            stats$Filtered_Cells)
 stats[is.na(stats)] = 0
 write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
           quote = FALSE, row.names = FALSE)

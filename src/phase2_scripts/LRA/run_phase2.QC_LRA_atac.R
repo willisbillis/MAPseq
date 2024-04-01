@@ -208,10 +208,8 @@ p = p +
 ggsave("scatter_peakfrags.v.TSSe_filtered.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
+#### QUANTIFY QC FILTERING ####
 ###############################################################################
-# Filtering of cells based on QC criteria
-
-# Expression Filter
 hto_reference = read.csv(HTO_DEMUX_PATH)
 stats = data.frame(Patients = hto_reference$patient_id)
 patient_id.counts = as.data.frame(table(sc_total$patient_id))
