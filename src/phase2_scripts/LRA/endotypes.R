@@ -1,0 +1,11 @@
+sc$endotype = NA
+sc$endotype[grepl("LN", sc$patient_id)] = "Lupus_Nephritis"
+sc$endotype[grepl("SF", sc$patient_id)] = "Severe_Female"
+sc$endotype[grepl("LTR", sc$patient_id)] = "Long_Term_Remission"
+sc$endotype[grepl("NRF", sc$patient_id)] = "Non_Renal_Flare"
+sc$endotype[grepl("BEL", sc$patient_id)] = "Belimumab"
+sc$endotype[grepl("SACQ", sc$patient_id)] = "Serologically_Active_Clinically_Quiescent"
+sc$endotype[grepl("HCD", sc$patient_id)] = "Healthy_Control_Donor"
+sc$endotype[grepl("BSLM", sc$patient_id)] = "Black_Severe_Lupus_Male"
+sc$endotype[grepl("WSL", sc$patient_id)] = "White_Severe_Lupus"
+sc$endotype[grepl("BCIL", sc$patient_id)] = "B_Cell_Independent_Lupus"

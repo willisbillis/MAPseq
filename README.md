@@ -1,29 +1,38 @@
-# README #
+# MAPseq Pipeline and Analysis
 
-This README would normally document whatever steps are necessary to get your application up and running.
+This repository provides an end-to-end open source pipeline for the
+processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) data.
+* Current Version: v0.1
 
-### What is this repository for? ###
+### Installation Requirements ####
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* Cell Ranger [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
+* Cell Ranger ATAC [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/installation)
+* kallisto [(install here)](https://pachterlab.github.io/kallisto/download)
+* bustools [(install here)](https://bustools.github.io/download)
 
-### How do I get set up? ###
+### Questions and Issues ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+If you have a question, error, or bug to report, please use the [issue page](https://github.com/willisbillis/LRA.MAPseq/issues).
 
-### Contribution guidelines ###
+Resources
+---------
+* [MAPseq tutorial](https://github.com/willisbillis/LRA.MAPseq/blob/main/docs/quickstart.md)
 
-* Writing tests
-* Code review
-* Other guidelines
+Citing
+------
+If you make use of this software for your work we would appreciate it if you woud cite the paper from XXXX:
 
-### Who do I talk to? ###
+    @article(firstauthor2024lramapseq,
+        title={LRA MAPseq title},
+        author={..., Williams, M. Elliott, ..., Scharer, Christopher D., Boss, Jeremy},
+        journal={XXXX},
+        volume={X},
+        number={X},
+        pages={X},
+        year={2024}
+    }
 
-* Repo owner or admin
-* Other community or team contact
+Known Issues
+------------
+* No currently known issues

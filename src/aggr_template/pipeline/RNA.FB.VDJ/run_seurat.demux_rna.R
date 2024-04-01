@@ -1,0 +1,114 @@
+#!/bin/bash
+#
+# run_seurat.demux_rna.R - written by MEW (https://github.com/willisbillis) Feb 2024
+# This script creates a demultiplexed raw data Seurat object for downstream
+# QC and analysis.
+#
+# NOTICE: At this point, the user has aggregated multiple runs using cellranger
+#       aggr into a single counts matrix.
+################################################################################
+# Install required packages using the package manager 'pacman'
+if (!require("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+}
+library(pacman)
+
+p_load(Seurat)
+
+set.seed(1234) # set seed for reproducibility
+## Library descriptions ##
+# Seurat: functions for single cell data
+################################################################################
+# Import all the global variables for this project
+PROJECT_PATH <- Sys.getenv("PROJECT_PATH")
+PROJECT_NAME <- Sys.getenv("PROJECT_NAME")
+GEX_NAMING_ID <- Sys.getenv("GEX_NAMING_ID")
+GEX_FEAT_NAMING_ID <- Sys.getenv("GEX_FEAT_NAMING_ID")
+
+# Set all the local variables for this pipeline
+HTO_DEMUX_PATH <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
+OUTS_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/RNA.FB.VDJ/", PROJECT_NAME, "_aggr/outs")
+OUTPUT_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/RNA.FB.VDJ")
+################################################################################
+dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
+
+sc.data <- Read10X_h5(data.dir = paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix.h5"))
+sc_total <- CreateSeuratObject(
+  counts = sc.data$`Gene Expression`,
+  assay = "RNA",
+  project = PROJECT_NAME
+)
+aggr_df <- read.csv(paste0(OUTS_DIR, "/aggregation.csv"))
+new_sample_names <- factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordered = TRUE)
+sc_total$library_id <- new_sample_names[as.integer(gsub(".*-", "", colnames(sc_total)))]
+
+adt.data <- sc.data$`Antibody Capture`
+
+# LRA runs 1-7 specific code - replace "TSC" prefix with "anti"
+rownames(adt.data)[grepl("^TSC_", rownames(adt.data))] = gsub("TSC_", "anti-", rownames(adt.data)[grepl("^TSC_", rownames(adt.data))])
+
+sc_total[["HTO"]] <- CreateAssay5Object(counts = adt.data[grepl("^HTC", rownames(adt.data)), ])
+sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data[grepl("^anti-", rownames(adt.data)), ])
+
+data_dir <- paste0(OUTPUT_DIR, "/data/")
+dir.create(data_dir, recursive = T, showWarnings = F)
+hto_reference <- read.csv(HTO_DEMUX_PATH)
+
+sub_obj_list <- list()
+
+for (idx in seq_len(nrow(aggr_df))) {
+  rna_library_id <- aggr_df[idx, "sample_id"]
+  run_id <- basename(gsub("\\/pipeline.*", "", aggr_df[idx, "molecule_h5"]))
+
+  print(paste("Demultiplexing", rna_library_id))
+
+  hto_reference_sub <- hto_reference[hto_reference$library_id == rna_library_id, ]
+  # ensure input HTOs match Seurat's replacement of underscores with dashes
+  hto_reference_sub$hashtag <- gsub("_", "-", hto_reference_sub$hashtag)
+  sc_sub <- sc_total[, colnames(sc_total)[sc_total$library_id == rna_library_id]]
+  DefaultAssay(sc_sub) <- "HTO"
+
+  hto_counts <- sc_sub@assays$HTO@layers$counts
+  rownames(hto_counts) = rownames(sc_sub)
+  colnames(hto_counts) = colnames(sc_sub) 
+  hto_counts <- hto_counts[hto_reference_sub$hashtag, ]
+  hashtag <- CreateSeuratObject(counts = hto_counts, assay = "HTO")
+  
+  hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
+  names(hto_count_sums) = rownames(hashtag)
+
+  # check for failed hashtags (< 1 HTO count per cell on average)
+  if (sum(hto_count_sums < ncol(hashtag)) > 0) {
+    print("[WARNING] Hashtag staining failed for the following hashtags! Excluding from final object.")
+    failed_htos = names(hto_count_sums[hto_count_sums < ncol(hashtag)])
+    print(hto_reference_sub$patient_id[match(failed_htos, hto_reference_sub$hashtag)])
+    print(failed_htos)
+    hto_reference_sub = hto_reference_sub[!(hto_reference_sub$hashtag %in% failed_htos), ]
+    hashtag = subset(hashtag, features = hto_reference_sub$hashtag)
+  }
+
+  hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR", verbose = F)
+  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99, verbose = F)
+
+  hashtag$patient_id <- hto_reference_sub$patient_id[match(hashtag$hash.ID, hto_reference_sub$hashtag)]
+  hashtag$library_id <- rna_library_id
+  hashtag$run_id <- run_id
+
+  sub_obj_list[[idx]] <- hashtag
+}
+
+merged_hashtag <- merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
+merged_hashtag <- JoinLayers(merged_hashtag)
+
+sc_total[["HTO"]] <- CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
+sc_total <- AddMetaData(sc_total, merged_hashtag@meta.data)
+DefaultAssay(sc_total) <- "RNA"
+
+saveRDS(sc_total, paste0(data_dir, "raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+
+# Save the R session environment information
+capture.output(sessionInfo(),
+               file=paste0(OUTPUT_DIR, "/",
+                           PROJECT_NAME,
+                           ".Rsession.Info.",
+                           gsub("\\D", "", Sys.time()), ".txt"))
