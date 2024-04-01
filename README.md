@@ -1,4 +1,4 @@
-# MAPseq Pipeline and Analysis
+# MAPseq Pipeline and Analysis [![DOI](https://zenodo.org/badge/741509600.svg)](https://zenodo.org/doi/10.5281/zenodo.10903736)
 
 This repository provides an end-to-end open source pipeline for the
 processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) data.
