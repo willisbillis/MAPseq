@@ -448,6 +448,7 @@ sc_v3 = sc
 sc_v3[["ADT"]] = NULL
 sc_v3[["RNA"]] = NULL
 sc_v3[["SCT"]] = as(sc_v3[["SCT"]], Class = "Assay")
+# REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
 sc_v3 <- RunAzimuth(sc_v3, reference = "pbmcref")
 
 sc$predicted.celltype.l1 = sc_v3$predicted.celltype.l1
@@ -475,9 +476,7 @@ Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
 # DEG testing between clusters
-DefaultAssay(sc) = "RNA"
-sc = JoinLayers(sc)
-all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
+all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "SCT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
@@ -516,9 +515,9 @@ if (FALSE) {
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = FALSE,
                shiny.title = paste0(PROJECT_NAME, " RNA + ADT + HTO"),
-               shiny.dir = paste0("shiny_",PROJECT_NAME,"_rna"),
-               gex.assay="SCT_ADT")
-  rsconnect::deployApp(paste0("shiny_",PROJECT_NAME,"_rna"))
+               shiny.dir = paste0("shiny_", PROJECT_NAME, "_rna"),
+               gex.assay = "SCT_ADT")
+  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "_rna"))
 }
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
@@ -538,5 +537,5 @@ if (FALSE) {
   sc[["SCT"]] = as(sc[["SCT"]], Class = "Assay")
   sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
   sceasy::convertFormat(sc, from = "seurat", to = "anndata",
-                        outFile = paste0("qc_sct.adt_",PROJECT_NAME,".h5ad"))
+                        outFile = paste0("qc_sct.adt_", PROJECT_NAME, ".h5ad"))
 }
