@@ -16,7 +16,6 @@ TOOL_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/tools
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
 OUTPUT_FILE=$OUTPUT_DIR/kite_asap_mapping.log
 ################################################################################
-mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
 sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)

@@ -208,10 +208,8 @@ p = p +
 ggsave("scatter_peakfrags.v.TSSe_filtered.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
+#### QUANTIFY QC FILTERING ####
 ###############################################################################
-# Filtering of cells based on QC criteria
-
-# Expression Filter
 hto_reference = read.csv(HTO_DEMUX_PATH)
 stats = data.frame(Patients = hto_reference$patient_id)
 patient_id.counts = as.data.frame(table(sc_total$patient_id))
@@ -324,7 +322,7 @@ sc <- RunSVD(sc, n = n_dims, reduction.name = "atac.lsi",
              verbose = FALSE)
 sc <- FindNeighbors(sc, dims = 2:n_dims, reduction = "atac.lsi",
                     verbose = FALSE)
-sc <- FindClusters(sc, resolution = 2,
+sc <- FindClusters(sc, resolution = 2, algorithm = 4,
                    cluster.name = "unintegrated_atac.clusters",
                    verbose = FALSE)
 sc <- RunUMAP(sc, dims = 2:n_dims, reduction = "atac.lsi",
@@ -363,7 +361,7 @@ ggsave(paste0("umap_atac.integrated_", batch_column, ".png"), p,
 graph = "ATAC_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc <- FindClusters(sc, resolution = res, graph.name = graph,
-                    algorithm = 3, verbose = FALSE)
+                     algorithm = 4, verbose = FALSE)
 }
 
 p = clustree(sc, prefix = paste0(graph, "_res."))

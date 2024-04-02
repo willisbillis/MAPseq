@@ -54,9 +54,6 @@ find_install kallisto
 echo "Checking to see if bustools is installed..."
 find_install bustools
 
-echo "Checking to see if cellbender is installed..."
-find_install cellbender
-
 echo "Appending 'source $PWD/src/create_run.sh' to ~/.bashrc to add bash functions in this repository..."
 echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed $(date))" >> ~/.bashrc
 echo "export MAPSEQ_REPO_PATH=$PWD" >> ~/.bashrc

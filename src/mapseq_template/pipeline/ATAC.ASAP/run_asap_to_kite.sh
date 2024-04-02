@@ -12,7 +12,7 @@
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
-FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path
+FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
 TOOL_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/tools
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
 OUTPUT_FILE=$OUTPUT_DIR/asap_to_kite.log

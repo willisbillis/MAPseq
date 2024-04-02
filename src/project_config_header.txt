@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# project_config.txt - written by MEW (https://github.com/willisbillis) Jan 2024
+# project_config.txt
 # This file serves as a single source of truth for all paths and variables needed
-# by the scripts in the LRA.MAPseq repository.
+# by the scripts in the MAPseq repository.
 
 ## CHECK ALL VARIABLES BEFORE EACH RUN ##

@@ -14,12 +14,14 @@ source ../project_config.txt
 OUTPUT_DIR=$PROJECT_PATH/data
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_mkfastq.log
 ################################################################################
-mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR/reports
 
+rna_fqs=$(ls $RNA_DIR/*fastq.gz 2>/dev/null)
+atac_fqs=$(ls $ATAC_DIR/*fastq.gz 2>/dev/null)
+
 ## ATAC.ASAP mkfastq demultiplexing
-if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]; then
+if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ] && [ $(wc -c <<< $atac_fqs) -eq 1 ]; then
     CR_atac_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
     echo "$(date) Running Cell Ranger ATAC version $CR_atac_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
 
@@ -30,7 +32,8 @@ if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]; then
 
 
     ATAC_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_ATAC/outs/fastq_path/*/ | grep -v "Reports\|Stats")
-    # Standardize where fastqs live between given FQs and non-demuxed FQs
+    ATAC_FLOWCELL_ID=$(basename $ATAC_FC_PATH)
+    # Standardize where fastqs live between received FQs and non-demuxed FQs
     NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID/* $NEW_FQ_PATH
     # rearrange mkfastq outputs
@@ -38,13 +41,13 @@ if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]; then
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
     rm -r $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path
 
-    mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$(basename $ATAC_FC_PATH)/all/all/all
+    mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$ATAC_FLOWCELL_ID/all/all/all
     cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_ATAC.html
     cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_ATAC.html
 fi
 
 ## RNA.FB.BCR mkfastq demultiplexing
-if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]; then
+if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ $(wc -c <<< $rna_fqs) -eq 1 ]; then
     CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
     echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
 
@@ -54,7 +57,8 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]; then
         --localcores=$NCPU --localmem=$MEM
 
     RNA_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_RNA/outs/fastq_path/*/ | grep -v "Reports\|Stats")
-    # Standardize where fastqs live between given FQs and non-demuxed FQs
+    RNA_FLOWCELL_ID=$(basename $RNA_FC_PATH)
+    # Standardize where fastqs live between received FQs and non-demuxed FQs
     NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID/* $NEW_FQ_PATH
     # rearrange mkfastq outputs
@@ -62,7 +66,7 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]; then
     mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
     rm -r $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path
 
-    mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$(basename $RNA_FC_PATH)/all/all/all
+    mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$RNA_FLOWCELL_ID/all/all/all
     cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_RNA.html
     cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_RNA.html
 fi
