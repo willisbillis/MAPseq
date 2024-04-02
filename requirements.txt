@@ -36,7 +36,7 @@ jupyter-contrib-core==0.4.2
 jupyter-contrib-nbextensions==0.7.0
 jupyter-highlight-selected-word==0.2.0
 jupyter-nbextensions-configurator==0.6.3
-jupyter-server==1.24.0
+jupyter-server==2.11.2
 jupyter_client==7.4.9
 jupyter_core==4.12.0
 jupyterlab-pygments==0.2.2
