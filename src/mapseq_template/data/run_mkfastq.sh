@@ -33,6 +33,7 @@ if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]; then
     # Standardize where fastqs live between given FQs and non-demuxed FQs
     NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID/* $NEW_FQ_PATH
+    mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID/*/* $NEW_FQ_PATH
     # rearrange mkfastq outputs
     mkdir -p $NEW_FQ_PATH/mkfastq_outputs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
@@ -57,6 +58,7 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]; then
     # Standardize where fastqs live between given FQs and non-demuxed FQs
     NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID/* $NEW_FQ_PATH
+    mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID/*/* $NEW_FQ_PATH
     # rearrange mkfastq outputs
     mkdir -p $NEW_FQ_PATH/mkfastq_outputs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
