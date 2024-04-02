@@ -18,14 +18,9 @@ source ./project_config.txt
 # compile reports from each step
 mkdir -p $PROJECT_PATH/reports
 
-rna_fqs=$(ls $RNA_DIR/*fastq.gz 2>/dev/null)
-atac_fqs=$(ls $ATAC_DIR/*fastq.gz 2>/dev/null)
-
-if [ $(wc -c <<< $rna_fqs) -eq 1 ] && [ $(wc -c <<< $atac_fqs) -eq 1 ]; then
-    # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
-    cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
-    cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
-fi
+# demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
+cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_mkfastq.sh
+cp $PROJECT_PATH/data/reports/* $PROJECT_PATH/reports
 
 # mv the fastqs from the data directory
 RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
@@ -59,7 +54,7 @@ atac_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/*fastq.gz 2>/dev/null
 if [ $(wc -c <<< $atac_fqs) -gt 1 ]; then
     cd $PROJECT_PATH/pipeline/ATAC.ASAP
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
-        $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh &
+        $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_cellranger_ATAC.sh &&
         cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
 fi
