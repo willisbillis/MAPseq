@@ -14,7 +14,6 @@ source ../project_config.txt
 OUTPUT_DIR=$PROJECT_PATH/data
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_mkfastq.log
 ################################################################################
-mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR/reports
 
