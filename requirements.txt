@@ -60,7 +60,7 @@ notebook==6.5.6
 notebook_shim==0.2.4
 numba==0.56.4
 numexpr==2.8.6
-numpy==1.21.6
+numpy==1.22.0
 numpy-groupies==0.9.22
 nvidia-cublas-cu11==11.10.3.66
 nvidia-cuda-nvrtc-cu11==11.7.99
