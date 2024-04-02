@@ -17,7 +17,7 @@ defusedxml==0.7.1
 entrypoints==0.4
 exceptiongroup==1.2.0
 fastjsonschema==2.19.1
-fonttools==4.38.0
+fonttools==4.43.0
 h5py==3.8.0
 idna==3.6
 igraph==0.10.8
