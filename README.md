@@ -4,12 +4,23 @@ This repository provides an end-to-end open source pipeline for the
 processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) data.
 * Current Version: v0.1
 
-### Installation Requirements ####
+### Installation Requirements (Main Pipeline) ####
 
 * Cell Ranger [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
 * Cell Ranger ATAC [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/installation)
 * kallisto [(install here)](https://pachterlab.github.io/kallisto/download)
 * bustools [(install here)](https://bustools.github.io/download)
+
+### Installation Requirements (Secondary Analysis) ####
+We recommend creating a new conda environment for the installation of the following tools
+used for secondary analysis. We also provide a [`requirements.txt`](requirements.txt) file for easy installation of all packages. This can be installed with:
+
+```
+conda create --name <env_name> python=3.7
+conda activate <env_name>
+pip install -r requirements.txt
+```
+
 * cellbender [(install here)](https://cellbender.readthedocs.io/en/latest/installation/index.html)
 * leidenalg [(install here)](https://leidenalg.readthedocs.io/en/stable/install.html)
 
