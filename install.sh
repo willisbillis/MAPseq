@@ -54,10 +54,10 @@ find_install kallisto
 echo "Checking to see if bustools is installed..."
 find_install bustools
 
-echo "Appending 'source $PWD/src/create_run.sh' to ~/.bashrc to add bash functions in this repository..."
+echo "Appending 'source $PWD/src/mapseq_functions.sh' to ~/.bashrc to add bash functions in this repository..."
 echo -e "\n# MAPSEQ INSTALLATION EDITS - DO NOT MANUALLY CHANGE (Installed $(date))" >> ~/.bashrc
 echo "export MAPSEQ_REPO_PATH=$PWD" >> ~/.bashrc
-echo "source $PWD/src/create_run.sh" >> ~/.bashrc
+echo "source $PWD/src/mapseq_functions.sh" >> ~/.bashrc
 
 echo "To create a new directory for a single run, use the command below with an appropriately titled run name."
 echo -e "\ncreate_ms_run <RUN_NAME>\n"
