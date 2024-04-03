@@ -34,7 +34,7 @@ if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ] && [ $(wc -c <<<
     ATAC_FLOWCELL_ID=$(basename $ATAC_FC_PATH)
     # Standardize where fastqs live between received FQs and non-demuxed FQs
     NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
-    mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID/*.gz $NEW_FQ_PATH
+    mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID/*/*.gz $NEW_FQ_PATH
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/*.gz $NEW_FQ_PATH
     # rearrange mkfastq outputs
     mkdir -p $NEW_FQ_PATH/mkfastq_outputs
