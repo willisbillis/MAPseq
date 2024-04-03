@@ -45,6 +45,7 @@ for sample in "${rna_samples[@]}"; do
         # Create the config csv for the sample being run
         echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' create-bam=true | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         echo "[feature]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' reference $GEX_FEAT_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         echo "[vdj]" >> $SAMPLE_CONFIG_CSV
@@ -79,6 +80,7 @@ for sample in "${rna_samples[@]}"; do
 
         # Run the Cell Ranger count command for the sample
         cellranger count --id $sample \
+            --create-bam=true \
             --transcriptome $GEX_REF_PATH --feature-ref $GEX_FEAT_REF_PATH \
             --libraries $SAMPLE_CONFIG_CSV \
             --localcores $NCPU --localmem $MEM
