@@ -31,7 +31,7 @@ for sample in "${atac_samples[@]}"; do
   echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
 
   cellranger-atac count --id=$sample --sample=$sample \
-    --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH/$sample \
+    --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH \
     --localcores=$NCPU --localmem=$MEM
 
   cp $sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
