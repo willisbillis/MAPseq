@@ -56,5 +56,5 @@ if [ $(wc -c <<< $atac_fqs) -gt 1 ]; then
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_asap_to_kite.sh && \
         $PROJECT_PATH/pipeline/ATAC.ASAP/run_kite.sh
     $PROJECT_PATH/pipeline/ATAC.ASAP/run_cellranger_ATAC.sh &&
-        cp $PROJECT_PATH/pipeline/ATAC.ASAP/reports/* $PROJECT_PATH/reports
+        cp $PROJECT_PATH/pipeline/ATAC.ASAP/ATAC/reports/* $PROJECT_PATH/reports
 fi
