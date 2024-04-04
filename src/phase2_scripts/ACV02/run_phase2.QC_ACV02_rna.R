@@ -191,7 +191,7 @@ ggsave("scatter_pct.Ig.v.pct.mt_alldata.png",
 
 p = DensityScatter(sc_total, "scDblFinder.score", "percent.mt",
                    quantiles = TRUE)
-ggsave("scatter_pct.dbl.v.pct.mt_alldata.png",
+ggsave("scatter_dbl.v.pct.mt_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 p = DensityScatter(sc_total, "nCount_RNA", "nFeature_RNA",
@@ -213,7 +213,7 @@ ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
-DBL_LIMIT = 0.5       # REPLACE, maximum scDblFinder score to permit
+DBL_LIMIT = 0.5       # REPLACE, minimum scDblFinder score to permit
 MIN_GENE_READS = 100   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
