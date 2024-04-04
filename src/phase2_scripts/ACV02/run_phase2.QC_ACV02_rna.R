@@ -1,3 +1,6 @@
+# run_phase2.QC_ACV02_rna.R
+# created by M Elliott Williams (https://github.com/willisbillis) Apr 2024
+
 # Install required packages using the package manager 'pacman'
 if (!require("pacman", quietly = TRUE)) {
   install.packages("pacman")
@@ -114,7 +117,7 @@ ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
 ###############################################################################
-#### CALCULATE QC METRICS (ADT) ####
+#### CALCULATE QC METRICS (HTO) ####
 ###############################################################################
 sc_total$combo_id = paste0(sc_total$HTO_maxID, "_", sc_total$HTO_secondID)
 for (hto1 in unique(sc_total$HTO_maxID)) {
@@ -146,7 +149,7 @@ best_htos = c(margin_stats$HT_1st[1],
 margin_stats = margin_stats[order(-margin_stats$total_mixing_degree),]
 worst_htos = c(margin_stats$HT_1st[1],
                margin_stats$HT_2nd[1],
-              "Doublet")
+               "Doublet")
 
 write.csv(margin_stats,
           paste0("HTC.combos_",PROJECT_NAME,"_metrics.csv"),
@@ -206,7 +209,7 @@ p = DensityScatter(sc_total, "nFeature_HTO", "nFeature_RNA",
 ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
-#### RNA CUTOFFS ####
+#### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
@@ -301,12 +304,6 @@ sc = subset(sc_total,
               nFeature_RNA > MIN_GENE_READS &
               nFeature_RNA < MAX_GENE_READS)
 
-# HTO Filter
-DefaultAssay(sc) = "ADT"
-VariableFeatures(sc) <- rownames(sc[["ADT"]])
-sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
-sc = ScaleData(sc)
-
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
                                                    sample_id_counts$Var1)]
@@ -328,6 +325,11 @@ stats$Filtered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
 stats[is.na(stats)] = 0
 write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
           quote = FALSE, row.names = FALSE)
+###############################################################################
+# SAVE RAW SEURAT OBJECT
+###############################################################################
+saveRDS(sc_total,
+        paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 ###############################################################################
 #### BATCH CORRECTION (OPTIONAL) ####
 ###############################################################################
@@ -450,6 +452,11 @@ sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
 sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
               reduction.name = "umap.rna",
               verbose = FALSE)
+
+DefaultAssay(sc) = "ADT"
+VariableFeatures(sc) <- rownames(sc[["ADT"]])
+sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
+sc = ScaleData(sc)
 ###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
@@ -485,13 +492,13 @@ sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
-# DEG testing between clusters
+# DEG testing between clusters (one vs all)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "SCT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
-# DEP testing between clusters
+# DEP testing between clusters (one vs all)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
