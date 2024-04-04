@@ -7,8 +7,7 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
-       clustree, dplyr, future, parallel, reticulate, harmony, multtest,
-       metap, tidyverse)
+       clustree, dplyr, future, parallel, reticulate, harmony, tidyverse)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
@@ -34,8 +33,6 @@ set.seed(1234)                # set seed for reproducibility
 # parallel: multiprocessing limits
 # reticulate: set which python to use
 # harmony: integration method
-# multtest: for conserved markers
-# metap: for conserved markers
 # tidyverse: separate function
 # ShinyCell: Interact with your data
 ###############################################################################
