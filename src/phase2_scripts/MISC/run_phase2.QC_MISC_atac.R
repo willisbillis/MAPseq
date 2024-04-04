@@ -7,7 +7,8 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
-       clustree, dplyr, future, parallel, reticulate, harmony, tidyverse)
+       clustree, dplyr, future, parallel, reticulate, harmony, tidyverse,
+       Azimuth, scDblFinder)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
@@ -34,6 +35,8 @@ set.seed(1234)                # set seed for reproducibility
 # reticulate: set which python to use
 # harmony: integration method
 # tidyverse: separate function
+# Azimuth: cell type annotation
+# scDblFinder: doublet detection
 # ShinyCell: Interact with your data
 
 ###############################################################################
@@ -198,6 +201,20 @@ sc_total$pct_reads_in_peaks = sc_total$peak_region_fragments /
 sc_total$blacklist_ratio = sc_total$blacklist_region_fragments /
   sc_total$peak_region_fragments
 
+# Doublet Detection
+res <- clamulet(Fragments(sc_total)@path)
+res$scDblFinder.p <- 1-colData(sce)[row.names(res), "scDblFinder.score"]
+res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1, FUN=function(x){
+  x[x < 0.001] <- 0.001 # prevent too much skew from very small or 0 p-values
+  suppressWarnings(aggregation::fisher(x))
+})
+sc_total$scDblFinder.score <- res$combined
+
+p = DensityScatter(sc_total, "peak_region_fragments", "scDblFinder.score",
+                   quantiles = TRUE)
+ggsave("scatter_peakfrags.v.dbl_alldata.png",
+       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
+
 p = DensityScatter(sc_total, "peak_region_fragments", "TSS.enrichment",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
 ggsave("scatter_peakfrags.v.TSSe_alldata.png",
@@ -298,7 +315,8 @@ sc <- subset(sc_total,
                pct_reads_in_peaks > MIN_PCT_RiP &
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
-               TSS.enrichment > MIN_TSS)
+               TSS.enrichment > MIN_TSS &
+               scDblFinder.score > DBL_LIMIT)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
