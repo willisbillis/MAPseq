@@ -25,10 +25,12 @@ echo "$(date) Running Cell Ranger ATAC version $CR_version using binary $(which 
 ## Create aggregation csv
 printf '%s\n' library_id fragments cells | paste -sd ',' >> $AGGR_CSV
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
-  sample_name=$(basename $sample_path)
-  fragments_file=${sample_path}outs/fragments.tsv.gz
-  cells_file=${sample_path}outs/singlecell.csv
-  printf '%s\n' $sample_name $fragments_file $cells_file | paste -sd ',' >> $AGGR_CSV
+  if [[ $(basename $sample_path) != reports ]]; then
+    sample_name=$(basename $sample_path)
+    fragments_file=${sample_path}outs/fragments.tsv.gz
+    cells_file=${sample_path}outs/singlecell.csv
+    printf '%s\n' $sample_name $fragments_file $cells_file | paste -sd ',' >> $AGGR_CSV
+  fi
 done
 
 ## Run aggregation pipeline
