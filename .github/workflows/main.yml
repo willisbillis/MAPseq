@@ -1,0 +1,12 @@
+            - name: Conda dependency submission action
+  # You may pin to the exact commit or the version.
+  # uses: jhutchings1/conda-dependency-submission-action@e2b34c6046db5257bb78620d9799e1187647e742
+  uses: jhutchings1/conda-dependency-submission-action@v0.0.2
+  with:
+    # GitHub Personal Access Token (PAT). Defaults to PAT provided by Actions runner.
+    token: ${{ github.token }} # optional, default is ${{ github.token }}
+    # The path to the directory containing the environment files to upload. Defaults to Actions working directory.
+    filePath: . # optional, default is .
+    # The file name pattern for environment files to upload
+    filePattern: requirements.yml # optional, default is environment.yaml
+          
