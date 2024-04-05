@@ -78,7 +78,7 @@ function clean_ms_tree() {
         return 1
     fi
 
-    directory_to_process="$PWD/$1"
+    directory_to_process=$PWD/$1
     source $directory_to_process/project_config.txt
     preserve_list=(
         "run_mapseq.sh"
@@ -104,4 +104,32 @@ function clean_ms_tree() {
     )
 
     find "$directory_to_process" $(printf "! -wholename %s " "${preserve_list[@]}") -delete
+}
+
+function update_ms_tree() {
+    if [ $# -ne 1 ]; then
+        echo "Error: Exactly 1 argument required!"
+        return 1
+    elif [ -z "$1" ]; then
+        echo "Error: Argument is empty!"
+        return 1
+    elif [ ! -d $1 ]; then
+        echo "Run directory $PWD/$1 does not exist!"
+        return 1
+    fi
+
+    create_ms_run temp_MS_run
+    update_list=$(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -name "tools" -print)
+
+    for update in "${update_list[@]}"; do
+        update_base=$(echo $update | sed -e 's/.*temp_MS_run\///g')
+        if [ -d "$update" ]; then
+            mkdir -p $1/$update_base
+        elif [ ! -d "$update" ] && [ ! -e "$1/$update_base" ]; then
+            echo "Creating new file at $1/$update_base"
+            ln -s $MAPSEQ_REPO_PATH/src/mapseq_template/$update_base $1/$update_base
+        fi
+    done
+    clean_ms_tree $1
+    rm -r temp_MS_run
 }
