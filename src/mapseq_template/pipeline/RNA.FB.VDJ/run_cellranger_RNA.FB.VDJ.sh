@@ -80,7 +80,7 @@ for sample in "${rna_samples[@]}"; do
 
         # Run the Cell Ranger count command for the sample
         cellranger count --id $sample \
-            --create-bam \
+            --create-bam=true \
             --transcriptome $GEX_REF_PATH --feature-ref $GEX_FEAT_REF_PATH \
             --libraries $SAMPLE_CONFIG_CSV \
             --localcores $NCPU --localmem $MEM
