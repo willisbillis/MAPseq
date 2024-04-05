@@ -31,13 +31,24 @@ cd MAPseq
 ./install.sh
 ```
 
+It is necessary to reload the shell for changes to take effect after installation. We recommend doing this by closing the current session and opening a new one.
+
+### Remove an Installation ###
+To remove changes made by the installation, you may navigate to the MAPseq repository and revert the changes with the following:
+
+```
+cd $MAPSEQ_REPO_PATH
+./uninstall.sh
+```
+For the changes to take effect, the shell must be reloaded. We recommend doing this by closing the current session and opening a new one.
+
 ### Questions and Issues ###
 
 If you have a question, error, or bug to report, please use the [issue page](https://github.com/willisbillis/MAPseq/issues).
 
 Resources
 ---------
-* [MAPseq tutorial](https://github.com/willisbillis/MAPseq/blob/main/docs/quickstart.md)
+* [MAPseq tutorial](docs/quickstart.md)
 
 Citing
 ------
