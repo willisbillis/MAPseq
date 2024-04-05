@@ -56,11 +56,14 @@ plan("multicore", workers = max_cores)
 #### OPTIONS ####
 ###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "ACV02_aggr"
+PROJECT_NAME = "LRA_all"
 # REPLACE, path to ATAC.ASAP analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq/ACV02_aggr/analysis/ATAC.ASAP"
-RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_atac.hto_", PROJECT_NAME, ".RDS")
-HTO_DEMUX_PATH = paste0(PROJECT_DIR,"/../../pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
+PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq",
+                     "/LRA_all/analysis/ATAC.ASAP")
+RAW_SEURAT_PATH = paste0(PROJECT_DIR,
+                         "/data/raw_atac.hto_", PROJECT_NAME, ".RDS")
+HTO_DEMUX_PATH = paste0(PROJECT_DIR,
+                        "/../../pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 
 GENOME = "GRCh38"                     # REPLACE (GRCh38 or GRCm39)
 OUTPUT_FIG_WIDTH =  8                 # inches, width of output figures
@@ -128,17 +131,17 @@ colnames(margin_stats) = c("HT_1st", "HT_2nd",
 margin_stats = margin_stats[complete.cases(margin_stats), ]
 margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
 # sort and grab top pairs and worst pairs
-margin_stats = margin_stats[order(margin_stats$total_mixing_degree),]
+margin_stats = margin_stats[order(margin_stats$hto_separation), ]
 best_htos = c(margin_stats$HT_1st[1],
               margin_stats$HT_2nd[1],
               "Doublet")
-margin_stats = margin_stats[order(-margin_stats$total_mixing_degree),]
+margin_stats = margin_stats[order(-margin_stats$hto_separation), ]
 worst_htos = c(margin_stats$HT_1st[1],
                margin_stats$HT_2nd[1],
                "Doublet")
 
 write.csv(margin_stats,
-          paste0("HTB.combos_",PROJECT_NAME,"_metrics.csv"),
+          paste0("HTB.combos_", PROJECT_NAME, "_metrics.csv"),
           quote = FALSE, row.names = FALSE)
 
 Idents(sc_total) = "hash.ID"
@@ -202,12 +205,14 @@ sc_total$blacklist_ratio = sc_total$blacklist_region_fragments /
   sc_total$peak_region_fragments
 
 # Doublet Detection
-res <- clamulet(Fragments(sc_total)@path)
-res$scDblFinder.p <- 1-colData(sce)[row.names(res), "scDblFinder.score"]
-res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1, FUN=function(x){
-  x[x < 0.001] <- 0.001 # prevent too much skew from very small or 0 p-values
-  suppressWarnings(aggregation::fisher(x))
-})
+res <- clamulet(Fragments(sc_total)[[1]]@path)
+res$scDblFinder.p <- 1 - colData(res)[row.names(res), "scDblFinder.score"]
+res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
+  FUN = function(x) {
+    x[x < 0.001] <- 0.001 # prevent too much skew from very small or 0 p-values
+    suppressWarnings(aggregation::fisher(x))
+  }
+)
 sc_total$scDblFinder.score <- res$combined
 
 p = DensityScatter(sc_total, "peak_region_fragments", "scDblFinder.score",
@@ -337,7 +342,7 @@ write.csv(stats, "QC.atac_sampleID_filtering.stats.csv",
 # SAVE RAW SEURAT OBJECT
 ###############################################################################
 saveRDS(sc_total,
-        paste0(PROJECT_DIR,"/data/raw_atac.hto_", PROJECT_NAME, ".RDS"))
+        paste0(PROJECT_DIR, "/data/raw_atac.hto_", PROJECT_NAME, ".RDS"))
 ###############################################################################
 #### BATCH CORRECTION (OPTIONAL) ####
 ###############################################################################
@@ -506,7 +511,7 @@ if (FALSE) {
 # Annotate PBMC cell types using Azimuth's PBMC reference
 sc_v3 = sc
 sc_v3[["HTO"]] = NULL
-sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "ChromatinAssay")
+sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "Assay")
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
 sc_v3 <- RunAzimuth(sc_v3, query.modality = "ATAC", reference = "pbmcref")
 
@@ -539,7 +544,7 @@ all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 closest_feats = ClosestFeature(sc, regions=rownames(all_markers))
 all_markers$gene = closest_feats$gene_name[match(rownames(all_markers),
                                                  closest_feats$query_region)]
-write.csv(all_markers, paste("DAR_", graph, ".clusters.res0.25.csv"),
+write.csv(all_markers, paste0("DAR_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 ###############################################################################
 # save Seurat object
