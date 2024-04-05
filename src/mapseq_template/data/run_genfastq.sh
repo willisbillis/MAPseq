@@ -20,8 +20,9 @@ mkdir -p $OUTPUT_DIR/reports
 rna_fqs=$(ls $RNA_DIR/*fastq.gz 2>/dev/null)
 atac_fqs=$(ls $ATAC_DIR/*fastq.gz 2>/dev/null)
 
-## ATAC.ASAP mkfastq demultiplexing
-if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ] && [ $(wc -c <<< $atac_fqs) -eq 1 ]; then
+## ATAC.ASAP fastq generation
+if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ $(wc -c <<< $atac_fqs) -eq 1 ]]; then
+    # Need to demultiplex fastqs from bcl files, run cellranger mkfastq
     CR_atac_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
     echo "$(date) Running Cell Ranger ATAC version $CR_atac_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
 
@@ -44,10 +45,21 @@ if [ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ] && [ $(wc -c <<<
     mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$ATAC_FLOWCELL_ID/all/all/all
     cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_ATAC.html
     cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_ATAC.html
+
+    cp $OUTPUT_DIR/reports/* $PROJECT_PATH/reports
+elif [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
+    # fastqs were already generated, move the fastqs from the data directory
+    ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
+    mkdir -p $ATAC_FASTQ_PATH
+    atac_samples=$(ls $ATAC_DIR/*fastq.gz)
+    for sample in "${atac_samples[@]}"; do
+        ln -s $(realpath $sample) $ATAC_FASTQ_PATH
+    done
 fi
 
-## RNA.FB.BCR mkfastq demultiplexing
+## RNA.FB.BCR fastq generation
 if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ $(wc -c <<< $rna_fqs) -eq 1 ]; then
+    # Need to demultiplex fastqs from bcl files, run cellranger mkfastq
     CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
     echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
 
@@ -69,4 +81,14 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ $(wc -c <<< 
     mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$RNA_FLOWCELL_ID/all/all/all
     cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_RNA.html
     cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_RNA.html
+
+    cp $OUTPUT_DIR/reports/* $PROJECT_PATH/reports
+elif [[ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
+    # fastqs were already generated, move the fastqs from the data directory
+    RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
+    mkdir -p $RNA_FASTQ_PATH
+    rna_samples=$(ls $RNA_DIR/*fastq.gz)
+    for sample in "${rna_samples[@]}"; do
+        ln -s $(realpath $sample) $RNA_FASTQ_PATH
+    done
 fi

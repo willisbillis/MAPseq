@@ -84,7 +84,7 @@ function clean_ms_tree() {
         "run_mapseq.sh"
         "project_config.txt"
         "data"
-        "data/run_mkfastq.sh"
+        "data/run_genfastq.sh"
         "data/$PROJECT_NAME.RNA.sampleManifest.csv"
         "data/$PROJECT_NAME.ATAC.sampleManifest.csv"
         "pipeline"
