@@ -6,10 +6,10 @@ processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) da
 
 ### Pre-Installation Requirements ###
 
-We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide a [`requirements.yml`](requirements.yml) file for easy installation with conda. This can be run and initialized with:
+We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide a [`environment.yaml`](environment.yaml) file for easy installation with conda. This can be run and initialized with:
 
 ```
-conda env create -f requirements.yml
+conda env create -f environment.yaml
 conda activate mapseq_env
 ```
 
