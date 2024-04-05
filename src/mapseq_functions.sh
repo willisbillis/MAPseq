@@ -65,3 +65,71 @@ function create_ms_aggr_run() {
     echo "ASAP_NAMING_ID=ASAP" >> $1/project_config.txt
     tail -n 9 $MAPSEQ_REPO_PATH/src/project_config_body.txt >> $1/project_config.txt
 }
+
+function clean_ms_tree() {
+    if [ $# -ne 1 ]; then
+        echo "Error: Exactly 1 argument required!"
+        return 1
+    elif [ -z "$1" ]; then
+        echo "Error: Argument is empty!"
+        return 1
+    elif [ ! -d $1 ]; then
+        echo "Run directory $PWD/$1 does not exist!"
+        return 1
+    fi
+
+    directory_to_process=$PWD/$1
+    source $directory_to_process/project_config.txt
+    preserve_list=(
+        "run_mapseq.sh"
+        "project_config.txt"
+        "data"
+        "data/run_genfastq.sh"
+        "data/$PROJECT_NAME.RNA.sampleManifest.csv"
+        "data/$PROJECT_NAME.ATAC.sampleManifest.csv"
+        "pipeline"
+        "pipeline/ATAC.ASAP"
+        "pipeline/ATAC.ASAP/tools"
+        "pipeline/ATAC.ASAP/run_asap_to_kite.sh"
+        "pipeline/ATAC.ASAP/run_cellranger_ATAC.sh"
+        "pipeline/ATAC.ASAP/run_kite.sh"
+        "pipeline/RNA.FB.VDJ"
+        "pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh"
+    )
+    preserve_list=(
+        $directory_to_process
+        "${preserve_list[@]/#/$directory_to_process\/}"
+        $GEX_FEAT_REF_PATH
+        $ASAP_FEAT_REF_PATH
+    )
+
+    find "$directory_to_process" $(printf "! -wholename %s " "${preserve_list[@]}") -delete
+}
+
+function update_ms_tree() {
+    if [ $# -ne 1 ]; then
+        echo "Error: Exactly 1 argument required!"
+        return 1
+    elif [ -z "$1" ]; then
+        echo "Error: Argument is empty!"
+        return 1
+    elif [ ! -d $1 ]; then
+        echo "Run directory $PWD/$1 does not exist!"
+        return 1
+    fi
+
+    create_ms_run temp_MS_run
+    update_list=$(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -name "tools" -print)
+
+    for update in "${update_list[@]}"; do
+        update_base=$(echo $update | sed -e 's/.*temp_MS_run\///g')
+        if [ -d "$update" ]; then
+            mkdir -p $1/$update_base
+        elif [ ! -d "$update" ] && [ ! -e "$1/$update_base" ]; then
+            echo "Creating new file at $1/$update_base"
+            ln -s $MAPSEQ_REPO_PATH/src/mapseq_template/$update_base $1/$update_base
+        fi
+    done
+    clean_ms_tree $1
+    rm -r temp_MS_run
+}

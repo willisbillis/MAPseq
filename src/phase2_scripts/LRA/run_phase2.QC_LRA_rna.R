@@ -1,4 +1,4 @@
-# run_seuratQC_mapseq_rna.R
+# run_phase2.QC_LRA_rna.R
 # created by M Elliott Williams (https://github.com/willisbillis) Feb 2024
 
 # Install required packages using the package manager 'pacman'
@@ -27,6 +27,15 @@ set.seed(1234)
 # ggplot2: functions for plotting
 # clustree: plotting clusters vs resolution
 # dplyr: pipe command '%>%'
+# future: multiprocessing limits
+# parallel: multiprocessing limits
+# reticulate: set which python to use
+# multtest: for conserved markers
+# metap: for conserved markers
+# tidyr: separate function
+# Azimuth: cell type annotation
+# scDblFinder: doublet detection
+# BiocParallel: parallelization for scDblFinder
 # ShinyCell: Interact with your data
 # sceasy: convert seurat object to anndata format
 
@@ -49,8 +58,9 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "ACV02_aggr001"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/ACV02/ACV02_aggr001/analysis/RNA.FB.VDJ"
-RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
+PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc",
+                     "/ACV02/ACV02_aggr001/analysis/RNA.FB.VDJ")
+RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 HTO_DEMUX_PATH = paste0(PROJECT_DIR,
                         "/../../pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")

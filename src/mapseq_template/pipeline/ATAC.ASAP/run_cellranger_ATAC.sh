@@ -18,6 +18,8 @@ OUTPUT_FILE=$OUTPUT_DIR/cellranger_atac_mapping.log
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
+mkdir -p $OUTPUT_DIR/reports
+
 sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
 sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
 atac_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${ATAC_NAMING_ID}.*))
@@ -31,8 +33,8 @@ for sample in "${atac_samples[@]}"; do
   echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
 
   cellranger-atac count --id=$sample --sample=$sample \
-    --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH/$sample \
+    --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH \
     --localcores=$NCPU --localmem=$MEM
 
-  cp $sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
+  cp $OUTPUT_DIR/$sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
 done
