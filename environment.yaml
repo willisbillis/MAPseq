@@ -142,5 +142,3 @@ dependencies:
       - webencodings==0.5.1
       - widgetsnbextension==4.0.10
       - zipp==3.18.1
-prefix: /home/boss_lab/Apps/miniforge3/envs/mapseq_env
-
