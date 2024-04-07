@@ -182,7 +182,7 @@ for (idx in seq_len(nrow(metadata_df))) {
 
   atac_cts_sub = chrom_assay@counts[, cells]
   metadata_sub = metadata[cells, ]
-  atac_sub = CreateChromatinAssay(counts = atac_cts_sub,
+  atac_sub = CreateSeuratObject(counts = atac_cts_sub,
                                   assay = "ATAC",
                                   meta.data = metadata_sub,
                                   project = PROJECT_NAME)
