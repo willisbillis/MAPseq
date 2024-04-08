@@ -54,7 +54,7 @@ dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
 
 aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation_csv.csv"))
 barcodes = read.csv(paste0(OUTS_DIR, "/filtered_peak_bc_matrix/barcodes.tsv"),
-                    header=F)
+                    header = FALSE)
 barcodes$library_id = aggr_df$library_id[as.numeric(gsub(".*\\-", "",
                                                          barcodes$V1))]
 
@@ -113,7 +113,6 @@ write.csv(metadata_df, paste0("library_stats.", PROJECT_NAME, ".csv"),
 data_dir = paste0(OUTPUT_DIR, "/data")
 dir.create(data_dir, recursive = TRUE, showWarnings = FALSE)
 hto_reference = read.csv(HTO_DEMUX_PATH)
-
 
 #### LOAD ATAC DATA ####
 peak_matrix_file = paste0(OUTS_DIR, "/filtered_peak_bc_matrix.h5")
