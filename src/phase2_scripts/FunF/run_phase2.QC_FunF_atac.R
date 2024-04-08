@@ -8,15 +8,13 @@ if (!require("pacman", quietly = TRUE)) {
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
        clustree, dplyr, future, parallel, reticulate, harmony, tidyverse,
-       Azimuth, scDblFinder, BiocParallel)
+       Azimuth, scDblFinder, BiocParallel, aggregation)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
 # Set python path to ensure reticulate packages can be used
 python_path = system("which python", intern = TRUE)
 use_python(python_path)
-# make sure you are running Seurat v5
-options(Seurat.object.assay.version = "v5")
 # silence random number warning
 options(future.rng.onMisuse = "ignore")
 set.seed(1234)                # set seed for reproducibility
@@ -38,6 +36,7 @@ set.seed(1234)                # set seed for reproducibility
 # Azimuth: cell type annotation
 # scDblFinder: doublet detection
 # BiocParallel: parallelization for scDblFinder
+# aggregation: fisher test for scDblFinder
 # ShinyCell: Interact with your data
 
 ###############################################################################
@@ -103,16 +102,15 @@ annotations <- renameSeqlevels(annotations,
                                mapSeqlevels(seqlevels(annotations), "UCSC"))
 
 # add the gene information to the object
-sc_total[["ATAC"]] = as(sc_total[["ATAC"]], Class="ChromatinAssay")
-Annotation(sc_total[["ATAC"]]) = annotations
+Annotation(sc_total) = annotations
 ###############################################################################
 #### CALCULATE QC METRICS (ATAC) ####
 ###############################################################################
 # compute nucleosome signal score per cell
-sc_total = NucleosomeSignal(object=sc_total, verbose = FALSE)
+sc_total = NucleosomeSignal(object = sc_total, verbose = FALSE)
 
 # compute TSS enrichment score per cell
-sc_total = TSSEnrichment(object=sc_total, verbose = FALSE)
+sc_total = TSSEnrichment(object = sc_total, verbose = FALSE)
 
 # add blacklist ratio and fraction of reads in peaks
 sc_total$pct_reads_in_peaks = sc_total$peak_region_fragments /
@@ -121,17 +119,14 @@ sc_total$blacklist_ratio = sc_total$blacklist_region_fragments /
   sc_total$peak_region_fragments
 
 # Doublet Detection
-sc_v3 = sc_total
-sc_v3[["HTO"]] = NULL
-sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "ChromatinAssay")
-sce <- scDblFinder(as.SingleCellExperiment(sc_v3), artificialDoublets = 1,
-                   aggregateFeatures = TRUE, samples = "library_id",
-                   nfeatures = 25, processing = "normFeatures",
-                   BPPARAM = MulticoreParam(max_cores))
+sce = scDblFinder(as.SingleCellExperiment(sc_total), artificialDoublets = 1,
+                  aggregateFeatures = TRUE, samples = "atac_id",
+                  nfeatures = 25, processing = "normFeatures",
+                  BPPARAM = MulticoreParam(max_cores))
 
 to_exclude <- GRanges(c("M", "chrM", "MT", "X", "Y", "chrX", "chrY"),
                       IRanges(1L, width = 10^8))
-res <- amulet(Fragments(sc_total)@path, regionsToExclude = to_exclude)
+res <- amulet(Fragments(sc_total)[[1]]@path, regionsToExclude = to_exclude)
 res$scDblFinder.p <- 1 - colData(sce)[row.names(res), "scDblFinder.score"]
 res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
   FUN = function(x) {

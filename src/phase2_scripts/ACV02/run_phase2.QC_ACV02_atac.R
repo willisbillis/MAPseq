@@ -8,15 +8,13 @@ if (!require("pacman", quietly = TRUE)) {
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
        clustree, dplyr, future, parallel, reticulate, harmony, tidyverse,
-       Azimuth, scDblFinder)
+       Azimuth, scDblFinder, BiocParallel, aggregation)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
 # Set python path to ensure reticulate packages can be used
 python_path = system("which python", intern = TRUE)
 use_python(python_path)
-# make sure you are running Seurat v5
-options(Seurat.object.assay.version = "v5")
 # silence random number warning
 options(future.rng.onMisuse = "ignore")
 set.seed(1234)                # set seed for reproducibility
@@ -37,6 +35,8 @@ set.seed(1234)                # set seed for reproducibility
 # tidyverse: separate function
 # Azimuth: cell type annotation
 # scDblFinder: doublet detection
+# BiocParallel: parallelization for scDblFinder
+# aggregation: fisher test for scDblFinder
 # ShinyCell: Interact with your data
 
 ###############################################################################
