@@ -50,7 +50,7 @@ OUTS_DIR = paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/ATAC.ASAP/ATAC/",
                   PROJECT_NAME,"_aggr/outs")
 OUTPUT_DIR = paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/ATAC.ASAP")
 ################################################################################
-dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
+dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation_csv.csv"))
 barcodes = read.csv(paste0(OUTS_DIR, "/filtered_peak_bc_matrix/barcodes.tsv"),
@@ -121,11 +121,6 @@ frag_file = paste0(OUTS_DIR, "/fragments.tsv.gz")
 counts <- Read10X_h5(filename = peak_matrix_file)
 metadata <- read.csv(file = metadata_file, header = TRUE, row.names = 1)
 
-chrom_assay <- CreateChromatinAssay(counts = counts,
-                                    sep = c(":", "-"),
-                                    fragments = frag_file)
-
-
 atac_obj_list = list()
 
 for (idx in seq_len(nrow(metadata_df))) {
@@ -179,12 +174,14 @@ for (idx in seq_len(nrow(metadata_df))) {
   hashtag$asap_id = asap_lib_id
   hashtag$run_id = run_id
 
-  atac_cts_sub = chrom_assay@counts[, cells]
+  atac_cts_sub = CreateChromatinAssay(counts = counts[, cells],
+                                      sep = c(":", "-"),
+                                      fragments = frag_file)
   metadata_sub = metadata[cells, ]
   atac_sub = CreateSeuratObject(counts = atac_cts_sub,
-                                  assay = "ATAC",
-                                  meta.data = metadata_sub,
-                                  project = PROJECT_NAME)
+                                assay = "ATAC",
+                                meta.data = metadata_sub,
+                                project = PROJECT_NAME)
 
   hashtag = hashtag[, intersect(colnames(atac_sub), colnames(hashtag))]
   atac_sub[["HTO"]] = CreateAssay5Object(counts = hashtag[["HTO"]]$counts,
@@ -196,7 +193,6 @@ for (idx in seq_len(nrow(metadata_df))) {
 
 sc_total = merge(atac_obj_list[[1]], c(atac_obj_list[2:idx]))
 sc_total = JoinLayers(sc_total, assay = "HTO")
-sc_total = JoinLayers(sc_total, assay = "ATAC")
 
 DefaultAssay(sc_total) = "ATAC"
 
