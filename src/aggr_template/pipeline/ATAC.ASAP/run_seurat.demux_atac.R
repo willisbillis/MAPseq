@@ -15,9 +15,13 @@ library(pacman)
 p_load(Seurat, Signac, data.table, Matrix)
 
 set.seed(1234)                # set seed for reproducibility
+
 ## Library descriptions ##
 # Seurat: functions for single cell data
 # Signac: create chromatin assay
+# data.table: faster reading/writing of csv tables
+# Matrix: processing ASAP counts matrices
+
 ################################################################################
 ## Custom functions
 import_kite_counts <- function(data_path) {
@@ -47,7 +51,7 @@ ASAP_NAMING_ID = Sys.getenv("ASAP_NAMING_ID")[1]
 HTO_DEMUX_PATH = paste0(PROJECT_PATH, "/", PROJECT_NAME,
                         "/pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 OUTS_DIR = paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/ATAC.ASAP/ATAC/",
-                  PROJECT_NAME,"_aggr/outs")
+                  PROJECT_NAME, "_aggr/outs")
 OUTPUT_DIR = paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/ATAC.ASAP")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
@@ -98,7 +102,7 @@ for (idx in seq_len(nrow(metadata_df))) {
                      "overlap_pct")] = c(dim(hto)[2],
                                          length(cells),
                                          dim(cmat)[2],
-                                         100*dim(cmat)[2] / length(cells))
+                                         100 * dim(cmat)[2] / length(cells))
 
   if (!exists("master_ht")) {
     master_ht = cmat
@@ -136,17 +140,19 @@ for (idx in seq_len(nrow(metadata_df))) {
   if (length(hto_ref_sub$hashtag) > 1) {
     print(paste("Demultiplexing", asap_lib_id))
 
-    library_ht_hto = master_ht[hto_ref_sub$hashtag, cells]
+    library_ht_hto = master_ht[hto_ref_sub$hashtag,
+                               colnames(master_ht) %in% cells]
     hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
 
     hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
     names(hto_count_sums) = rownames(hashtag)
 
     # check for failed hashtags (< 1 HTO count per cell on average)
-    if (sum(hto_count_sums < ncol(hashtag)) > 0) {
+    if (sum(hto_count_sums < (ncol(hashtag) / nrow(hto_ref_sub))) > 0) {
       print(paste("[WARNING] Hashtag staining failed for the",
                   "following hashtags! Excluding from final object."))
-      failed_htos = names(hto_count_sums[hto_count_sums < ncol(hashtag)])
+      failed_htos = names(hto_count_sums[hto_count_sums <
+                                           (ncol(hashtag) / nrow(hto_ref_sub))])
       print(failed_htos)
       hto_ref_sub = hto_ref_sub[!(hto_ref_sub$hashtag %in% failed_htos), ]
       hashtag = subset(hashtag, features = hto_ref_sub$hashtag)
