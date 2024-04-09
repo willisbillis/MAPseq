@@ -43,7 +43,7 @@ set.seed(1234)                # set seed for reproducibility
 #### SET RESOURCE LIMITS ####
 ###############################################################################
 max_cores = 32
-max_mem = 32
+max_mem = 128
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -254,15 +254,35 @@ p = FeatureScatter(sc_total, "nCount_HTO", "nCount_ATAC", group.by = "asap_id",
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
   stat_ellipse(aes(group = asap_id), sc_total@meta.data)
-ggsave("featscatter_nctHTO.v.nctATAC_asap_id_alldata.png", p,
+ggsave("featscatter_nctHTO.v.nctATAC_patient_id_alldata.png", p,
        width = 10, height = 4)
 p = FeatureScatter(sc, "nCount_HTO", "nCount_ATAC", group.by = "asap_id",
                    split.by = "patient_id") +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
   stat_ellipse(aes(group = asap_id), sc_total@meta.data)
-ggsave("featscatter_nctHTO.v.nctATAC_asap_id_filtereddata.png", p,
+ggsave("featscatter_nctHTO.v.nctATAC_patient_id_filtereddata.png", p,
        width = 10, height = 4)
+
+cells_use = colnames(sc_total[, !is.na(sc_total$HTO_maxID)])
+p = FeatureScatter(sc_total, "nCount_HTO", "nCount_ATAC", group.by = "asap_id",
+                   split.by = "HTO_maxID", cells = cells_use, ncol = ncol) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  stat_ellipse(aes(group = asap_id),
+               sc_total@meta.data[!is.na(sc_total@meta.data$HTO_maxID), ])
+ggsave("featscatter_nctHTO.v.nctATAC_HTO_maxid_alldata.png", p,
+       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
+
+cells_use = colnames(sc[, !is.na(sc$HTO_maxID)])
+p = FeatureScatter(sc, "nCount_HTO", "nCount_ATAC", group.by = "asap_id",
+                   split.by = "HTO_maxID", cells = cells_use, ncol = ncol) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  stat_ellipse(aes(group = asap_id),
+               sc@meta.data[!is.na(sc@meta.data$HTO_maxID), ])
+ggsave("featscatter_nctHTO.v.nctATAC_HTO_maxid_filtereddata.png", p,
+       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 # save Seurat object
 saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_atac.hto_", PROJECT_NAME, ".RDS"))
