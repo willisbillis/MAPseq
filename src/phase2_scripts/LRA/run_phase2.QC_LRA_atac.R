@@ -73,6 +73,7 @@ OUTPUT_FIG_HEIGHT = 8                 # inches, height of output figures
 ###############################################################################
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
+hto_reference = read.csv(HTO_DEMUX_PATH)
 ###############################################################################
 #### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
@@ -226,7 +227,7 @@ res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
 sc_total$scDblFinder.score <- res$combined
 
 p = DensityScatter(sc_total, "peak_region_fragments", "scDblFinder.score",
-                   quantiles = TRUE)
+                   quantiles = TRUE, log_x = TRUE, log_y = FALSE)
 ggsave("scatter_peakfrags.v.dbl_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
@@ -253,18 +254,18 @@ ggsave("scatter_peakfrags.v.blacklist_alldata.png",
 #### ATAC QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MIN_PEAK_FRAGMENTS = 1000   # REPLACE, minimum peak fragments per cell
-MAX_PEAK_FRAGMENTS = 35000  # REPLACE, maximum peak fragments per cell
-MIN_PCT_RiP = 80            # REPLACE, minimum percent reads in peaks per cell
+MIN_PEAK_FRAGMENTS = 750    # REPLACE, minimum peak fragments per cell
+MIN_PCT_RiP = 65            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
-MIN_TSS = 2                 # REPLACE, minimum TSS enrichment score per cell
+MIN_TSS = 4                 # REPLACE, minimum TSS enrichment score per cell
+DBL_LIMIT = 0.25            # REPLACE, minimum Doublet score accepted
 
 p = DensityScatter(sc_total, "peak_region_fragments", "TSS.enrichment",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
 p = p +
   geom_hline(yintercept=MIN_TSS, linetype = "dashed") +
-  geom_vline(xintercept=c(MIN_PEAK_FRAGMENTS, MAX_PEAK_FRAGMENTS),
+  geom_vline(xintercept=MIN_PEAK_FRAGMENTS,
              linetype = "dashed")
 ggsave("scatter_peakfrags.v.TSSe_filtered.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
@@ -272,7 +273,7 @@ ggsave("scatter_peakfrags.v.TSSe_filtered.png",
 #### QUANTIFY QC FILTERING ####
 ###############################################################################
 # adjust metadata to accomodate Seurat's AggregateExpression
-sc_total$library_id = gsub("_", "-", sc_total$library_id)
+sc_total$atac_id = gsub("_", "-", sc_total$atac_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 hto_reference$library_id = gsub("_", "-", hto_reference$library_id)
 hto_reference$patient_id = gsub("_", "-", hto_reference$patient_id)
@@ -281,7 +282,7 @@ hto_reference$match_id = paste(hto_reference$library_id,
                                hto_reference$patient_id,
                                hto_reference$hashtag,
                                sep = "-")
-sc_total$match_id = paste(sc_total$library_id,
+sc_total$match_id = paste(sc_total$atac_id,
                           sc_total$patient_id,
                           sc_total$hash.ID,
                           sep = "-")
@@ -295,7 +296,7 @@ for (col_id in names(hto_reference)[4:ncol(hto_reference)]) {
 hto_reference$sample_id = paste(hto_reference$library_id,
                                 hto_reference$patient_id,
                                 sep = "-")
-sc_total$sample_id = paste(sc_total$library_id,
+sc_total$sample_id = paste(sc_total$atac_id,
                            sc_total$patient_id,
                            sep = "-")
 neg_cells_mask = sc_total$HTO_classification.global == "Negative"
@@ -314,7 +315,7 @@ neg_df = data.frame(sample_id = "Negative")
 neg_df[names(stats)[names(stats) != "sample_id"]] = NA
 stats = rbind(stats, neg_df)
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
-stats$Unfiltered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+stats$Unfiltered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                      sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 cell_ct = AggregateExpression(sc_total,
@@ -323,10 +324,15 @@ cell_ct = AggregateExpression(sc_total,
 stats$Unfiltered_Avg_Accessibility = round(cell_ct[match(stats$sample_id,
                                                          names(cell_ct))] /
                                              stats$Unfiltered_Cells)
+cell_ct = AggregateExpression(sc_total,
+                              group.by = "sample_id")$HTO %>%
+  colSums
+stats$Unfiltered_Avg_HTO = round(cell_ct[match(stats$sample_id,
+                                               names(cell_ct))] /
+                                   stats$Unfiltered_Cells)
 
 sc <- subset(sc_total,
              peak_region_fragments > MIN_PEAK_FRAGMENTS &
-               peak_region_fragments < MAX_PEAK_FRAGMENTS &
                pct_reads_in_peaks > MIN_PCT_RiP &
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
@@ -334,7 +340,7 @@ sc <- subset(sc_total,
                scDblFinder.score > DBL_LIMIT)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
-stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                    sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 
@@ -343,7 +349,13 @@ cell_ct = AggregateExpression(sc,
   colSums
 stats$Filtered_Avg_Accessibility = round(cell_ct[match(stats$sample_id,
                                                        names(cell_ct))] /
-                                          stats$Filtered_Cells)
+                                           stats$Filtered_Cells)
+cell_ct = AggregateExpression(sc,
+                              group.by = "sample_id")$HTO %>%
+  colSums
+stats$Filtered_Avg_HTO = round(cell_ct[match(stats$sample_id,
+                                             names(cell_ct))] /
+                                 stats$Filtered_Cells)
 stats[is.na(stats)] = 0
 
 write.csv(stats, "QC.atac_sampleID_filtering.stats.csv",
