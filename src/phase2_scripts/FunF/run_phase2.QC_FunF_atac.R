@@ -73,6 +73,7 @@ OUTPUT_FIG_HEIGHT = 8                 # inches, height of output figures
 ###############################################################################
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
+hto_reference = read.csv(HTO_DEMUX_PATH)
 ###############################################################################
 #### ATTACH LATEST GENE ANNOTATIONS TO ATAC DATA ####
 ###############################################################################
@@ -137,7 +138,7 @@ res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
 sc_total$scDblFinder.score <- res$combined
 
 p = DensityScatter(sc_total, "peak_region_fragments", "scDblFinder.score",
-                   quantiles = TRUE)
+                   quantiles = TRUE, log_x = TRUE, log_y = FALSE)
 ggsave("scatter_peakfrags.v.dbl_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
