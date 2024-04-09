@@ -158,6 +158,16 @@ write.csv(margin_stats,
           paste0("HTC.combos_",PROJECT_NAME,"_metrics.csv"),
           quote = FALSE, row.names = FALSE)
 
+p = ggplot(margin_stats, aes(hto_separation, library_id,
+                             group = c(HT_1st, HT_2nd))) +
+  geom_boxplot() + labs(title = "HTC Demultiplexing Margins") +
+  xlab("Average Margin Between Cells") +
+  ylab("HTO Combination") +
+  xlim(c(0, max(margin_stats$hto_separation))) +
+  theme_linedraw()
+ggsave(paste0("boxplot_HTC_hto.separation", PROJECT_NAME, ".png"), p,
+       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
+
 Idents(sc_total) = "hash.ID"
 
 p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
