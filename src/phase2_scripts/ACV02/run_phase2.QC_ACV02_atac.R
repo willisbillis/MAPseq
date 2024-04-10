@@ -108,13 +108,25 @@ ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
 cells_use = colnames(sc_total[, !is.na(sc_total$HTO_maxID)])
-p = FeatureScatter(sc_total, "nCount_HTO", "nCount_ATAC", group.by = "asap_id",
+p = FeatureScatter(sc_total, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
                    split.by = "HTO_maxID", cells = cells_use, ncol = ncol) +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
   stat_ellipse(aes(group = asap_id),
-               sc_total@meta.data[!is.na(sc_total@meta.data$HTO_maxID), ])
-ggsave("featscatter_nctHTO.v.nctATAC_asap_id_alldata.png", p,
+               sc_total@meta.data[!is.na(sc_total@meta.data$HTO_maxID), ]) +
+  labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
+ggsave("featscatter_nctATAC.v.nctHTO_HTO_maxid_alldata.png", p,
+       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
+
+cells_use = colnames(sc_total[, !is.na(sc_total$hash.ID)])
+p = FeatureScatter(sc_total, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
+                   split.by = "hash.ID", cells = cells_use, ncol = 5) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  stat_ellipse(aes(group = asap_id),
+               sc_total@meta.data[!is.na(sc_total@meta.data$hash.ID), ]) +
+  labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
+ggsave("featscatter_nctATAC.v.nctHTO_calledHT_alldata.png", p,
        width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### CALCULATE QC METRICS (HTO) ####
@@ -196,8 +208,6 @@ p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
                    feature1 = worst_htos[1], feature2 = worst_htos[2])
 ggsave(paste0("scatter_worst.hto.separation_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
-
-sc_total = subset(sc_total, HTO_classification.global != "Doublet")
 ###############################################################################
 #### ATTACH LATEST GENE ANNOTATIONS TO ATAC DATA ####
 ###############################################################################
@@ -289,12 +299,12 @@ ggsave("scatter_peakfrags.v.blacklist_alldata.png",
 #### ATAC QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MIN_PEAK_FRAGMENTS = 1000   # REPLACE, minimum peak fragments per cell
-MIN_PCT_RiP = 80            # REPLACE, minimum percent reads in peaks per cell
+MIN_PEAK_FRAGMENTS = 500   # REPLACE, minimum peak fragments per cell
+MIN_PCT_RiP = 65            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
-MIN_TSS = 2                 # REPLACE, minimum TSS enrichment score per cell
-DBL_LIMIT = 0.5             # REPLACE, minimum Doublet score to permit
+MIN_TSS = 4                 # REPLACE, minimum TSS enrichment score per cell
+DBL_LIMIT = 0.05             # REPLACE, minimum Doublet score to permit
 
 p = DensityScatter(sc_total, "peak_region_fragments", "TSS.enrichment",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
@@ -308,7 +318,7 @@ ggsave("scatter_peakfrags.v.TSSe_filtered.png",
 #### QUANTIFY QC FILTERING ####
 ###############################################################################
 # adjust metadata to accomodate Seurat's AggregateExpression
-sc_total$library_id = gsub("_", "-", sc_total$library_id)
+sc_total$atac_id = gsub("_", "-", sc_total$atac_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 hto_reference$library_id = gsub("_", "-", hto_reference$library_id)
 hto_reference$patient_id = gsub("_", "-", hto_reference$patient_id)
@@ -317,7 +327,7 @@ hto_reference$match_id = paste(hto_reference$library_id,
                                hto_reference$patient_id,
                                hto_reference$hashtag,
                                sep = "-")
-sc_total$match_id = paste(sc_total$library_id,
+sc_total$match_id = paste(sc_total$atac_id,
                           sc_total$patient_id,
                           sc_total$hash.ID,
                           sep = "-")
@@ -332,12 +342,12 @@ hto_reference$sample_id = paste(hto_reference$library_id,
                                 hto_reference$patient_id,
                                 hto_reference$visit,
                                 sep = "-")
-sc_total$sample_id = paste(sc_total$library_id,
+sc_total$sample_id = paste(sc_total$atac_id,
                            sc_total$patient_id,
                            sc_total$visit,
                            sep = "-")
-neg_cells_mask = sc_total$HTO_classification.global == "Negative"
-sc_total$sample_id[neg_cells_mask] = "Negative"
+mask = sc_total$HTO_classification.global != "Negative"
+sc_total$sample_id[mask] = sc_total$HTO_classification.global[mask]
 stats = data.frame(match_id = hto_reference$match_id)
 
 if (ncol(hto_reference) > 3) {
@@ -374,7 +384,8 @@ sc <- subset(sc_total,
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
                TSS.enrichment > MIN_TSS &
-               scDblFinder.score > DBL_LIMIT)
+               scDblFinder.score > DBL_LIMIT &
+               HTO_classification.global != "Doublet")
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -399,13 +410,27 @@ write.csv(stats, "QC.atac_sampleID_filtering.stats.csv",
           quote = FALSE, row.names = FALSE)
 
 # Create Filtered Feature Scatter of ATAC and HTO fragments/reads
-p = FeatureScatter(sc, "nCount_HTO", "nCount_ATAC", group.by = "asap_id",
-                   split.by = "patient_id") +
+cells_use = colnames(sc[, !is.na(sc$HTO_maxID)])
+p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
+                   split.by = "HTO_maxID", cells = cells_use, ncol = ncol) +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
-  stat_ellipse(aes(group = asap_id), sc_total@meta.data)
-ggsave("featscatter_nctHTO.v.nctATAC_asap_id_filtereddata.png", p,
-       width = OUTPUT_FIG_WIDTH * 2.5, height = OUTPUT_FIG_HEIGHT)
+  stat_ellipse(aes(group = asap_id),
+               sc@meta.data[!is.na(sc@meta.data$HTO_maxID), ]) +
+  labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
+ggsave("featscatter_nctATAC.v.nctHTO_HTO_maxid_filtereddata.png", p,
+       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
+
+cells_use = colnames(sc[, !is.na(sc$hash.ID)])
+p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
+                   split.by = "hash.ID", cells = cells_use, ncol = ncol) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  stat_ellipse(aes(group = asap_id),
+               sc@meta.data[!is.na(sc@meta.data$hash.ID), ]) +
+  labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
+ggsave("featscatter_nctATAC.v.nctHTO_calledHT_filtereddata.png", p,
+       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 # SAVE RAW SEURAT OBJECT
 ###############################################################################
