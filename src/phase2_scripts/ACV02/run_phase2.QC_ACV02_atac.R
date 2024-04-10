@@ -120,7 +120,8 @@ ggsave("featscatter_nctATAC.v.nctHTO_HTO_maxid_alldata.png", p,
 
 cells_use = colnames(sc_total[, !is.na(sc_total$hash.ID)])
 p = FeatureScatter(sc_total, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
-                   split.by = "hash.ID", cells = cells_use, ncol = 5) +
+                   split.by = "hash.ID", cells = cells_use,
+                   ncol = ceiling((nrow(sc_total[["HTO"]]) + 2) / 3)) +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
   stat_ellipse(aes(group = asap_id),
@@ -239,26 +240,29 @@ annotations <- renameSeqlevels(annotations,
 # add the gene information to the object
 Annotation(sc_total) = annotations
 ###############################################################################
+# SAVE RAW SEURAT OBJECT
+###############################################################################
+saveRDS(sc_total,
+        paste0(PROJECT_DIR, "/data/raw_atac.hto_", PROJECT_NAME, ".RDS"))
+###############################################################################
 #### CALCULATE QC METRICS (ATAC) ####
 ###############################################################################
+# Remove HT Doublets from object
+sc_total = subset(sc_total, HTO_classification.global != "Doublet")
 # compute nucleosome signal score per cell
-sc_total = NucleosomeSignal(object=sc_total, verbose = FALSE)
-
+sc_total = NucleosomeSignal(object = sc_total, verbose = FALSE)
 # compute TSS enrichment score per cell
-sc_total = TSSEnrichment(object=sc_total, verbose = FALSE)
-
+sc_total = TSSEnrichment(object = sc_total, verbose = FALSE)
 # add blacklist ratio and fraction of reads in peaks
 sc_total$pct_reads_in_peaks = sc_total$peak_region_fragments /
   sc_total$passed_filters * 100
 sc_total$blacklist_ratio = sc_total$blacklist_region_fragments /
   sc_total$peak_region_fragments
-
 # Doublet Detection
 sce <- scDblFinder(as.SingleCellExperiment(sc_total), artificialDoublets = 1,
                    aggregateFeatures = TRUE, samples = "run_id",
                    nfeatures = 25, processing = "normFeatures",
                    BPPARAM = MulticoreParam(max_cores))
-
 to_exclude <- GRanges(c("M", "chrM", "MT", "X", "Y", "chrX", "chrY"),
                       IRanges(1L, width = 10^8))
 res <- amulet(Fragments(sc_total)[[1]]@path, regionsToExclude = to_exclude)
@@ -384,8 +388,7 @@ sc <- subset(sc_total,
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
                TSS.enrichment > MIN_TSS &
-               scDblFinder.score > DBL_LIMIT &
-               HTO_classification.global != "Doublet")
+               scDblFinder.score > DBL_LIMIT)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -431,11 +434,6 @@ p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
   labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
 ggsave("featscatter_nctATAC.v.nctHTO_calledHT_filtereddata.png", p,
        width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
-###############################################################################
-# SAVE RAW SEURAT OBJECT
-###############################################################################
-saveRDS(sc_total,
-        paste0(PROJECT_DIR, "/data/raw_atac.hto_", PROJECT_NAME, ".RDS"))
 ###############################################################################
 #### BATCH CORRECTION (OPTIONAL) ####
 ###############################################################################
