@@ -7,7 +7,23 @@ We recommend this tutorial for users who have a basic understanding of virtual e
 - **Input configuration and reference files**: There are **files that must be modified before each run** to ensure the proper running of the pipeline. These are discussed in further detail below.
 
 ## Setting up the Environment
-- step by step instructions on how to set up the working environment
+
+We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide a [`environment.yaml`](environment.yaml) file for easy installation with conda. This can be run and initialized with:
+
+```
+conda env create -f environment.yaml
+conda activate mapseq_env
+```
+
+After installing necessary requirements, you may install the MAPseq pipeline from source using:
+
+```
+gh repo clone willisbillis/MAPseq
+cd MAPseq
+./install.sh
+```
+
+It is necessary to reload the shell for changes to take effect after installation. We recommend doing this by closing the current session and opening a new one.
 
 ## Running the Pipeline
 
@@ -87,6 +103,6 @@ and aggregation run pipeline.
 `<AGGR_RUN_NAME>/analysis/ATAC.ASAP>` | `library_stats.<AGGR_RUN_NAME>.csv` | ATAC+ASAP demultiplexing statistics table, containing information about number of cells captured from ATAC and ASAP libraries as well as overlap between the two.
 
 ## Additional Tips and FAQs
-If you have a question, error, or bug to report, please submit a ticket using the [issue page](https://github.com/willisbillis/MAPseq/issues/new/choose).
+If you have a question, error, or bug to report, please submit a ticket using the [issue page](https://github.com/willisbillis/MAPseq/issues).
 
 - troubleshooting tips for common errors
