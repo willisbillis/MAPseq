@@ -1,5 +1,5 @@
-# run_phase2.QC_LRA_rna.R
-# created by M Elliott Williams (https://github.com/willisbillis) Feb 2024
+# run_phase2.QC_MISC_rna.R
+# created by M Elliott Williams (https://github.com/willisbillis) Apr 2024
 
 # Install required packages using the package manager 'pacman'
 if (!require("pacman", quietly = TRUE)) {
@@ -7,7 +7,7 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate,
-       multtest, metap, tidyr, scDblFinder, BiocParallel)
+       tidyr, Azimuth, scDblFinder, BiocParallel)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
@@ -30,8 +30,6 @@ set.seed(1234)
 # future: multiprocessing limits
 # parallel: multiprocessing limits
 # reticulate: set which python to use
-# multtest: for conserved markers
-# metap: for conserved markers
 # tidyr: separate function
 # Azimuth: cell type annotation
 # scDblFinder: doublet detection
@@ -58,9 +56,8 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "ACV02_aggr001"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc",
-                     "/ACV02/ACV02_aggr001/analysis/RNA.FB.VDJ")
-RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
+PROJECT_DIR = "/home/boss_lab/Projects/Scharer_sc/ACV02/ACV02_aggr001/analysis/RNA.FB.VDJ"
+RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 HTO_DEMUX_PATH = paste0(PROJECT_DIR,
                         "/../../pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
@@ -87,7 +84,7 @@ if (GENOME == "hg38") {
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
 ###############################################################################
-#### PLOT DEMULTIPLEXING RESULTS (ADT) ####
+#### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
 DefaultAssay(sc_total) = "HTO"
 ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
@@ -120,7 +117,7 @@ ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
 ###############################################################################
-#### CALCULATE QC METRICS (ADT) ####
+#### CALCULATE QC METRICS (HTO) ####
 ###############################################################################
 sc_total$combo_id = paste0(sc_total$HTO_maxID, "_", sc_total$HTO_secondID)
 for (hto1 in unique(sc_total$HTO_maxID)) {
@@ -152,21 +149,11 @@ best_htos = c(margin_stats$HT_1st[1],
 margin_stats = margin_stats[order(-margin_stats$total_mixing_degree),]
 worst_htos = c(margin_stats$HT_1st[1],
                margin_stats$HT_2nd[1],
-              "Doublet")
+               "Doublet")
 
 write.csv(margin_stats,
           paste0("HTC.combos_",PROJECT_NAME,"_metrics.csv"),
           quote = FALSE, row.names = FALSE)
-
-p = ggplot(margin_stats, aes(hto_separation, library_id,
-                             group = c(HT_1st, HT_2nd))) +
-  geom_boxplot() + labs(title = "HTC Demultiplexing Margins") +
-  xlab("Average Margin Between Cells") +
-  ylab("HTO Combination") +
-  xlim(c(0, max(margin_stats$hto_separation))) +
-  theme_linedraw()
-ggsave(paste0("boxplot_HTC_hto.separation", PROJECT_NAME, ".png"), p,
-       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 Idents(sc_total) = "hash.ID"
 
@@ -191,7 +178,7 @@ DefaultAssay(sc_total) = "RNA"
 sc_v3 = sc_total
 sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class="Assay")
 sce <- scDblFinder(as.SingleCellExperiment(sc_v3),
-                   samples="library_id", BPPARAM=MulticoreParam(max_cores))
+                   samples = "library_id", BPPARAM = MulticoreParam(max_cores))
 sc_total$scDblFinder.score <- sce$scDblFinder.score
 
 # Ig and mitochondrial reads detection
@@ -222,7 +209,7 @@ p = DensityScatter(sc_total, "nFeature_HTO", "nFeature_RNA",
 ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
-#### RNA CUTOFFS ####
+#### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
@@ -266,9 +253,11 @@ for (col_id in names(hto_reference)[4:ncol(hto_reference)]) {
 # create new column for unique sample ID - adjust as needed for each dataset
 hto_reference$sample_id = paste(hto_reference$library_id,
                                 hto_reference$patient_id,
+                                hto_reference$visit,
                                 sep = "-")
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
+                           sc_total$visit,
                            sep = "-")
 neg_cells_mask = sc_total$HTO_classification.global == "Negative"
 sc_total$sample_id[neg_cells_mask] = "Negative"
@@ -315,12 +304,6 @@ sc = subset(sc_total,
               nFeature_RNA > MIN_GENE_READS &
               nFeature_RNA < MAX_GENE_READS)
 
-# HTO Filter
-DefaultAssay(sc) = "ADT"
-VariableFeatures(sc) <- rownames(sc[["ADT"]])
-sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
-sc = ScaleData(sc)
-
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
                                                    sample_id_counts$Var1)]
@@ -342,6 +325,11 @@ stats$Filtered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
 stats[is.na(stats)] = 0
 write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
           quote = FALSE, row.names = FALSE)
+###############################################################################
+# SAVE RAW SEURAT OBJECT
+###############################################################################
+saveRDS(sc_total,
+        paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 ###############################################################################
 #### BATCH CORRECTION (OPTIONAL) ####
 ###############################################################################
@@ -379,7 +367,7 @@ if (FALSE) {
 
   sc <- FindNeighbors(sc, reduction = "integrated.rna.harmony",
                       dims = 1:40, verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
+  sc <- FindClusters(sc, method = 4, algorithm = 4,
                      cluster.name = "rna.clusters",
                      verbose = FALSE)
   sc <- RunUMAP(sc, reduction = "integrated.rna.harmony",
@@ -464,6 +452,11 @@ sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
 sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
               reduction.name = "umap.rna",
               verbose = FALSE)
+
+DefaultAssay(sc) = "ADT"
+VariableFeatures(sc) <- rownames(sc[["ADT"]])
+sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
+sc = ScaleData(sc)
 ###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
@@ -499,40 +492,17 @@ sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
-# DEG testing between clusters
+# DEG testing between clusters (one vs all)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "SCT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
-# DEP testing between clusters
+# DEP testing between clusters (one vs all)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
-
-# Conserved markers between clusters
-non_hc = subset(sc, endotype != "Healthy_Control_Donor")
-sym_diff <- function(a, b) setdiff(union(a, b), intersect(a, b))
-for (cl_num in unique(Idents(non_hc))) {
-  cons_markers = FindConservedMarkers(non_hc, ident.1 = cl_num,
-                                      assay = "SCT",
-                                      grouping.var = "endotype")
-  cons_markers$cluster = cl_num
-  cons_markers$gene = rownames(cons_markers)
-  if (!exists("all_cons_markers")) {
-    all_cons_markers = cons_markers
-  } else {
-    if (ncol(cons_markers) != ncol(all_cons_markers)) {
-      missing_cols = sym_diff(names(cons_markers), names(all_cons_markers))
-      cons_markers[missing_cols] = NA
-    }
-    all_cons_markers = rbind(all_cons_markers, cons_markers)
-  }
-}
-write.csv(all_cons_markers,
-          "DEG_nonHC_conserved.markers_cluster.v.endotype.csv",
-          quote = FALSE, row.names = FALSE)
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################

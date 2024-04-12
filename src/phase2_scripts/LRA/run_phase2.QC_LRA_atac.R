@@ -8,15 +8,13 @@ if (!require("pacman", quietly = TRUE)) {
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
        clustree, dplyr, future, parallel, reticulate, harmony, tidyverse,
-       Azimuth, scDblFinder)
+       Azimuth, scDblFinder, BiocParallel, aggregation)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
 # Set python path to ensure reticulate packages can be used
 python_path = system("which python", intern = TRUE)
 use_python(python_path)
-# make sure you are running Seurat v5
-options(Seurat.object.assay.version = "v5")
 # silence random number warning
 options(future.rng.onMisuse = "ignore")
 set.seed(1234)                # set seed for reproducibility
@@ -37,6 +35,8 @@ set.seed(1234)                # set seed for reproducibility
 # tidyverse: separate function
 # Azimuth: cell type annotation
 # scDblFinder: doublet detection
+# BiocParallel: parallelization for scDblFinder
+# aggregation: fisher test for scDblFinder
 # ShinyCell: Interact with your data
 
 ###############################################################################
@@ -73,6 +73,7 @@ OUTPUT_FIG_HEIGHT = 8                 # inches, height of output figures
 ###############################################################################
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
+hto_reference = read.csv(HTO_DEMUX_PATH)
 ###############################################################################
 #### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
@@ -144,6 +145,16 @@ write.csv(margin_stats,
           paste0("HTB.combos_", PROJECT_NAME, "_metrics.csv"),
           quote = FALSE, row.names = FALSE)
 
+p = ggplot(margin_stats, aes(hto_separation, library_id,
+                             group = c(HT_1st, HT_2nd))) +
+  geom_boxplot() + labs(title = "HTB Demultiplexing Margins") +
+  xlab("Average Margin Between Cells") +
+  ylab("HTO Combination") +
+  xlim(c(0, max(margin_stats$hto_separation))) +
+  theme_linedraw()
+ggsave(paste0("boxplot_HTB_hto.separation", PROJECT_NAME, ".png"), p,
+       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
+
 Idents(sc_total) = "hash.ID"
 
 p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
@@ -205,8 +216,18 @@ sc_total$blacklist_ratio = sc_total$blacklist_region_fragments /
   sc_total$peak_region_fragments
 
 # Doublet Detection
-res <- clamulet(Fragments(sc_total)[[1]]@path)
-res$scDblFinder.p <- 1 - colData(res)[row.names(res), "scDblFinder.score"]
+sc_v3 = sc_total
+sc_v3[["HTO"]] = NULL
+sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "ChromatinAssay")
+sce <- scDblFinder(as.SingleCellExperiment(sc_v3), artificialDoublets = 1,
+                   aggregateFeatures = TRUE, samples = "library_id",
+                   nfeatures = 25, processing = "normFeatures",
+                   BPPARAM = MulticoreParam(max_cores))
+
+to_exclude <- GRanges(c("M", "chrM", "MT", "X", "Y", "chrX", "chrY"),
+                      IRanges(1L, width = 10^8))
+res <- amulet(Fragments(sc_total)@path, regionsToExclude = to_exclude)
+res$scDblFinder.p <- 1 - colData(sce)[row.names(res), "scDblFinder.score"]
 res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
   FUN = function(x) {
     x[x < 0.001] <- 0.001 # prevent too much skew from very small or 0 p-values
@@ -216,7 +237,7 @@ res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
 sc_total$scDblFinder.score <- res$combined
 
 p = DensityScatter(sc_total, "peak_region_fragments", "scDblFinder.score",
-                   quantiles = TRUE)
+                   quantiles = TRUE, log_x = TRUE, log_y = FALSE)
 ggsave("scatter_peakfrags.v.dbl_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
@@ -243,18 +264,18 @@ ggsave("scatter_peakfrags.v.blacklist_alldata.png",
 #### ATAC QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MIN_PEAK_FRAGMENTS = 1000   # REPLACE, minimum peak fragments per cell
-MAX_PEAK_FRAGMENTS = 35000  # REPLACE, maximum peak fragments per cell
-MIN_PCT_RiP = 80            # REPLACE, minimum percent reads in peaks per cell
+MIN_PEAK_FRAGMENTS = 750    # REPLACE, minimum peak fragments per cell
+MIN_PCT_RiP = 65            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
-MIN_TSS = 2                 # REPLACE, minimum TSS enrichment score per cell
+MIN_TSS = 4                 # REPLACE, minimum TSS enrichment score per cell
+DBL_LIMIT = 0.25            # REPLACE, minimum Doublet score accepted
 
 p = DensityScatter(sc_total, "peak_region_fragments", "TSS.enrichment",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
 p = p +
   geom_hline(yintercept=MIN_TSS, linetype = "dashed") +
-  geom_vline(xintercept=c(MIN_PEAK_FRAGMENTS, MAX_PEAK_FRAGMENTS),
+  geom_vline(xintercept=MIN_PEAK_FRAGMENTS,
              linetype = "dashed")
 ggsave("scatter_peakfrags.v.TSSe_filtered.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
@@ -262,7 +283,7 @@ ggsave("scatter_peakfrags.v.TSSe_filtered.png",
 #### QUANTIFY QC FILTERING ####
 ###############################################################################
 # adjust metadata to accomodate Seurat's AggregateExpression
-sc_total$library_id = gsub("_", "-", sc_total$library_id)
+sc_total$atac_id = gsub("_", "-", sc_total$atac_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 hto_reference$library_id = gsub("_", "-", hto_reference$library_id)
 hto_reference$patient_id = gsub("_", "-", hto_reference$patient_id)
@@ -271,7 +292,7 @@ hto_reference$match_id = paste(hto_reference$library_id,
                                hto_reference$patient_id,
                                hto_reference$hashtag,
                                sep = "-")
-sc_total$match_id = paste(sc_total$library_id,
+sc_total$match_id = paste(sc_total$atac_id,
                           sc_total$patient_id,
                           sc_total$hash.ID,
                           sep = "-")
@@ -285,7 +306,7 @@ for (col_id in names(hto_reference)[4:ncol(hto_reference)]) {
 hto_reference$sample_id = paste(hto_reference$library_id,
                                 hto_reference$patient_id,
                                 sep = "-")
-sc_total$sample_id = paste(sc_total$library_id,
+sc_total$sample_id = paste(sc_total$atac_id,
                            sc_total$patient_id,
                            sep = "-")
 neg_cells_mask = sc_total$HTO_classification.global == "Negative"
@@ -304,7 +325,7 @@ neg_df = data.frame(sample_id = "Negative")
 neg_df[names(stats)[names(stats) != "sample_id"]] = NA
 stats = rbind(stats, neg_df)
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
-stats$Unfiltered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+stats$Unfiltered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                      sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 cell_ct = AggregateExpression(sc_total,
@@ -313,10 +334,15 @@ cell_ct = AggregateExpression(sc_total,
 stats$Unfiltered_Avg_Accessibility = round(cell_ct[match(stats$sample_id,
                                                          names(cell_ct))] /
                                              stats$Unfiltered_Cells)
+cell_ct = AggregateExpression(sc_total,
+                              group.by = "sample_id")$HTO %>%
+  colSums
+stats$Unfiltered_Avg_HTO = round(cell_ct[match(stats$sample_id,
+                                               names(cell_ct))] /
+                                   stats$Unfiltered_Cells)
 
 sc <- subset(sc_total,
              peak_region_fragments > MIN_PEAK_FRAGMENTS &
-               peak_region_fragments < MAX_PEAK_FRAGMENTS &
                pct_reads_in_peaks > MIN_PCT_RiP &
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
@@ -324,7 +350,7 @@ sc <- subset(sc_total,
                scDblFinder.score > DBL_LIMIT)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
-stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                    sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 
@@ -333,7 +359,13 @@ cell_ct = AggregateExpression(sc,
   colSums
 stats$Filtered_Avg_Accessibility = round(cell_ct[match(stats$sample_id,
                                                        names(cell_ct))] /
-                                          stats$Filtered_Cells)
+                                           stats$Filtered_Cells)
+cell_ct = AggregateExpression(sc,
+                              group.by = "sample_id")$HTO %>%
+  colSums
+stats$Filtered_Avg_HTO = round(cell_ct[match(stats$sample_id,
+                                             names(cell_ct))] /
+                                 stats$Filtered_Cells)
 stats[is.na(stats)] = 0
 
 write.csv(stats, "QC.atac_sampleID_filtering.stats.csv",

@@ -8,15 +8,13 @@ if (!require("pacman", quietly = TRUE)) {
 library(pacman)
 p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, biovizBase, ggplot2,
        clustree, dplyr, future, parallel, reticulate, harmony, tidyverse,
-       Azimuth, scDblFinder)
+       Azimuth, scDblFinder, BiocParallel, aggregation)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
 # Set python path to ensure reticulate packages can be used
 python_path = system("which python", intern = TRUE)
 use_python(python_path)
-# make sure you are running Seurat v5
-options(Seurat.object.assay.version = "v5")
 # silence random number warning
 options(future.rng.onMisuse = "ignore")
 set.seed(1234)                # set seed for reproducibility
@@ -37,6 +35,8 @@ set.seed(1234)                # set seed for reproducibility
 # tidyverse: separate function
 # Azimuth: cell type annotation
 # scDblFinder: doublet detection
+# BiocParallel: parallelization for scDblFinder
+# aggregation: fisher test for scDblFinder
 # ShinyCell: Interact with your data
 
 ###############################################################################
@@ -205,8 +205,18 @@ sc_total$blacklist_ratio = sc_total$blacklist_region_fragments /
   sc_total$peak_region_fragments
 
 # Doublet Detection
-res <- clamulet(Fragments(sc_total)@path)
-res$scDblFinder.p <- 1-colData(sce)[row.names(res), "scDblFinder.score"]
+sc_v3 = sc_total
+sc_v3[["HTO"]] = NULL
+sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "ChromatinAssay")
+sce <- scDblFinder(as.SingleCellExperiment(sc_v3), artificialDoublets = 1,
+                   aggregateFeatures = TRUE, samples = "library_id",
+                   nfeatures = 25, processing = "normFeatures",
+                   BPPARAM = MulticoreParam(max_cores))
+
+to_exclude <- GRanges(c("M", "chrM", "MT", "X", "Y", "chrX", "chrY"),
+                      IRanges(1L, width = 10^8))
+res <- amulet(Fragments(sc_total)@path, regionsToExclude = to_exclude)
+res$scDblFinder.p <- 1 - colData(sce)[row.names(res), "scDblFinder.score"]
 res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
   FUN = function(x) {
     x[x < 0.001] <- 0.001 # prevent too much skew from very small or 0 p-values
