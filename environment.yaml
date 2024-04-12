@@ -1,8 +1,5 @@
-name: mapseq_env
 channels:
-  - pypi
   - conda-forge
-  - bioconda
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
@@ -20,10 +17,10 @@ dependencies:
   - pip=24.0=pyhd8ed1ab_0
   - python=3.7.12=hf930737_100_cpython
   - readline=8.2=h8228510_1
-  - setuptools=65.6.3=pyhd8ed1ab_0
+  - setuptools=69.0.3=pyhd8ed1ab_0
   - sqlite=3.45.2=h2c6b66d_0
   - tk=8.6.13=noxft_h4845f30_101
-  - wheel=0.34.2=py37_0
+  - wheel=0.42.0=pyhd8ed1ab_0
   - xz=5.2.6=h166bdaf_0
   - pip:
       - anndata==0.8.0
@@ -47,7 +44,7 @@ dependencies:
       - fastjsonschema==2.19.1
       - fonttools==4.38.0
       - h5py==3.8.0
-      - idna==3.6
+      - idna==3.7
       - igraph==0.10.8
       - importlib-metadata==6.7.0
       - importlib-resources==5.12.0
