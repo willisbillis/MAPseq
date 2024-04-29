@@ -105,4 +105,5 @@ and aggregation run pipeline.
 ## Additional Tips and FAQs
 If you have a question, error, or bug to report, please submit a ticket using the [issue page](https://github.com/willisbillis/MAPseq/issues).
 
-- troubleshooting tips for common errors
+### Q1. I only have RNA+FB (or RNA+FB+VDJ or ATAC+ASAP) fastqs. Can I run the MAPseq pipeline still?
+**A1: Yes. The MAPseq pipeline is built to detect which modalities have fastqs available to be mapped, such as RNA with or without BCR/TCR profiling as well as solely ATAC+ASAP or solely RNA+FB(+VDJ).**
