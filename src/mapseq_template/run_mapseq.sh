@@ -13,7 +13,8 @@
 # Import all the global variables for this project
 source ./project_config.txt
 ################################################################################
-# TODO: add unit tests here
+echo "Performing pre-flight checks..."
+./pipeline/preflight_checks.sh
 
 # create directory to compile reports from each step
 mkdir -p $PROJECT_PATH/reports
