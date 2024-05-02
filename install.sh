@@ -56,6 +56,7 @@ find_install bustools
 
 echo "Adding mapseq_functions.sh to /etc/profile.d/ to enable bash functions from this repository..."
 cp $PWD/src/mapseq_functions.sh /etc/profile.d/
+echo -e "\nMAPSEQ_REPO_PATH=$PWD" >> /etc/profile.d/mapseq_functions.sh
 
 echo "To create a new directory for a single run, use the command below with an appropriately titled run name."
 echo -e "\ncreate_ms_run <RUN_NAME>\n"
