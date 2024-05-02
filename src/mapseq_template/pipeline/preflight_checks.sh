@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# unit_tests.sh - written by MEW (https://github.com/willisbillis) Feb 2023
+# preflight_checks.sh - written by MEW (https://github.com/willisbillis) Feb 2023
 # This script runs unit tests to ensure the MAPseq pipeline is ready to be run.
 ################################################################################
 # FUNCTIONS
