@@ -17,6 +17,7 @@ function create_ms_run() {
     mkdir -p $1/pipeline/ATAC.ASAP
     cp $MAPSEQ_REPO_PATH/src/mapseq_template/run_mapseq.sh $1/run_mapseq.sh
     cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/data/* $1/data
+    cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/preflight_checks.sh $1/pipeline
     cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/RNA.FB.VDJ/* $1/pipeline/RNA.FB.VDJ
     cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
     echo "Lane,Sample,Index" > $1/data/$1.ATAC.sampleManifest.csv
