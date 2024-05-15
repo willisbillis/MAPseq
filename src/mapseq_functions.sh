@@ -88,6 +88,7 @@ function clean_ms_tree() {
         "data/$PROJECT_NAME.RNA.sampleManifest.csv"
         "data/$PROJECT_NAME.ATAC.sampleManifest.csv"
         "pipeline"
+        "pipeline/preflight_checks.sh"
         "pipeline/ATAC.ASAP"
         "pipeline/ATAC.ASAP/tools"
         "pipeline/ATAC.ASAP/run_asap_to_kite.sh"
