@@ -17,7 +17,7 @@ function create_ms_run() {
     mkdir -p $1/pipeline/ATAC.ASAP
     cp $MAPSEQ_REPO_PATH/src/mapseq_template/run_mapseq.sh $1/run_mapseq.sh
     cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/data/* $1/data
-    cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/preflight_checks.sh $1/pipeline
+    cp $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/preflight_checks.sh $1/pipeline
     cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/RNA.FB.VDJ/* $1/pipeline/RNA.FB.VDJ
     cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
     echo "Lane,Sample,Index" > $1/data/$1.ATAC.sampleManifest.csv
@@ -123,13 +123,13 @@ function update_ms_tree() {
     create_ms_run temp_MS_run
     update_list=$(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -name "tools" -print)
 
-    for update in "${update_list[@]}"; do
-        update_base=$(echo $update | sed -e 's/.*temp_MS_run\///g')
-        if [ -d "$update" ]; then
-            mkdir -p $1/$update_base
-        elif [ ! -d "$update" ] && [ ! -e "$1/$update_base" ]; then
-            echo "Creating new file at $1/$update_base"
-            cp $MAPSEQ_REPO_PATH/src/mapseq_template/$update_base $1/$update_base
+    for full_path in "${update_list[@]}"; do
+        relative_path=$(echo $full_path | sed -e 's/.*temp_MS_run\///g')
+        if [ -d "$full_path" ]; then
+            mkdir -p $1/$relative_path
+        elif [ ! -f "$1/$relative_path" ]; then
+            echo "Creating new file at $1/$relative_path"
+            cp $MAPSEQ_REPO_PATH/src/mapseq_template/$relative_path $1/$relative_path
         fi
     done
     clean_ms_tree $1
