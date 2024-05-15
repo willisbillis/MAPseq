@@ -14,7 +14,7 @@
 source ./project_config.txt
 ################################################################################
 echo "Performing pre-flight checks..."
-./pipeline/preflight_checks.sh
+$PROJECT_PATH/pipeline/preflight_checks.sh
 
 # create directory to compile reports from each step
 mkdir -p $PROJECT_PATH/reports
