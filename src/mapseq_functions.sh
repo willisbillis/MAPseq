@@ -121,7 +121,7 @@ function update_ms_tree() {
     fi
 
     create_ms_run temp_MS_run
-    update_list=$(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -name "tools" -print)
+    declare -a update_list=$(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -wholename "temp_MS_run/pipeline/ATAC.ASAP/tools/*" -print)
 
     for full_path in "${update_list[@]}"; do
         relative_path=$(echo $full_path | sed -e 's/.*temp_MS_run\///g')
@@ -129,7 +129,7 @@ function update_ms_tree() {
             mkdir -p $1/$relative_path
         elif [ ! -f "$1/$relative_path" ]; then
             echo "Creating new file at $1/$relative_path"
-            cp $MAPSEQ_REPO_PATH/src/mapseq_template/$relative_path $1/$relative_path
+            cp $full_path $1/$relative_path
         fi
     done
     clean_ms_tree $1
