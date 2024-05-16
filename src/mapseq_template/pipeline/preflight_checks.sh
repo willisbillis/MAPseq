@@ -5,7 +5,7 @@
 ################################################################################
 # FUNCTIONS
 function check_dir_var() {
-    if ![ -d $1 ]; then
+    if [ ! -d $1 ]; then
         echo "Directory $1 not found! Please check your project config file."
         return 1
     else
@@ -14,7 +14,7 @@ function check_dir_var() {
 }
 
 function check_path_var() {
-    if ![ -f $1 ]; then
+    if [ ! -f $1 ]; then
         echo "File $1 not found! Please check your project config file."
         return 1
     else
@@ -24,10 +24,11 @@ function check_path_var() {
 ################################################################################
 # Get global variables
 source ../project_config.txt
+echo "Project dir: $PROJECT_PATH"
 # check that the input parameters are valid
-dir_vars=($DATA_DOWNLOADS_DIR $ATAC_DIR $RNA_DIR $GEX_REF_PATH \
+declare -a dir_vars=($DATA_DOWNLOADS_DIR $ATAC_DIR $RNA_DIR $GEX_REF_PATH \
     $VDJ_REF_PATH $ATAC_REF_PATH)
-path_vars=($GEX_FEAT_REF_PATH $ASAP_FEAT_REF_PATH)
+declare -a path_vars=($GEX_FEAT_REF_PATH $ASAP_FEAT_REF_PATH)
 
 for dir in "${dir_vars[@]}"; do
     check_dir_var $dir $? -eq 0 || exit 1
