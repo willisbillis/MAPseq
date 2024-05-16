@@ -13,8 +13,8 @@
 # Import all the global variables for this project
 source ./project_config.txt
 ################################################################################
-echo "Performing pre-flight checks..."
-$PROJECT_PATH/pipeline/preflight_checks.sh $? -eq 0 || exit
+echo "Performing MS pipeline input checks..."
+$PROJECT_PATH/pipeline/preflight_checks.sh
 
 # create directory to compile reports from each step
 mkdir -p $PROJECT_PATH/reports
