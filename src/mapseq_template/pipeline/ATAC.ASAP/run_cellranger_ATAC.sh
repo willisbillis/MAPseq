@@ -32,7 +32,8 @@ echo "$(date) Using epigenome reference $ATAC_REF_version located at $ATAC_REF_P
 for sample in "${atac_samples[@]}"; do
   echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
 
-  cellranger-atac count --id=$sample --sample=$sample \
+  cellranger-atac count --id=$(echo $sample | sed -n -e "s/$ATAC_NAMING_ID//p") \
+    --sample=$sample \
     --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH \
     --localcores=$NCPU --localmem=$MEM
 
