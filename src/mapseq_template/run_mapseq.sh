@@ -14,7 +14,7 @@
 source ./project_config.txt
 ################################################################################
 echo "Performing MS pipeline input checks..."
-cd $PROJECT_PATH/pipeline && $PROJECT_PATH/pipeline/preflight_checks.sh
+cd $PROJECT_PATH/pipeline && $PROJECT_PATH/pipeline/preflight_checks.sh $? -eq 0 || exit 1
 
 # create directory to compile reports from each step
 mkdir -p $PROJECT_PATH/reports

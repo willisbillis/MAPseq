@@ -24,7 +24,6 @@ function check_path_var() {
 ################################################################################
 # Get global variables
 source ../project_config.txt
-echo "Project dir: $PROJECT_PATH"
 # check that the input parameters are valid
 declare -a dir_vars=($DATA_DOWNLOADS_DIR $ATAC_DIR $RNA_DIR $GEX_REF_PATH \
     $VDJ_REF_PATH $ATAC_REF_PATH)
@@ -41,6 +40,7 @@ done
 
 # check that there aren't existing runs
 declare -a existing_projects=($(find "$PROJECT_PATH/pipeline/" -mindepth 2 -maxdepth 2 -type d ! -name "tools" ! -name "reports" -print))
+
 if [ ${#existing_projects[@]} > 0 ]; then
   echo -e "Found existing mapping projects: $existing_projects \nRun 'clean_ms_tree $(basename $PROJECT_PATH)' to remove before running pipeline again."
   exit 1
