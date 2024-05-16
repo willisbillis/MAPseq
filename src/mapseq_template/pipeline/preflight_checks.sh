@@ -30,19 +30,21 @@ declare -a dir_vars=($DATA_DOWNLOADS_DIR $ATAC_DIR $RNA_DIR $GEX_REF_PATH \
 declare -a path_vars=($GEX_FEAT_REF_PATH $ASAP_FEAT_REF_PATH)
 
 for dir in "${dir_vars[@]}"; do
-    check_dir_var $dir $? -eq 0 || exit 1
+    check_dir_var $dir || exit 1
 done
 
 for path in "${path_vars[@]}"; do
-    check_path_var $path $? -eq 0 || exit 1
+    check_path_var $path || exit 1
 done
 
 
 # check that there aren't existing runs
 declare -a existing_projects=($(find "$PROJECT_PATH/pipeline/" -mindepth 2 -maxdepth 2 -type d ! -name "tools" ! -name "reports" -print))
 
-if [ ${#existing_projects[@]} > 0 ]; then
-  echo -e "Found existing mapping projects: $(printf '%s\n' "${existing_projects[@]}") \nRun 'clean_ms_tree $(basename $PROJECT_PATH)' to remove before running pipeline again."
+if [ ${#existing_projects[@]} -gt 0 ]; then
+  echo "Found existing mapping projects:"
+  printf '%s\n' "${existing_projects[@]}"
+  echo "Run 'clean_ms_tree $(basename $PROJECT_PATH)' to remove and try running the pipeline again."
   exit 1
 fi
 
