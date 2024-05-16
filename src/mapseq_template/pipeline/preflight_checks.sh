@@ -42,7 +42,7 @@ done
 declare -a existing_projects=($(find "$PROJECT_PATH/pipeline/" -mindepth 2 -maxdepth 2 -type d ! -name "tools" ! -name "reports" -print))
 
 if [ ${#existing_projects[@]} > 0 ]; then
-  echo -e "Found existing mapping projects: $existing_projects \nRun 'clean_ms_tree $(basename $PROJECT_PATH)' to remove before running pipeline again."
+  echo -e "Found existing mapping projects: $(printf '%s\n' "${existing_projects[@]}") \nRun 'clean_ms_tree $(basename $PROJECT_PATH)' to remove before running pipeline again."
   exit 1
 fi
 
