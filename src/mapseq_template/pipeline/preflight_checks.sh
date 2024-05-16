@@ -8,7 +8,7 @@ function check_dir_var() {
     if ![ -d $1 ]; then
         echo "Directory $1 not found! Please check your project config file."
         return 1
-    else;
+    else
         return 0
     fi
 }
@@ -17,7 +17,7 @@ function check_path_var() {
     if ![ -f $1 ]; then
         echo "File $1 not found! Please check your project config file."
         return 1
-    else;
+    else
         return 0
     fi
 }
