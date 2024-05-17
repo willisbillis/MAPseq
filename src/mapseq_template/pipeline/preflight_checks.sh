@@ -6,7 +6,7 @@
 # FUNCTIONS
 function check_dir_var() {
     if [ ! -d $1 ]; then
-        echo "Directory $1 not found! Please check your project config file."
+        echo "[ERROR] Directory $1 not found! Please check your project config file."
         return 1
     else
         return 0
@@ -15,7 +15,7 @@ function check_dir_var() {
 
 function check_path_var() {
     if [ ! -f $1 ]; then
-        echo "File $1 not found! Please check your project config file."
+        echo "[ERROR] File $1 not found! Please check your project config file."
         return 1
     else
         return 0
@@ -37,12 +37,20 @@ for path in "${path_vars[@]}"; do
     check_path_var $path || exit 1
 done
 
+# check to make sure manifests aren't both empty
+manifest_path=$PROJECT_PATH/data/
+rna_mf=$manifest_path/${PROJECT_NAME}.RNA.sampleManifest.csv
+atac_mf=$manifest_path/${PROJECT_NAME}.ATAC.sampleManifest.csv
+if [ $(wc -l < $rna_mf) -eq 1 ] && [ $(wc -l < $atac_mf) -eq 1 ]; then
+   echo "[ERROR] Both manifests are empty! Make sure to populate these for every run."
+   exit 1
+fi
 
 # check that there aren't existing runs
 declare -a existing_projects=($(find "$PROJECT_PATH/pipeline/" -mindepth 2 -maxdepth 2 -type d ! -name "tools" ! -name "reports" -print))
 
 if [ ${#existing_projects[@]} -gt 0 ]; then
-  echo "Found existing mapping projects:"
+  echo "[ERROR] Found existing mapping projects:"
   printf '%s\n' "${existing_projects[@]}"
   echo "Run 'clean_ms_tree $(basename $PROJECT_PATH)' to remove and try running the pipeline again."
   exit 1
