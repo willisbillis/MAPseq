@@ -125,8 +125,13 @@ for (idx in seq_len(nrow(aggr_df))) {
 
 sub_obj_list = sub_obj_list[lengths(sub_obj_list) != 0]
 sc_total <- merge(sub_obj_list[[1]], c(sub_obj_list[2:length(sub_obj_list)]))
-sc_total <- JoinLayers(sc_total)
-sc_total = sc_total[rownames(sc_total) %in% unique(hto_reference$hashtag), ]
+sc_total <- JoinLayers(sc_total, assay = "HTO")
+sc_total[["HTO"]] = subset(sc_total[["HTO"]],
+                           features = 
+                             rownames(sc_total)[rownames(sc_total) %in%
+                                                (hto_reference$hashtag)])
+sc_total <- JoinLayers(sc_total, assay = "RNA")
+sc_total <- JoinLayers(sc_total, assay = "ADT")
 DefaultAssay(sc_total) <- "RNA"
 
 saveRDS(sc_total, paste0(data_dir, "raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
