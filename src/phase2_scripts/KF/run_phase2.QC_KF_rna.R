@@ -7,9 +7,11 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate,
-       tidyr, Azimuth, scDblFinder, BiocParallel)
+       tidyr, scDblFinder, BiocParallel, BSgenome.Hsapiens.UCSC.hg38)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
+p_load_gh("satijalab/azimuth")
+p_load(Azimuth)
 
 # Set python path to ensure reticulate packages can be used
 python_path = system("which python", intern = TRUE)
@@ -257,6 +259,7 @@ sc = ScaleData(sc)
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
+DefaultAssay(sc) = "SCT"
 sc_v3 = sc
 sc_v3[["ADT"]] = NULL
 sc_v3[["RNA"]] = NULL
@@ -277,7 +280,7 @@ sc@reductions$ref.umap = sc_v3@reductions$ref.umap
 graph = "SCT_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = graph,
-                    algorithm = 4, verbose = FALSE)
+                    algorithm = 3, verbose = FALSE)
 }
 
 p = clustree(sc, prefix = paste0(graph, "_res."))
