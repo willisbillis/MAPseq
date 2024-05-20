@@ -181,6 +181,13 @@ for (idx in seq_len(nrow(metadata_df))) {
   hashtag$atac_id = atac_lib_id
   hashtag$asap_id = asap_lib_id
   hashtag$run_id = run_id
+  if (ncol(hto_ref_sub) > 3) {
+    for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
+      hashtag@meta.data[[metadata_col]] =
+        hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
+                                          hto_ref_sub$hashtag)]
+    }
+  }
 
   atac_cts_sub = CreateChromatinAssay(counts = counts[, cells],
                                       sep = c(":", "-"),
