@@ -54,10 +54,10 @@ plan("multicore", workers = max_cores)
 #### OPTIONS ####
 ###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "ACV02_all"
+PROJECT_NAME = "KF_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/ACV02/ACV02_all/analysis/RNA.FB.VDJ"
-RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
+PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/KF_all/analysis/RNA.FB.VDJ"
+RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 
 GENOME = "hg38"                     # REPLACE, hg38 or mm10
