@@ -353,5 +353,6 @@ if (FALSE) {
   sc[["SCT"]] = as(sc[["SCT"]], Class = "Assay")
   sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
   sceasy::convertFormat(sc, from = "seurat", to = "anndata",
-                        outFile = paste0("qc_sct.adt_", PROJECT_NAME, ".h5ad"))
+                        outFile = paste0("data/qc_sct.adt_",
+                                         PROJECT_NAME, ".h5ad"))
 }
