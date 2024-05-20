@@ -153,6 +153,8 @@ for (idx in seq_len(nrow(metadata_df))) {
                   "following hashtags! Excluding from final object."))
       failed_htos = names(hto_count_sums[hto_count_sums <
                                            (ncol(hashtag) / nrow(hto_ref_sub))])
+      print(hto_ref_sub$patient_id[match(failed_htos,
+                                         hto_ref_sub$hashtag)])
       print(failed_htos)
       hto_ref_sub = hto_ref_sub[!(hto_ref_sub$hashtag %in% failed_htos), ]
       hashtag = subset(hashtag, features = hto_ref_sub$hashtag)

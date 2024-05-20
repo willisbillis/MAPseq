@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # run_seurat.demux_rna.R - written by MEW (https://github.com/willisbillis) Feb 2024
 # This script creates a demultiplexed raw data Seurat object for downstream
 # QC and analysis.
@@ -13,7 +11,8 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 
-p_load(Seurat)
+p_load(Seurat, hdf5r)
+p_load_gh("samuel-marsh/scCustomize")
 
 set.seed(1234) # set seed for reproducibility
 ## Library descriptions ##
@@ -32,7 +31,10 @@ OUTPUT_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/RNA.FB.VDJ")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
 
-sc.data <- Read10X_h5(paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix.h5"))
+sc.data <- Read_CellBender_h5_Mat(paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix.h5"))
+sc.data = list("Gene Expression" = sc.data[!(grepl("^anti-", rownames(sc.data)) & grepl("^HTC", rownames(sc.data))), ],
+               "Antibody Capture" = sc.data[grepl("^anti-", rownames(sc.data)), ],
+               "Hashtag" = sc.data[grepl("^HTC", rownames(sc.data)), ])
 sc_total <- CreateSeuratObject(
   counts = sc.data$`Gene Expression`,
   assay = "RNA",
@@ -43,16 +45,15 @@ new_sample_names <- factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordere
 sc_total$library_id <- new_sample_names[as.integer(gsub(".*-", "", colnames(sc_total)))]
 
 adt.data <- sc.data$`Antibody Capture`
+hto.data = sc.data$Hashtag
 
-# LRA runs 1-7 specific code - replace "TSC" prefix with "anti"
-rownames(adt.data)[grepl("^TSC_", rownames(adt.data))] = gsub("TSC_", "anti-", rownames(adt.data)[grepl("^TSC_", rownames(adt.data))])
-
-sc_total[["HTO"]] <- CreateAssay5Object(counts = adt.data[grepl("^HTC", rownames(adt.data)), ])
-sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data[grepl("^anti-", rownames(adt.data)), ])
+sc_total[["HTO"]] <- CreateAssay5Object(counts = hto.data)
+sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data)
 
 data_dir <- paste0(OUTPUT_DIR, "/data/")
-dir.create(data_dir, recursive = T, showWarnings = F)
+dir.create(data_dir, recursive = TRUE, showWarnings = FALSE)
 hto_reference <- read.csv(HTO_DEMUX_PATH)
+hto_reference = hto_reference[hto_reference$library_id %in% aggr_df$sample_id, ]
 
 sub_obj_list <- list()
 
@@ -62,39 +63,61 @@ for (idx in seq_len(nrow(aggr_df))) {
 
   print(paste("Demultiplexing", rna_library_id))
 
-  hto_reference_sub <- hto_reference[hto_reference$library_id == rna_library_id, ]
+  hto_ref_sub <- hto_reference[hto_reference$library_id == rna_library_id, ]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
-  hto_reference_sub$hashtag <- gsub("_", "-", hto_reference_sub$hashtag)
-  sc_sub <- sc_total[, colnames(sc_total)[sc_total$library_id == rna_library_id]]
+  hto_ref_sub$hashtag <- gsub("_", "-", hto_ref_sub$hashtag)
+  sc_sub <- sc_total[, colnames(sc_total)[sc_total$library_id ==
+                                            rna_library_id]]
   DefaultAssay(sc_sub) <- "HTO"
 
   hto_counts <- sc_sub@assays$HTO@layers$counts
   rownames(hto_counts) = rownames(sc_sub)
   colnames(hto_counts) = colnames(sc_sub) 
-  hto_counts <- hto_counts[hto_reference_sub$hashtag, ]
-  hashtag <- CreateSeuratObject(counts = hto_counts, assay = "HTO")
-  
-  hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
-  names(hto_count_sums) = rownames(hashtag)
+  hto_counts <- hto_counts[hto_ref_sub$hashtag, ]
+  # check to see if there are more than 0 non-zero hashtag counts cells
+  if (sum(colSums(hto_counts) > 0) > 0) {
+    hashtag <- CreateSeuratObject(counts = hto_counts, assay = "HTO")
+    hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
+    names(hto_count_sums) = rownames(hashtag)
 
-  # check for failed hashtags (< 1 HTO count per cell on average)
-  if (sum(hto_count_sums < ncol(hashtag)) > 0) {
-    print("[WARNING] Hashtag staining failed for the following hashtags! Excluding from final object.")
-    failed_htos = names(hto_count_sums[hto_count_sums < ncol(hashtag)])
-    print(hto_reference_sub$patient_id[match(failed_htos, hto_reference_sub$hashtag)])
-    print(failed_htos)
-    hto_reference_sub = hto_reference_sub[!(hto_reference_sub$hashtag %in% failed_htos), ]
-    hashtag = subset(hashtag, features = hto_reference_sub$hashtag)
+    # check for failed hashtags (< 3 HTO count per cell per HTO on average)
+    if (sum(hto_count_sums < (3 * ncol(hashtag) / nrow(hto_ref_sub))) > 0) {
+      print(paste("[WARNING] Hashtag staining failed for the",
+                  "following hashtags! Excluding from final object."))
+      failed_htos = names(hto_count_sums[hto_count_sums <
+                                           3 * (ncol(hashtag) /
+                                                  nrow(hto_ref_sub))])
+      print("patient_id:")
+      print(hto_ref_sub$patient_id[match(failed_htos,
+                                        hto_ref_sub$hashtag)])
+      print(failed_htos)
+      hto_ref_sub = hto_ref_sub[!(hto_ref_sub$hashtag %in% failed_htos), ]
+    }
+
+    if (nrow(hto_ref_sub) > 1) {
+      hashtag = subset(hashtag, features = hto_ref_sub$hashtag)
+      hashtag <- NormalizeData(hashtag, assay = "HTO",
+                               normalization.method = "CLR",
+                               verbose = FALSE)
+      cells_keep = colnames(hashtag)[colSums(hashtag) > 0 &
+                                       hashtag$nCount_HTO >
+                                         summary(hashtag$nCount_HTO)[2]]
+      cells_keep = cells_keep[!is.na(cells_keep)]
+      hashtag = subset(hashtag, cells = cells_keep)
+
+      if (length(cells_keep) > nrow(hashtag)) {
+        hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99,
+                            verbose = FALSE)
+
+        hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$hash.ID,
+                                                           hto_ref_sub$hashtag)]
+        hashtag$library_id <- rna_library_id
+        hashtag$run_id <- run_id
+
+        sub_obj_list[[idx]] <- hashtag
+      }
+    }
   }
-
-  hashtag <- NormalizeData(hashtag, assay = "HTO", normalization.method = "CLR", verbose = F)
-  hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99, verbose = F)
-
-  hashtag$patient_id <- hto_reference_sub$patient_id[match(hashtag$hash.ID, hto_reference_sub$hashtag)]
-  hashtag$library_id <- rna_library_id
-  hashtag$run_id <- run_id
-
-  sub_obj_list[[idx]] <- hashtag
 }
 
 merged_hashtag <- merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
