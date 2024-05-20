@@ -15,6 +15,8 @@ p_load(Seurat, hdf5r)
 p_load_gh("samuel-marsh/scCustomize")
 
 set.seed(1234) # set seed for reproducibility
+# make sure Seurat v5 is used
+options(Seurat.object.assay.version = "v5")
 ## Library descriptions ##
 # Seurat: functions for single cell data
 ################################################################################
@@ -29,31 +31,43 @@ HTO_DEMUX_PATH <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/RNA.FB.VDJ/
 OUTS_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/RNA.FB.VDJ/", PROJECT_NAME, "_aggr/outs")
 OUTPUT_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/RNA.FB.VDJ")
 ################################################################################
-dir.create(OUTPUT_DIR, showWarnings = F, recursive = T)
+dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
-sc.data <- Read_CellBender_h5_Mat(paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix.h5"))
-sc.data = list("Gene Expression" = sc.data[!(grepl("^anti-", rownames(sc.data)) & grepl("^HTC", rownames(sc.data))), ],
-               "Antibody Capture" = sc.data[grepl("^anti-", rownames(sc.data)), ],
-               "Hashtag" = sc.data[grepl("^HTC", rownames(sc.data)), ])
+h5_path = paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix_filtered.h5")
+sc_data <- Read_CellBender_h5_Mat(h5_path)
+sc_data = list("Gene Expression" =
+                 sc_data[!(grepl("^anti-", rownames(sc_data)) |
+                           grepl("^HTC", rownames(sc_data))), ],
+               "Antibody Capture" =
+                 sc_data[grepl("^anti-", rownames(sc_data)) |
+                         grepl("^HTC", rownames(sc_data)), ])
+
+#sc_data <- Read10X_h5(paste0(OUTS_DIR, "/count/filtered_feature_bc_matrix.h5"))
 sc_total <- CreateSeuratObject(
-  counts = sc.data$`Gene Expression`,
+  counts = sc_data$`Gene Expression`,
   assay = "RNA",
   project = PROJECT_NAME
 )
 aggr_df <- read.csv(paste0(OUTS_DIR, "/aggregation.csv"))
-new_sample_names <- factor(aggr_df$sample_id, levels = aggr_df$sample_id, ordered = TRUE)
-sc_total$library_id <- new_sample_names[as.integer(gsub(".*-", "", colnames(sc_total)))]
+new_sample_names <- factor(aggr_df$sample_id,
+                           levels = aggr_df$sample_id,
+                           ordered = TRUE)
+sc_total$library_id <- new_sample_names[as.integer(gsub(".*-", "",
+                                                        colnames(sc_total)))]
 
-adt.data <- sc.data$`Antibody Capture`
-hto.data = sc.data$Hashtag
+adt_data <- sc_data$`Antibody Capture`
+hto_data = adt_data[grepl("^HTC", rownames(adt_data)), ]
+adt_data = adt_data[!grepl("^HTC", rownames(adt_data)), ]
 
-sc_total[["HTO"]] <- CreateAssay5Object(counts = hto.data)
-sc_total[["ADT"]] <- CreateAssay5Object(counts = adt.data)
+sc_total[["HTO"]] <- CreateAssay5Object(counts = hto_data)
+sc_total[["ADT"]] <- CreateAssay5Object(counts = adt_data)
 
 data_dir <- paste0(OUTPUT_DIR, "/data/")
 dir.create(data_dir, recursive = TRUE, showWarnings = FALSE)
 hto_reference <- read.csv(HTO_DEMUX_PATH)
-hto_reference = hto_reference[hto_reference$library_id %in% aggr_df$sample_id, ]
+hto_reference = hto_reference[hto_reference$library_id %in%
+                                intersect(hto_reference$library_id,
+                                          aggr_df$sample_id), ]
 
 sub_obj_list <- list()
 
@@ -69,69 +83,57 @@ for (idx in seq_len(nrow(aggr_df))) {
   sc_sub <- sc_total[, colnames(sc_total)[sc_total$library_id ==
                                             rna_library_id]]
   DefaultAssay(sc_sub) <- "HTO"
-
-  hto_counts <- sc_sub@assays$HTO@layers$counts
-  rownames(hto_counts) = rownames(sc_sub)
-  colnames(hto_counts) = colnames(sc_sub) 
-  hto_counts <- hto_counts[hto_ref_sub$hashtag, ]
-  # check to see if there are more than 0 non-zero hashtag counts cells
-  if (sum(colSums(hto_counts) > 0) > 0) {
-    hashtag <- CreateSeuratObject(counts = hto_counts, assay = "HTO")
-    hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
-    names(hto_count_sums) = rownames(hashtag)
-
-    # check for failed hashtags (< 3 HTO count per cell per HTO on average)
-    if (sum(hto_count_sums < (3 * ncol(hashtag) / nrow(hto_ref_sub))) > 0) {
-      print(paste("[WARNING] Hashtag staining failed for the",
+  # Check if there are enough cells to normalize data and demultiplex
+  if (ncol(sc_sub) > nrow(sc_sub)) {
+    sc_sub = NormalizeData(sc_sub, normalization.method = "CLR",
+                           verbose = FALSE)
+    hashtag = MULTIseqDemux(sc_sub, quantile = 0.15, verbose = TRUE)
+    successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
+                                                  c("Doublet", "Negative"))])
+    failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
+                                          successful_htos)]
+    if (length(failed_htos) > 0) {
+      print(paste("[WARNING] Demultiplexing failed for the",
                   "following hashtags! Excluding from final object."))
-      failed_htos = names(hto_count_sums[hto_count_sums <
-                                           3 * (ncol(hashtag) /
-                                                  nrow(hto_ref_sub))])
       print("patient_id:")
       print(hto_ref_sub$patient_id[match(failed_htos,
-                                        hto_ref_sub$hashtag)])
+                                         hto_ref_sub$hashtag)])
       print(failed_htos)
-      hto_ref_sub = hto_ref_sub[!(hto_ref_sub$hashtag %in% failed_htos), ]
     }
-
-    if (nrow(hto_ref_sub) > 1) {
-      hashtag = subset(hashtag, features = hto_ref_sub$hashtag)
-      hashtag <- NormalizeData(hashtag, assay = "HTO",
-                               normalization.method = "CLR",
-                               verbose = FALSE)
-      cells_keep = colnames(hashtag)[colSums(hashtag) > 0 &
-                                       hashtag$nCount_HTO >
-                                         summary(hashtag$nCount_HTO)[2]]
-      cells_keep = cells_keep[!is.na(cells_keep)]
-      hashtag = subset(hashtag, cells = cells_keep)
-
-      if (length(cells_keep) > nrow(hashtag)) {
-        hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99,
-                            verbose = FALSE)
-
-        hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$hash.ID,
-                                                           hto_ref_sub$hashtag)]
-        hashtag$library_id <- rna_library_id
-        hashtag$run_id <- run_id
-
-        sub_obj_list[[idx]] <- hashtag
+    hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$MULTI_ID,
+                                                       hto_ref_sub$hashtag)]
+    hashtag$library_id <- rna_library_id
+    hashtag$run_id <- run_id
+    if (ncol(hto_ref_sub) > 3) {
+      for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
+        hashtag@meta.data[[metadata_col]] =
+          hto_ref_sub[[metadata_col]][match(hashtag$MULTI_ID,
+                                            hto_ref_sub$hashtag)]
       }
     }
+
+    rna_sub = subset(sc_total, library_id == {{rna_library_id}})
+    rna_sub[["HTO"]] = CreateAssay5Object(counts = hashtag[["HTO"]]$counts,
+                                          data = hashtag[["HTO"]]$data)
+    rna_sub <- AddMetaData(rna_sub, hashtag@meta.data)
+
+    sub_obj_list[[idx]] <- rna_sub
+  } else {
+    print("[WARNING] Pool failed. Too few cells to demultiplex.")
   }
 }
 
-merged_hashtag <- merge(sub_obj_list[[1]], c(sub_obj_list[2:idx]))
-merged_hashtag <- JoinLayers(merged_hashtag)
-
-sc_total[["HTO"]] <- CreateAssay5Object(counts = merged_hashtag[["HTO"]]$counts, data = merged_hashtag[["HTO"]]$data)
-sc_total <- AddMetaData(sc_total, merged_hashtag@meta.data)
+sub_obj_list = sub_obj_list[lengths(sub_obj_list) != 0]
+sc_total <- merge(sub_obj_list[[1]], c(sub_obj_list[2:length(sub_obj_list)]))
+sc_total <- JoinLayers(sc_total)
+sc_total = sc_total[rownames(sc_total) %in% unique(hto_reference$hashtag), ]
 DefaultAssay(sc_total) <- "RNA"
 
 saveRDS(sc_total, paste0(data_dir, "raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 
 # Save the R session environment information
 capture.output(sessionInfo(),
-               file=paste0(OUTPUT_DIR, "/",
-                           PROJECT_NAME,
-                           ".Rsession.Info.",
-                           gsub("\\D", "", Sys.time()), ".txt"))
+               file = paste0(OUTPUT_DIR, "/",
+                             PROJECT_NAME,
+                             ".Rsession.Info.",
+                             gsub("\\D", "", Sys.time()), ".txt"))
