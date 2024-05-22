@@ -24,6 +24,7 @@ jobs:
           echo "dependencies:" >> environment.yml
           echo "  - r-base=4.3.3" >> environment.yml
           echo "  - python=3.8.19" >> environment.yml
+          echo "  - pip" >> environment.yml
           echo "  - pip:" >> environment.yml
           # Loop through packages and add them to YAML with versions
           for package in ${{ env.PACKAGES }}; do
