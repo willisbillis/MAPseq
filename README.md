@@ -4,7 +4,6 @@
 
 This repository provides an end-to-end open source pipeline for the
 processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) data.
-* Current Version: v0.1
 
 ### Pre-Installation Requirements ###
 
