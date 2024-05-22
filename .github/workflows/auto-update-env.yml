@@ -50,8 +50,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            git config user.name "GitHub Actions"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git config --global user.name "GitHub Actions"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
             git add environment.yml
             git commit -m "Automatically generated environment.yml"
             git pull origin main
