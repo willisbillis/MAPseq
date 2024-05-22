@@ -17,8 +17,8 @@ OUTPUT_FILE=$OUTPUT_DIR/cellranger_mkfastq.log
 cd $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR/reports
 
-declare -a rna_fqs=$(ls $RNA_DIR/*fastq.gz 2>/dev/null)
-declare -a atac_fqs=$(ls $ATAC_DIR/*fastq.gz 2>/dev/null)
+declare -a rna_fqs=($(ls $RNA_DIR/*fastq.gz 2>/dev/null))
+declare -a atac_fqs=($(ls $ATAC_DIR/*fastq.gz 2>/dev/null))
 
 ## ATAC.ASAP fastq generation
 if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_fqs[@]} -eq 0 ]]; then
@@ -51,7 +51,7 @@ elif [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
     # fastqs were already generated, move the fastqs from the data directory
     ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
     mkdir -p $ATAC_FASTQ_PATH
-    declare -a atac_samples=$(ls $ATAC_DIR/*fastq.gz)
+    declare -a atac_samples=($(ls $ATAC_DIR/*fastq.gz))
     for sample in "${atac_samples[@]}"; do
         ln -s $(realpath $sample) $ATAC_FASTQ_PATH
     done
@@ -87,7 +87,7 @@ elif [[ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
     # fastqs were already generated, move the fastqs from the data directory
     RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
     mkdir -p $RNA_FASTQ_PATH
-    declare -a rna_samples=$(ls $RNA_DIR/*fastq.gz)
+    declare -a rna_samples=($(ls $RNA_DIR/*fastq.gz))
     for sample in "${rna_samples[@]}"; do
         ln -s $(realpath $sample) $RNA_FASTQ_PATH
     done
