@@ -1,8 +1,8 @@
 name: Create and Export Up-to-date Conda Environment
 
 on:
-  push:
-    branches: [main, dev]
+  schedule:
+    - cron: "0 0 * * 0"  # Runs at midnight on Sunday
 
 jobs:
   build:
