@@ -20,11 +20,9 @@ if ! [[ $(stat -c "%U" $(realpath ~/.bashrc)) == $USER ]]; then
   fi
 fi
 
-if [[ -n ${MAPSEQ_REPO_PATH+x} ]]; then
+if [[ -f /etc/profile.d/mapseq_functions.sh ]]; then
     echo "Found existing installation (located at $MAPSEQ_REPO_PATH)."
-    grep -v "^# MAPSEQ INSTALLATION\|^export MAPSEQ_REPO_PATH\|^source $MAPSEQ_REPO_PATH" ~/.bashrc > ~/.bashrc.tmp
-    sed -i '$d' ~/.bashrc.tmp
-    mv ~/.bashrc.tmp ~/.bashrc
+    sudo rm /etc/profile.d/mapseq_functions.sh
     unset MAPSEQ_REPO_PATH
     echo "Uninstallation complete. Restart shell (by closing and opening new command line session or running $SHELL) for changes to take effect."
 else

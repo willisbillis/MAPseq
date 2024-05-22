@@ -15,10 +15,11 @@ function create_ms_run() {
     mkdir -p $1/data
     mkdir -p $1/pipeline/RNA.FB.VDJ
     mkdir -p $1/pipeline/ATAC.ASAP
-    ln -s $MAPSEQ_REPO_PATH/src/mapseq_template/run_mapseq.sh $1/run_mapseq.sh
-    ln -s $MAPSEQ_REPO_PATH/src/mapseq_template/data/* $1/data
-    ln -s $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/RNA.FB.VDJ/* $1/pipeline/RNA.FB.VDJ
-    ln -s $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
+    cp $MAPSEQ_REPO_PATH/src/mapseq_template/run_mapseq.sh $1/run_mapseq.sh
+    cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/data/* $1/data
+    cp $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/preflight_checks.sh $1/pipeline
+    cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/RNA.FB.VDJ/* $1/pipeline/RNA.FB.VDJ
+    cp -r $MAPSEQ_REPO_PATH/src/mapseq_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
     echo "Lane,Sample,Index" > $1/data/$1.ATAC.sampleManifest.csv
     echo "Lane,Sample,Index" > $1/data/$1.RNA.sampleManifest.csv
     cp $MAPSEQ_REPO_PATH/src/references/HTOB_feature_ref.csv $1/pipeline/ATAC.ASAP/HTOB_feature_ref.csv
@@ -46,14 +47,14 @@ function create_ms_aggr_run() {
 
     mkdir -p $1/pipeline/RNA.FB.VDJ
     mkdir -p $1/pipeline/ATAC.ASAP
-    ln -s $MAPSEQ_REPO_PATH/src/aggr_template/run_mapseq_aggr.sh $1/run_mapseq_aggr.sh
+    cp $MAPSEQ_REPO_PATH/src/aggr_template/run_mapseq_aggr.sh $1/run_mapseq_aggr.sh
     echo "library_id,hashtag,patient_id" > $1/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv
-    ln -s $MAPSEQ_REPO_PATH/src/aggr_template/pipeline/RNA.FB.VDJ/* $1/pipeline/RNA.FB.VDJ
+    cp $MAPSEQ_REPO_PATH/src/aggr_template/pipeline/RNA.FB.VDJ/* $1/pipeline/RNA.FB.VDJ
     echo "library_id,hashtag,patient_id" > $1/pipeline/ATAC.ASAP/hashtag_ref_atac.csv
-    ln -s $MAPSEQ_REPO_PATH/src/aggr_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
+    cp $MAPSEQ_REPO_PATH/src/aggr_template/pipeline/ATAC.ASAP/* $1/pipeline/ATAC.ASAP
 
     mkdir -p $1/phase2_scripts
-    ln -s $MAPSEQ_REPO_PATH/src/phase2_scripts/* $1/phase2_scripts
+    cp -r $MAPSEQ_REPO_PATH/src/phase2_scripts/* $1/phase2_scripts
 
     cat $MAPSEQ_REPO_PATH/src/project_config_header.txt >> $1/project_config.txt
     echo -e "\n" >> $1/project_config.txt
@@ -88,6 +89,7 @@ function clean_ms_tree() {
         "data/$PROJECT_NAME.RNA.sampleManifest.csv"
         "data/$PROJECT_NAME.ATAC.sampleManifest.csv"
         "pipeline"
+        "pipeline/preflight_checks.sh"
         "pipeline/ATAC.ASAP"
         "pipeline/ATAC.ASAP/tools"
         "pipeline/ATAC.ASAP/run_asap_to_kite.sh"
@@ -119,15 +121,15 @@ function update_ms_tree() {
     fi
 
     create_ms_run temp_MS_run
-    update_list=$(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -name "tools" -print)
+    declare -a update_list=($(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -wholename "temp_MS_run/pipeline/ATAC.ASAP/tools/*" -print))
 
-    for update in "${update_list[@]}"; do
-        update_base=$(echo $update | sed -e 's/.*temp_MS_run\///g')
-        if [ -d "$update" ]; then
-            mkdir -p $1/$update_base
-        elif [ ! -d "$update" ] && [ ! -e "$1/$update_base" ]; then
-            echo "Creating new file at $1/$update_base"
-            ln -s $MAPSEQ_REPO_PATH/src/mapseq_template/$update_base $1/$update_base
+    for full_path in "${update_list[@]}"; do
+        relative_path=$(echo $full_path | sed -e 's/.*temp_MS_run\///g')
+        if [ -d "$full_path" ]; then
+            mkdir -p $1/$relative_path
+        elif [ ! -f "$1/$relative_path" ]; then
+            echo "Creating new file at $1/$relative_path"
+            cp $full_path $1/$relative_path
         fi
     done
     clean_ms_tree $1

@@ -96,11 +96,11 @@ and aggregation run pipeline.
 `<RUN_NAME>/reports` | `laneBarcode.stats_<RUN_NAME>_ATAC.html` | Aggregated demultiplexed ATAC+ASAP fragment and read counts by barcode sequence. Also includes top unknown barcodes. *Only available if library reads were demultiplexed by the MAPseq pipeline.*
 `<RUN_NAME>/pipeline/RNA.FB.VDJ/<LIBRARY_NAME>` | `outs/` | RNA + FB ( + VDJ) Cell Ranger outputs to be fed into single cell analysis software like [Seurat](https://satijalab.org/seurat/).
 `<RUN_NAME>/pipeline/ATAC.ASAP/ATAC/<LIBRARY_NAME>` | `outs/` | ATAC Cell Ranger outputs to be fed into single cell analysis software like [Signac](https://stuartlab.org/signac/).
-`<RUN_NAME>/pipeline/ATAC.ASAP/ASAP/<LIBRARY_NAME>` | `outs/` | ASAP outputs from the [kite](https://github.com/pachterlab/kite) analysis software. The ASAP reads are processed with the help of [code from Caleb Lareau](https://github.com/caleblareau/asap_to_kite).
+`<RUN_NAME>/pipeline/ATAC.ASAP/ASAP/<LIBRARY_NAME>` | `featurecounts/` | ASAP outputs from the [kite](https://github.com/pachterlab/kite) analysis software. The ASAP reads are processed with the help of [code from Caleb Lareau](https://github.com/caleblareau/asap_to_kite).
 `<AGGR_RUN_NAME>/pipeline/RNA.FB.VDJ/<AGGR_RUN_NAME>_aggr` | `outs/`| Cell Ranger aggr outputs to be fed into single cell analysis software like [Seurat](https://satijalab.org/seurat/).
-`<AGGR_RUN_NAME>/analysis/RNA.FB.VDJ>/data` | `raw_rna.hto.adt_<AGGR_RUN_NAME>.RDS` | Raw non-quality controlled RNA+FB Seurat object.
-`<AGGR_RUN_NAME>/analysis/ATAC.ASAP>/data` | `raw_atac.hto_<AGGR_RUN_NAME>.RDS` | Raw non-quality controlled ATAC+ASAP Seurat object.
-`<AGGR_RUN_NAME>/analysis/ATAC.ASAP>` | `library_stats.<AGGR_RUN_NAME>.csv` | ATAC+ASAP demultiplexing statistics table, containing information about number of cells captured from ATAC and ASAP libraries as well as overlap between the two.
+`<AGGR_RUN_NAME>/analysis/RNA.FB.VDJ/data` | `raw_rna.hto.adt_<AGGR_RUN_NAME>.RDS` | Raw non-quality controlled RNA+FB Seurat object.
+`<AGGR_RUN_NAME>/analysis/ATAC.ASAP/data` | `raw_atac.hto_<AGGR_RUN_NAME>.RDS` | Raw non-quality controlled ATAC+ASAP Seurat object.
+`<AGGR_RUN_NAME>/analysis/ATAC.ASAP` | `library_stats.<AGGR_RUN_NAME>.csv` | ATAC+ASAP demultiplexing statistics table, containing information about number of cells captured from ATAC and ASAP libraries as well as overlap between the two.
 
 ## Additional Tips and FAQs
 If you have a question, error, or bug to report, please submit a ticket using the [issue page](https://github.com/willisbillis/MAPseq/issues).

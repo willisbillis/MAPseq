@@ -1,5 +1,5 @@
-# run_phase2.QC_ACV02_rna.R
-# created by M Elliott Williams (https://github.com/willisbillis) Apr 2024
+# run_phase2.QC_KF_rna.R
+# created by M Elliott Williams (https://github.com/willisbillis) May 2024
 
 # Install required packages using the package manager 'pacman'
 if (!require("pacman", quietly = TRUE)) {
@@ -7,9 +7,11 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate,
-       tidyr, Azimuth, scDblFinder, BiocParallel)
+       tidyr, scDblFinder, BiocParallel, BSgenome.Hsapiens.UCSC.hg38)
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
+p_load_gh("satijalab/azimuth")
+p_load(Azimuth)
 
 # Set python path to ensure reticulate packages can be used
 python_path = system("which python", intern = TRUE)
@@ -54,10 +56,10 @@ plan("multicore", workers = max_cores)
 #### OPTIONS ####
 ###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "ACV02_all"
+PROJECT_NAME = "KF_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/ACV02/ACV02_all/analysis/RNA.FB.VDJ"
-RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
+PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/KF_all/analysis/RNA.FB.VDJ"
+RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 
 GENOME = "hg38"                     # REPLACE, hg38 or mm10
@@ -104,60 +106,6 @@ p = VlnPlot(sc_total,
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
        width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
-
-###############################################################################
-#### CALCULATE QC METRICS (HTO) ####
-###############################################################################
-sc_doublets = subset(sc_total, MULTI_ID == "Doublet")
-sc_doublets$combo_id = sc_doublets$MULTI_ID
-for (hto1 in unique(sc_total$HTO_maxID)) {
-  for (hto2 in unique(sc_total$HTO_secondID)) {
-    if (sum(order(c(hto1, hto2)) == c(1, 2)) != 2) {
-      combo_id = paste0(hto2, "_", hto1)
-      sc_total$combo_id[sc_total$HTO_secondID == hto2 &
-                          sc_total$HTO_maxID == hto1] = combo_id
-    }
-  }
-}
-margin_stats = aggregate(sc_total$HTO_margin,
-                         by = list(sc_total$combo_id,
-                                   sc_total$library_id),
-                         FUN = mean)
-sc_total$combo_id = NULL
-
-margin_stats = separate(margin_stats, Group.1,
-                        into = c("HT_1st", "HT_2nd"), sep = "_")
-colnames(margin_stats) = c("HT_1st", "HT_2nd",
-                           "library_id", "hto_separation")
-margin_stats = margin_stats[complete.cases(margin_stats), ]
-margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
-# sort and grab top pairs and worst pairs
-margin_stats = margin_stats[order(margin_stats$total_mixing_degree), ]
-best_htos = c(margin_stats$HT_1st[1],
-              margin_stats$HT_2nd[1],
-              "Doublet")
-margin_stats = margin_stats[order(-margin_stats$total_mixing_degree), ]
-worst_htos = c(margin_stats$HT_1st[1],
-               margin_stats$HT_2nd[1],
-               "Doublet")
-
-write.csv(margin_stats,
-          paste0("HTC.combos_", PROJECT_NAME, "_metrics.csv"),
-          quote = FALSE, row.names = FALSE)
-
-Idents(sc_total) = "hash.ID"
-
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
-                                                          best_htos],
-                   feature1 = best_htos[1], feature2 = best_htos[2])
-ggsave(paste0("scatter_best.hto.separation_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
-
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
-                                                          worst_htos],
-                   feature1 = worst_htos[1], feature2 = worst_htos[2])
-ggsave(paste0("scatter_worst.hto.separation_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
 ###############################################################################
 #### CALCULATE QC METRICS (RNA) ####
 ###############################################################################
@@ -287,112 +235,6 @@ write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
 saveRDS(sc_total,
         paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 ###############################################################################
-#### BATCH CORRECTION (OPTIONAL) ####
-###############################################################################
-if (FALSE) {
-  #### RNA Harmony Batch correction ####
-  DefaultAssay(sc) = "RNA"
-  sc[["RNA"]] = split(sc[["RNA"]], f = sc$sample_id)
-  sc <- SCTransform(sc, verbose = FALSE)
-
-  # Filter out Ig genes from VariableFeatures, they will clog the results as
-  #     they are highly-variable by nature
-  non_ig_mask = !grepl(igs, VariableFeatures(sc))
-  VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
-  sc <- RunPCA(sc, npcs = 40,
-              reduction.name = "rna.pca", verbose = FALSE)
-  sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
-                      verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
-                     cluster.name = "unintegrated_rna.clusters",
-                     verbose = FALSE)
-  sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
-                reduction.name = "umap.rna.unintegrated",
-                verbose = FALSE)
-  # visualize by batch annotations
-  p = DimPlot(sc, reduction = "umap.rna.unintegrated", group.by = "sample_id")
-  ggsave("umap_rna.unintegrated_sample_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_rna.unintegrated_sample_id.png", p, width = 8, height = 6)
-
-  sc <- IntegrateLayers(
-    object = sc, method = HarmonyIntegration,
-    orig = "rna.pca", new.reduction = "integrated.rna.harmony",
-    verbose = FALSE
-  )
-  sc = JoinLayers(sc, assay = "RNA")
-
-  sc <- FindNeighbors(sc, reduction = "integrated.rna.harmony",
-                      dims = 1:40, verbose = FALSE)
-  sc <- FindClusters(sc, method = 4, algorithm = 4,
-                     cluster.name = "rna.clusters",
-                     verbose = FALSE)
-  sc <- RunUMAP(sc, reduction = "integrated.rna.harmony",
-                dims = 1:40, reduction.name = "umap.rna",
-                verbose = FALSE)
-  p <- DimPlot(sc, reduction = "integrated.rna.harmony",
-               group.by = "sample_id")
-  ggsave("umap_rna.integrated_sample_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_rna.integrated_sample_id.png", p, width = 8, height = 6)
-
-  #### ADT Harmony Batch correction ####
-  DefaultAssay(sc) = "ADT"
-  sc[["ADT"]] = split(sc[["ADT"]], f = sc$sample_id)
-  VariableFeatures(sc) <- rownames(sc[["ADT"]])
-  sc <- NormalizeData(sc, normalization.method = "CLR", margin = 2,
-                      verbose = FALSE)
-  sc <- ScaleData(sc, features = rownames(sc[["ADT"]]),
-                  do.center = TRUE,
-                  do.scale = FALSE,
-                  verbose = FALSE)
-  sc <- RunPCA(sc, npcs = 40,
-               reduction.name = "adt.pca", verbose = FALSE)
-  sc <- FindNeighbors(sc, dims = 1:40, reduction = "adt.pca",
-                      verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
-                     cluster.name = "unintegrated_adt.clusters",
-                     verbose = FALSE)
-  sc <- RunUMAP(sc, dims = 1:40, reduction = "adt.pca",
-                reduction.name = "umap.adt.unintegrated",
-                verbose = FALSE)
-  # visualize by batch annotations
-  p = DimPlot(sc, reduction = "umap.adt.unintegrated", group.by = "sample_id")
-  ggsave("umap_adt.unintegrated_sample_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_adt.unintegrated_sample_id.png", p, width = 8, height = 6)
-
-  sc <- IntegrateLayers(
-    object = sc, method = HarmonyIntegration,
-    features = rownames(sc[["ADT"]]),
-    orig = "adt.pca", new.reduction = "integrated.adt.harmony",
-    verbose = FALSE
-  )
-  sc = JoinLayers(sc)
-
-  sc <- FindNeighbors(sc, reduction = "integrated.adt.harmony",
-                      dims = 1:40, verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
-                     cluster.name = "adt.clusters",
-                     verbose = FALSE)
-  sc <- RunUMAP(sc, reduction = "integrated.adt.harmony",
-                dims = 1:40, reduction.name = "umap.adt",
-                verbose = FALSE)
-  p <- DimPlot(sc, reduction = "integrated.adt.harmony",
-               group.by = "sample_id")
-  ggsave("umap_adt.integrated_sample_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_adt.integrated_sample_id.png", p, width = 8, height = 6)
-
-  #### (Optional) WNN Integration of RNA and ADT assays ####
-  sc <- FindMultiModalNeighbors(
-    sc, reduction.list = list("integrated.rna.harmony",
-                              "integrated.adt.harmony"),
-    dims.list = list(1:40, 1:40), verbose = FALSE
-  )
-  sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
-                reduction.key = "wnnUMAP_", verbose = FALSE)
-  p <- DimPlot(sc, reduction = "wnn.umap", group.by = "sample_id")
-  ggsave("umap_rna.adt.wnn_sample_id.pdf", p, width = 8, height = 6)
-  ggsave("umap_rna.adt.wnn_sample_id.png", p, width = 8, height = 6)
-}
-###############################################################################
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
 DefaultAssay(sc) = "RNA"
@@ -417,6 +259,7 @@ sc = ScaleData(sc)
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
+DefaultAssay(sc) = "SCT"
 sc_v3 = sc
 sc_v3[["ADT"]] = NULL
 sc_v3[["RNA"]] = NULL
@@ -437,7 +280,7 @@ sc@reductions$ref.umap = sc_v3@reductions$ref.umap
 graph = "SCT_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = graph,
-                    algorithm = 4, verbose = FALSE)
+                    algorithm = 3, verbose = FALSE)
 }
 
 p = clustree(sc, prefix = paste0(graph, "_res."))
@@ -510,5 +353,6 @@ if (FALSE) {
   sc[["SCT"]] = as(sc[["SCT"]], Class = "Assay")
   sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
   sceasy::convertFormat(sc, from = "seurat", to = "anndata",
-                        outFile = paste0("qc_sct.adt_", PROJECT_NAME, ".h5ad"))
+                        outFile = paste0("data/qc_sct.adt_",
+                                         PROJECT_NAME, ".h5ad"))
 }

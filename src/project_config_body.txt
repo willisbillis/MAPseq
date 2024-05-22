@@ -1,4 +1,4 @@
-DATA_DOWNLOADS_DIR=/home/boss_lab/Projects/data_downloads
+DATA_DOWNLOADS_DIR=/home/Projects/data_downloads
 ATAC_DIR=$DATA_DOWNLOADS_DIR/
 RNA_DIR=$DATA_DOWNLOADS_DIR/
 
@@ -11,11 +11,12 @@ ASAP_NAMING_ID=ASAP
 GEX_FEAT_REF_PATH=$PROJECT_PATH/pipeline/RNA.FB.VDJ/TSC_feature_ref.csv
 ASAP_FEAT_REF_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/HTOB_feature_ref.csv
 
-GEX_REF_PATH=/home/boss_lab/Apps/genomes/cellranger/refdata-gex-GRCh38-2024-A
-VDJ_REF_PATH=/home/boss_lab/Apps/genomes/cellranger/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.1.0
-ATAC_REF_PATH=/home/boss_lab/Apps/genomes/cellranger/refdata-cellranger-arc-GRCh38-2020-A-2.0.0
+GEX_REF_PATH=/home/Apps/genomes/cellranger/refdata-gex-GRCh38-2024-A
+VDJ_REF_PATH=/home/Apps/genomes/cellranger/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.1.0
+ATAC_REF_PATH=/home/Apps/genomes/cellranger/refdata-cellranger-arc-GRCh38-2020-A-2.0.0
 
 NCPU=32
 MEM=128
+
 ## CHECK ALL VARIABLES BEFORE EACH RUN ##
 ###################################################################################
