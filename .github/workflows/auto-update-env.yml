@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Define package list
+      # Define package list
         env:
           PACKAGES: kallisto==0.46.1, bustools==0.39.3, cellbender==0.3.0, leidenalg
 
