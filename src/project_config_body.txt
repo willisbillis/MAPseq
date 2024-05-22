@@ -17,5 +17,6 @@ ATAC_REF_PATH=/home/Apps/genomes/cellranger/refdata-cellranger-arc-GRCh38-2020-A
 
 NCPU=32
 MEM=128
+
 ## CHECK ALL VARIABLES BEFORE EACH RUN ##
 ###################################################################################
