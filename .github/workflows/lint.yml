@@ -1,0 +1,17 @@
+name: Lint R Scripts
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: r-lib/actions@v2
+        with:
+          cran: true
+      - run: |
+          lintr::lint_package()
+        name: Lint with lintr
