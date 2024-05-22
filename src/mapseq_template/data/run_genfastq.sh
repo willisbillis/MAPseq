@@ -51,7 +51,7 @@ elif [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
     # fastqs were already generated, move the fastqs from the data directory
     ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
     mkdir -p $ATAC_FASTQ_PATH
-    atac_samples=$(ls $ATAC_DIR/*fastq.gz)
+    declare -a atac_samples=$(ls $ATAC_DIR/*fastq.gz)
     for sample in "${atac_samples[@]}"; do
         ln -s $(realpath $sample) $ATAC_FASTQ_PATH
     done
@@ -87,7 +87,7 @@ elif [[ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
     # fastqs were already generated, move the fastqs from the data directory
     RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
     mkdir -p $RNA_FASTQ_PATH
-    rna_samples=$(ls $RNA_DIR/*fastq.gz)
+    declare -a rna_samples=$(ls $RNA_DIR/*fastq.gz)
     for sample in "${rna_samples[@]}"; do
         ln -s $(realpath $sample) $RNA_FASTQ_PATH
     done
