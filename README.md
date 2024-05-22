@@ -30,7 +30,7 @@ After installing necessary requirements, you may install the MAPseq pipeline fro
 ```
 gh repo clone willisbillis/MAPseq
 cd MAPseq
-./install.sh
+./install.sh # sudo password will be prompted during this script
 ```
 
 It is necessary to reload the shell for changes to take effect after installation. We recommend doing this by closing the current session and opening a new one.
@@ -40,7 +40,7 @@ To remove changes made by the installation, you may navigate to the MAPseq repos
 
 ```
 cd $MAPSEQ_REPO_PATH
-./uninstall.sh
+./uninstall.sh # sudo password will be prompted during this script
 ```
 For the changes to take effect, the shell must be reloaded. We recommend doing this by closing the current session and opening a new one.
 

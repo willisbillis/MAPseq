@@ -22,7 +22,7 @@ fi
 
 if [[ -f /etc/profile.d/mapseq_functions.sh ]]; then
     echo "Found existing installation (located at $MAPSEQ_REPO_PATH)."
-    rm /etc/profile.d/mapseq_functions.sh
+    sudo rm /etc/profile.d/mapseq_functions.sh
     unset MAPSEQ_REPO_PATH
     echo "Uninstallation complete. Restart shell (by closing and opening new command line session or running $SHELL) for changes to take effect."
 else
