@@ -1,5 +1,5 @@
 
-name: Create and Export Up-to-date Conda Environment
+name: Update Conda Environment
 
 on:
   schedule:
@@ -7,55 +7,42 @@ on:
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  create-env:
+    name: ${{ matrix.os }} 
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+        
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
     steps:
-      - uses: actions/checkout@v4
+      - name: checkout repository
+        uses: actions/checkout@v4
 
-      # Define package list
-        env:
-          PACKAGES: kallisto==0.46.1, bustools==0.39.3, cellbender==0.3.0, leidenalg
+      - name: create environment with mamba
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge,bioconda
+          auto-activate-base: false
+          activate-environment: mapseq_env
+          environment-file: envs/mapseq_env.yaml
 
-      - name: Generate environment.yml
+      - name: export environment
         run: |
-          echo "name: mapseq_env" >> environment.yml
-          echo "channels:" >> environment.yml
-          echo "  - conda-forge" >> environment.yml
-          echo "  - bioconda" >> environment.yml
-          echo "dependencies:" >> environment.yml
-          echo "  - r-base=4.3.3" >> environment.yml
-          echo "  - python=3.8.19" >> environment.yml
-          echo "  - pip" >> environment.yml
-          echo "  - pip:" >> environment.yml
-          # Loop through packages and add them to YAML with versions
-          for package in ${{ env.PACKAGES }}; do
-            version=$(echo "$package" | cut -d'=' -f2)  # Extract version if present
-            package_name=$(echo "$package" | cut -d'=' -f1)
-            if [[ $version ]]; then
-              echo "  - $package_name==$version" >> environment.yml
-            else
-              echo "  - $package_name" >> environment.yml
-            fi
-          done
+          mamba env export | grep -v "^prefix: " > environment.yml
 
-      - name: Create and export conda environment
-        run: |
-          conda init
-          conda env create -f environment.yml
-          source ~/.bashrc
-          conda activate mapseq_env
-          conda env export | grep -v "^prefix: " > environment.yml
-
-      - name: Add environment.yml
+      - name: push environment.yml to branch
         run: |
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git checkout -b dependencies_update main
           git init
           git add environment.yml
-    
-      - name: Commit environment.yml
-        run: |
           git commit -m "Add updated environment.yml"
           git push --set-upstream origin dependencies_update
 
