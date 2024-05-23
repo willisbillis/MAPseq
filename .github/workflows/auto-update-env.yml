@@ -34,7 +34,7 @@ jobs:
 
       - name: export environment
         run: |
-          mamba env export | grep -v "^prefix: " > environment.yml
+          mamba env export | grep -v "^prefix: " > "environment_${{ matrix.os }}.yml"
 
       - name: push environment.yml to branch
         run: |
