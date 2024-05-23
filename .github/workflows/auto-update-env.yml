@@ -43,6 +43,7 @@ jobs:
 
       - name: Export environment.yml
         run: |
+          conda activate mapseq_env
           conda env export > environment.yml
 
       - name: Add environment.yml
