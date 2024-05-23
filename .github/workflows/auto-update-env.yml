@@ -30,7 +30,7 @@ jobs:
           channels: conda-forge,bioconda
           auto-activate-base: false
           activate-environment: mapseq_env
-          environment-file: envs/mapseq_env.yaml
+          environment-file: envs/mapseq_env.yml
 
       - name: export environment
         run: |
