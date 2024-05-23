@@ -45,6 +45,16 @@ jobs:
         run: |
           conda env export > environment.yml
 
+      - name: Add environment.yml
+        run: |
+          git config user.name 'GitHub Actions'
+          git config user.email 'actions@github.com'
+          git add environment.yml
+    
+      - name: Commit environment.yml
+        run: |
+          git commit -m "Add updated environment.yml"   # Commit with message
+
       - name: Create Pull Request
         uses: actions/github-script@v7
         with:
