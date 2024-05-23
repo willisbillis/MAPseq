@@ -40,11 +40,12 @@ jobs:
 
       - name: Create conda environment
         run: |
+          conda init
           conda env create -f environment.yml
 
       - name: Export environment.yml
         run: |
-          conda init
+          source ~/.bashrc
           conda activate mapseq_env
           conda env export > environment.yml
 
