@@ -51,7 +51,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}  # Replace with your access token secret
           script: |
             const { repo, owner } = context.repo;
-            const branch = '${{ github.ref }}';
+            const branch = '${{ GITHUB_REF }}';
             
             const prTitle = `Automatically generated environment.yml for ${branch}`;
             
