@@ -33,16 +33,16 @@ OUTPUT_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/RNA.FB.VDJ")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
-h5_path = paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix_filtered.h5")
-sc_data <- Read_CellBender_h5_Mat(h5_path)
-sc_data = list("Gene Expression" =
-                 sc_data[!(grepl("^anti-", rownames(sc_data)) |
-                           grepl("^HTC", rownames(sc_data))), ],
-               "Antibody Capture" =
-                 sc_data[grepl("^anti-", rownames(sc_data)) |
-                         grepl("^HTC", rownames(sc_data)), ])
+#h5_path = paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix_filtered.h5")
+#sc_data <- Read_CellBender_h5_Mat(h5_path)
+#sc_data = list("Gene Expression" =
+#                 sc_data[!(grepl("^anti-", rownames(sc_data)) |
+#                           grepl("^HTC", rownames(sc_data))), ],
+#               "Antibody Capture" =
+#                sc_data[grepl("^anti-", rownames(sc_data)) |
+#                         grepl("^HTC", rownames(sc_data)), ])
 
-#sc_data <- Read10X_h5(paste0(OUTS_DIR, "/count/filtered_feature_bc_matrix.h5"))
+sc_data <- Read10X_h5(paste0(OUTS_DIR, "/count/filtered_feature_bc_matrix.h5"))
 sc_total <- CreateSeuratObject(
   counts = sc_data$`Gene Expression`,
   assay = "RNA",
