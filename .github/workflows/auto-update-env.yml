@@ -49,8 +49,7 @@ jobs:
         run: |
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
-          git branch dependencies_update
-          git checkout dependencies_update
+          git checkout -b dependencies_update main
           git init
           git add environment.yml
     
