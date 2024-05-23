@@ -1,3 +1,4 @@
+
 name: Create and Export Up-to-date Conda Environment
 
 on:
@@ -39,11 +40,11 @@ jobs:
 
       - name: Create conda environment
         run: |
-          conda init
           conda env create -f environment.yml
 
       - name: Export environment.yml
         run: |
+          conda init
           conda activate mapseq_env
           conda env export > environment.yml
 
