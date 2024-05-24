@@ -39,6 +39,7 @@ jobs:
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git checkout -b dependencies_update main
+          git fetch
           git add "environment_${{ matrix.os }}.yml"
           git commit -m "Add updated environment_${{ matrix.os }}.yml"
           git push origin HEAD:dependencies_update
