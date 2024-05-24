@@ -41,8 +41,7 @@ jobs:
           git checkout -b dependencies_update main
           git add "environment_${{ matrix.os }}.yml"
           git commit -m "Add updated environment_${{ matrix.os }}.yml"
-          git pull
-          git push origin HEAD
+          git push origin HEAD:dependencies_update
 
       - name: Create Pull Request
         run: gh pr create -B main -H dependencies_update --title 'Merge dependencies_update into main' --body 'Created by Github action'
