@@ -43,7 +43,7 @@ jobs:
           git pull
           git add "environment_${{ matrix.os }}.yml"
           git commit -m "Add updated "environment_${{ matrix.os }}.yml""
-          git push
+          git push origin HEAD
 
       - name: Create Pull Request
         run: gh pr create -B main -H dependencies_update --title 'Merge dependencies_update into main' --body 'Created by Github action'
