@@ -39,10 +39,8 @@ jobs:
           git config user.name 'GitHub Actions'
           git config user.email 'actions@github.com'
           git checkout -b dependencies_update main
-          git branch --set-upstream-to=origin/main dependencies_update
           git add "environment_${{ matrix.os }}.yml"
-          git commit -m "Add updated "environment_${{ matrix.os }}.yml""
-          git pull
+          git commit -m "Add updated environment_${{ matrix.os }}.yml"
           git push origin HEAD
 
       - name: Create Pull Request
