@@ -42,7 +42,7 @@ jobs:
           git checkout -b dependencies_update
           git add "environment_${{ matrix.os }}.yml"
           git commit -a -m "Add updated environment_${{ matrix.os }}.yml"
-          gut branch
+          git branch
           git rebase dependencies_update
           git push -u origin HEAD
 
