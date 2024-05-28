@@ -25,7 +25,7 @@ jobs:
 
       - name: Configuring conda
         run: |
-          conda env update --file envs/mapseq_env.yml --prune
+          conda env update --name base --file envs/mapseq_env.yml --prune
 
       - name: export environment
         run: |
