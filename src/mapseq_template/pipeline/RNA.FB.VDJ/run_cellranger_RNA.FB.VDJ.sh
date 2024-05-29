@@ -79,13 +79,12 @@ for sample in "${rna_samples[@]}"; do
         printf '%s\n' $FASTQ_PATH $hashtag_sample 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         # Run the Cell Ranger count command for the sample
-        run_id=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID//p")
-        cellranger count --id $run_id \
+        cellranger count --id $sample \
             --create-bam=true \
             --transcriptome $GEX_REF_PATH --feature-ref $GEX_FEAT_REF_PATH \
             --libraries $SAMPLE_CONFIG_CSV \
             --localcores $NCPU --localmem $MEM
         
-        cp $run_id/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${run_id}.html
+        cp $sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
     fi
 done

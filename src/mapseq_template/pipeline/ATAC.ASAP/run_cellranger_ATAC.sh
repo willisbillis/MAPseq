@@ -31,12 +31,11 @@ echo "$(date) Using epigenome reference $ATAC_REF_version located at $ATAC_REF_P
 
 for sample in "${atac_samples[@]}"; do
   echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
-  run_id=$(echo $sample | sed -n -e "s/$ATAC_NAMING_ID//p")
 
-  cellranger-atac count --id=$run_id \
+  cellranger-atac count --id=$sample \
     --sample=$sample \
     --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH \
     --localcores=$NCPU --localmem=$MEM
 
-  cp $OUTPUT_DIR/$run_id/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${run_id}.html
+  cp $OUTPUT_DIR/$sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
 done
