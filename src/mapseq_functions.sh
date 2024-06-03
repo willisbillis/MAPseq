@@ -91,7 +91,7 @@ function clean_ms_tree() {
         "pipeline"
         "pipeline/preflight_checks.sh"
         "pipeline/ATAC.ASAP"
-        $(find "pipeline/ATAC.ASAP/tools")
+        $(find "$directory_to_process/pipeline/ATAC.ASAP/tools")
         "pipeline/ATAC.ASAP/run_asap_to_kite.sh"
         "pipeline/ATAC.ASAP/run_cellranger_ATAC.sh"
         "pipeline/ATAC.ASAP/run_kite.sh"
