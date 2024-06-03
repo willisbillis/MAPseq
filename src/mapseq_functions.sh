@@ -91,8 +91,7 @@ function clean_ms_tree() {
         "pipeline"
         "pipeline/preflight_checks.sh"
         "pipeline/ATAC.ASAP"
-        "pipeline/ATAC.ASAP/tools/"
-        $(ls "$directory_to_process/pipeline/ATAC.ASAP/tools/*")
+        $(find "pipeline/ATAC.ASAP/tools")
         "pipeline/ATAC.ASAP/run_asap_to_kite.sh"
         "pipeline/ATAC.ASAP/run_cellranger_ATAC.sh"
         "pipeline/ATAC.ASAP/run_kite.sh"
@@ -122,7 +121,7 @@ function update_ms_tree() {
     fi
 
     create_ms_run temp_MS_run
-    declare -a update_list=($(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -wholename "temp_MS_run/pipeline/ATAC.ASAP/tools/*" -print))
+    declare -a update_list=($(find "temp_MS_run" ! -name "project_config.txt" ! -name "*sampleManifest.csv" ! -name "pipeline/ATAC.ASAP/tools/*" -print))
 
     for full_path in "${update_list[@]}"; do
         relative_path=$(echo $full_path | sed -e 's/.*temp_MS_run\///g')
