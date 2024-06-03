@@ -91,7 +91,6 @@ function clean_ms_tree() {
         "pipeline"
         "pipeline/preflight_checks.sh"
         "pipeline/ATAC.ASAP"
-        $(find "$directory_to_process/pipeline/ATAC.ASAP/tools/*")
         "pipeline/ATAC.ASAP/run_asap_to_kite.sh"
         "pipeline/ATAC.ASAP/run_cellranger_ATAC.sh"
         "pipeline/ATAC.ASAP/run_kite.sh"
@@ -103,6 +102,7 @@ function clean_ms_tree() {
         "${preserve_list[@]/#/$directory_to_process\/}"
         $GEX_FEAT_REF_PATH
         $ASAP_FEAT_REF_PATH
+        $(find "$directory_to_process/pipeline/ATAC.ASAP/tools" -print)
     )
 
     find "$directory_to_process" $(printf "! -wholename %s " "${preserve_list[@]}") -delete
