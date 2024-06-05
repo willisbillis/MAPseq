@@ -1,0 +1,11 @@
+name: mapseq_env
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base
+  - python=3.7
+  - kallisto<1.0
+  - bustools<1.0
+  - cellbender
+  - leidenalg
