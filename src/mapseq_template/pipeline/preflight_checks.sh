@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # preflight_checks.sh - written by MEW (https://github.com/willisbillis) Feb 2023
 # This script runs unit tests to ensure the MAPseq pipeline is ready to be run.
 ################################################################################
@@ -56,4 +54,4 @@ if [ ${#existing_projects[@]} -gt 0 ]; then
   exit 1
 fi
 
-echo "Pre-flight checks complete! Running MAPseq pipeline..."
+echo "[INFO] Pre-flight checks complete! Running MAPseq pipeline..."

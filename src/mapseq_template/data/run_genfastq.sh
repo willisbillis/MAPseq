@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # run_mkfastq.sh - written by MEW (https://github.com/willisbillis) Jan 2023
 # This script runs the mkfastq pipeline formatted for the LRA MAPseq project started in 2023.
 
@@ -24,12 +22,12 @@ declare -a atac_fqs=($(ls $ATAC_DIR/*fastq.gz 2>/dev/null))
 if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_fqs[@]} -eq 0 ]]; then
     # Need to demultiplex fastqs from bcl files, run cellranger mkfastq
     CR_atac_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
-    echo "$(date) Running Cell Ranger ATAC version $CR_atac_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
+    echo "[INFO] $(date) Running Cell Ranger ATAC version $CR_atac_version using binary $(which cellranger-atac)" &>> $OUTPUT_FILE
 
     cellranger-atac mkfastq --id=${PROJECT_NAME}_ATAC --run=$ATAC_DIR \
         --csv=${PROJECT_NAME}.ATAC.sampleManifest.csv \
         --delete-undetermined \
-        --localcores=$NCPU --localmem=$MEM
+        --localcores=$NCPU --localmem=$MEM &>> $OUTPUT_FILE
 
     ATAC_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_ATAC/outs/fastq_path/*/ | grep -v "Reports\|Stats")
     ATAC_FLOWCELL_ID=$(basename $ATAC_FC_PATH)
@@ -61,12 +59,12 @@ fi
 if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ ${#rna_fqs[@]} -eq 0 ]; then
     # Need to demultiplex fastqs from bcl files, run cellranger mkfastq
     CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
-    echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
+    echo "[INFO] $(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" &>> $OUTPUT_FILE
 
     cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=$RNA_DIR \
         --csv=${PROJECT_NAME}.RNA.sampleManifest.csv \
         --delete-undetermined \
-        --localcores=$NCPU --localmem=$MEM
+        --localcores=$NCPU --localmem=$MEM &>> $OUTPUT_FILE
 
     RNA_FC_PATH=$(ls -d $OUTPUT_DIR/${PROJECT_NAME}_RNA/outs/fastq_path/*/ | grep -v "Reports\|Stats")
     RNA_FLOWCELL_ID=$(basename $RNA_FC_PATH)

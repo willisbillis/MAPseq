@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # run_cellranger_ATAC.sh - written by MEW (https://github.com/willisbillis) Jan 2024
 # This script runs the asap_to_kite_v2.py help script written by
 # Caleb Lareau (https://github.com/caleblareau) to prepare ASAP fastq
@@ -24,10 +22,10 @@ sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
 asap_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*))
 
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
-echo "$(date) Running asap_to_kite_v2.py using python version $python_version and binary $(which python)" >> $OUTPUT_FILE
+echo "[INFO] $(date) Running asap_to_kite_v2.py using python version $python_version and binary $(which python)" &>> $OUTPUT_FILE
 
 for sample in "${asap_samples[@]}"; do
     python $TOOL_PATH/asap_to_kite_v2.py -f $FASTQ_PATH \
         -s $sample -o $OUTPUT_DIR/$sample -j TotalSeqB \
-        -c $NCPU
+        -c $NCPU &>> $OUTPUT_FILE
 done
