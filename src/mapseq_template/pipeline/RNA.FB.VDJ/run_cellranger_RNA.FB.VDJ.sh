@@ -61,7 +61,7 @@ for sample in "${rna_samples[@]}"; do
         printf '%s\n' $vdj_sample $FASTQ_PATH VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         # Run the Cell Ranger multi command for the sample
-        cellranger multi --id $(echo $sample | sed -n -e "s/$GEX_NAMING_ID//p") \
+        cellranger multi --id $sample \
         --csv $SAMPLE_CONFIG_CSV \
         --localcores $NCPU --localmem $MEM &>> $OUTPUT_FILE
 
