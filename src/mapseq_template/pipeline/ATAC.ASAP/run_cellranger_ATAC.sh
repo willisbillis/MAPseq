@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # run_cellranger_ATAC.sh - written by MEW (https://github.com/willisbillis) Jan 2024
 # This script runs the cellranger count pipeline formatted for the ATAC + ASAP side of
 # the LRA MAPseq project started in 2023.
@@ -25,17 +23,17 @@ sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
 atac_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${ATAC_NAMING_ID}.*))
 
 CR_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
-echo "$(date) Running Cell Ranger ATAC version $CR_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
+echo "$(date) Running Cell Ranger ATAC version $CR_version using binary $(which cellranger-atac)" &>> $OUTPUT_FILE
 ATAC_REF_version=$(echo $ATAC_REF_PATH | grep -Po '(?<=refdata-cellranger-arc-)[^;]+')
-echo "$(date) Using epigenome reference $ATAC_REF_version located at $ATAC_REF_PATH" >> $OUTPUT_FILE
+echo "$(date) Using epigenome reference $ATAC_REF_version located at $ATAC_REF_PATH" &>> $OUTPUT_FILE
 
 for sample in "${atac_samples[@]}"; do
-  echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
+  echo "$(date) Running sample ${sample}..." &>> $OUTPUT_FILE
 
-  cellranger-atac count --id=$(echo $sample | sed -n -e "s/$ATAC_NAMING_ID//p") \
+  cellranger-atac count --id=$sample \
     --sample=$sample \
     --reference=$ATAC_REF_PATH --fastqs=$FASTQ_PATH \
-    --localcores=$NCPU --localmem=$MEM
+    --localcores=$NCPU --localmem=$MEM &>> $OUTPUT_FILE
 
   cp $OUTPUT_DIR/$sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
 done

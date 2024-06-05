@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # run_mapseq.sh - written by MEW (https://github.com/willisbillis) Feb 2023
 # This script runs the entire MAPseq pipeline.
 

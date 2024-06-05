@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # run_cellranger_RNA.FB.VDJ.sh - written by MEW (https://github.com/willisbillis) Jan 2024
 # This script runs the cellranger multi pipeline formatted for the RNA + HTO + ADT (+ VDJ) side of
 # the LRA MAPseq project started in 2023.
@@ -27,17 +25,17 @@ vdj_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${VDJ_NAMING_ID}.*)
 rna_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${GEX_NAMING_ID}.*))
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
-echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
+echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" &>> $OUTPUT_FILE
 GEX_REF_version=$(echo $GEX_REF_PATH | grep -Po '(?<=refdata-gex-)[^;]+')
-echo "$(date) Using transcriptome reference $GEX_REF_version located at $GEX_REF_PATH" >> $OUTPUT_FILE
-echo "$(date) Using HTO/ADT feature reference located at $GEX_FEAT_REF_PATH" >> $OUTPUT_FILE
+echo "$(date) Using transcriptome reference $GEX_REF_version located at $GEX_REF_PATH" &>> $OUTPUT_FILE
+echo "$(date) Using HTO/ADT feature reference located at $GEX_FEAT_REF_PATH" &>> $OUTPUT_FILE
 if [ ${#vdj_samples[@]} != 0 ]; then
     VDJ_REF_version=$(echo $VDJ_REF_PATH | grep -Po '(?<=refdata-cellranger-vdj-)[^;]+')
-    echo "$(date) Using vdj reference $VDJ_REF_version located at $VDJ_REF_PATH" >> $OUTPUT_FILE
+    echo "$(date) Using vdj reference $VDJ_REF_version located at $VDJ_REF_PATH" &>> $OUTPUT_FILE
 fi
 
 for sample in "${rna_samples[@]}"; do
-    echo "$(date) Running sample ${sample}..." >> $OUTPUT_FILE
+    echo "$(date) Running sample ${sample}..." &>> $OUTPUT_FILE
     SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
 
     if [ ${#vdj_samples[@]} != 0 ]; then
@@ -63,9 +61,9 @@ for sample in "${rna_samples[@]}"; do
         printf '%s\n' $vdj_sample $FASTQ_PATH VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         # Run the Cell Ranger multi command for the sample
-        cellranger multi --id $(echo $sample | sed -n -e "s/$GEX_NAMING_ID//p") \
+        cellranger multi --id $sample \
         --csv $SAMPLE_CONFIG_CSV \
-        --localcores $NCPU --localmem $MEM
+        --localcores $NCPU --localmem $MEM &>> $OUTPUT_FILE
 
         cp $sample/outs/per_sample_outs/$sample/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
     else
@@ -79,11 +77,11 @@ for sample in "${rna_samples[@]}"; do
         printf '%s\n' $FASTQ_PATH $hashtag_sample 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
         # Run the Cell Ranger count command for the sample
-        cellranger count --id $(echo $sample | sed -n -e "s/$GEX_NAMING_ID//p") \
+        cellranger count --id $sample \
             --create-bam=true \
             --transcriptome $GEX_REF_PATH --feature-ref $GEX_FEAT_REF_PATH \
             --libraries $SAMPLE_CONFIG_CSV \
-            --localcores $NCPU --localmem $MEM
+            --localcores $NCPU --localmem $MEM &>> $OUTPUT_FILE
         
         cp $sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
     fi
