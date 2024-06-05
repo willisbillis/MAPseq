@@ -20,21 +20,16 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.7
-    
       - name: checkout repository
         uses: actions/checkout@v4
 
       - name: Configuring conda
         run: |
-          conda env update --name base --file envs/mapseq_env.yml --prune
+          conda env create -f envs/mapseq_env.yml
 
       - name: export environment
         run: |
-          conda env export | grep -v "^prefix: " > "environment_${{ matrix.os }}.yml"
+          conda list --name mapseq_env --export | grep -v "^prefix: " > "environment_${{ matrix.os }}.yml"
 
       - name: push environment.yml to branch
         run: |
