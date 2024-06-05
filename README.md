@@ -21,10 +21,10 @@ conda activate mapseq_env
 
 * Cell Ranger (v8.0.0) [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
 * Cell Ranger ATAC (v2.1.0) [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/2.1/installation)
-* kallisto (v0.46.1) [(install here)](https://pachterlab.github.io/kallisto/download)
-* bustools (v0.39.3) [(install here)](https://bustools.github.io/download)
+* kallisto (<v1.0) [(install here)](https://pachterlab.github.io/kallisto/download)
+* bustools (<v1.0) [(install here)](https://bustools.github.io/download)
 * cellbender (v0.3.0) [(install here)](https://cellbender.readthedocs.io/en/latest/installation/index.html)
-* leidenalg (v0.10.0) [(install here)](https://leidenalg.readthedocs.io/en/stable/install.html)
+* leidenalg (<v1.0) [(install here)](https://leidenalg.readthedocs.io/en/stable/install.html)
 
 ### Installation ###
 After installing necessary requirements, you may install the MAPseq pipeline from source using:
