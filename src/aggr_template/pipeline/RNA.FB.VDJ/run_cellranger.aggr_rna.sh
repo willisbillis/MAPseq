@@ -48,5 +48,5 @@ cellranger aggr --id=${PROJECT_NAME}_aggr \
 	--csv $AGGR_CSV  --normalize none \
 	--localcores=$NCPU --localmem=$MEM
 
-cellbender remove-background --input $OUTPUT_DIR/${PROJECT_NAME}_aggr/outs/count/filtered_feature_bc_matrix.h5 \
-  --output $OUTPUT_DIR/${PROJECT_NAME}_aggr/outs/count/cellbender_feature_bc_matrix.h5
+#cellbender remove-background --input $OUTPUT_DIR/${PROJECT_NAME}_aggr/outs/count/filtered_feature_bc_matrix.h5 \
+#  --output $OUTPUT_DIR/${PROJECT_NAME}_aggr/outs/count/cellbender_feature_bc_matrix.h5
