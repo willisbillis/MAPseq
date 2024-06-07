@@ -54,9 +54,9 @@ plan("multicore", workers = max_cores)
 #### OPTIONS ####
 ###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "ACV02_all"
+PROJECT_NAME = "ACV02_all_002"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/ACV02/ACV02_all/analysis/RNA.FB.VDJ"
+PROJECT_DIR = "/home/Projects/Scharer_sc/ACV02/ACV02_all_002/analysis/RNA.FB.VDJ"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 
@@ -104,60 +104,6 @@ p = VlnPlot(sc_total,
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
        width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
-
-###############################################################################
-#### CALCULATE QC METRICS (HTO) ####
-###############################################################################
-sc_doublets = subset(sc_total, MULTI_ID == "Doublet")
-sc_doublets$combo_id = sc_doublets$MULTI_ID
-for (hto1 in unique(sc_total$HTO_maxID)) {
-  for (hto2 in unique(sc_total$HTO_secondID)) {
-    if (sum(order(c(hto1, hto2)) == c(1, 2)) != 2) {
-      combo_id = paste0(hto2, "_", hto1)
-      sc_total$combo_id[sc_total$HTO_secondID == hto2 &
-                          sc_total$HTO_maxID == hto1] = combo_id
-    }
-  }
-}
-margin_stats = aggregate(sc_total$HTO_margin,
-                         by = list(sc_total$combo_id,
-                                   sc_total$library_id),
-                         FUN = mean)
-sc_total$combo_id = NULL
-
-margin_stats = separate(margin_stats, Group.1,
-                        into = c("HT_1st", "HT_2nd"), sep = "_")
-colnames(margin_stats) = c("HT_1st", "HT_2nd",
-                           "library_id", "hto_separation")
-margin_stats = margin_stats[complete.cases(margin_stats), ]
-margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
-# sort and grab top pairs and worst pairs
-margin_stats = margin_stats[order(margin_stats$total_mixing_degree), ]
-best_htos = c(margin_stats$HT_1st[1],
-              margin_stats$HT_2nd[1],
-              "Doublet")
-margin_stats = margin_stats[order(-margin_stats$total_mixing_degree), ]
-worst_htos = c(margin_stats$HT_1st[1],
-               margin_stats$HT_2nd[1],
-               "Doublet")
-
-write.csv(margin_stats,
-          paste0("HTC.combos_", PROJECT_NAME, "_metrics.csv"),
-          quote = FALSE, row.names = FALSE)
-
-Idents(sc_total) = "hash.ID"
-
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
-                                                          best_htos],
-                   feature1 = best_htos[1], feature2 = best_htos[2])
-ggsave(paste0("scatter_best.hto.separation_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
-
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
-                                                          worst_htos],
-                   feature1 = worst_htos[1], feature2 = worst_htos[2])
-ggsave(paste0("scatter_worst.hto.separation_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
 ###############################################################################
 #### CALCULATE QC METRICS (RNA) ####
 ###############################################################################
