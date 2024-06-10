@@ -29,7 +29,7 @@ jobs:
 
       - name: export environment
         run: |
-          conda list --name mapseq_env --export | grep -v "^prefix: " > "environment_${{ matrix.os }}.yml"
+          conda env export -n mapseq_env | grep -v "^prefix: " > "environment_${{ matrix.os }}.yml"
 
       - name: push environment.yml to branch
         run: |
