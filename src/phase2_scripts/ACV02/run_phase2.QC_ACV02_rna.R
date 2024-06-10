@@ -363,6 +363,7 @@ sc = ScaleData(sc)
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
+DefaultAssay(sc) = "SCT"
 sc_v3 = sc
 sc_v3[["ADT"]] = NULL
 sc_v3[["RNA"]] = NULL
@@ -408,13 +409,13 @@ write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################
-saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
-               file=paste0(PROJECT_DIR, "/",
-                           PROJECT_NAME,
-                           ".Rsession.Info.",
-                           gsub("\\D", "", Sys.time()), ".txt"))
+               file = paste0(PROJECT_DIR, "/",
+                             PROJECT_NAME,
+                             ".Rsession.Info.",
+                             gsub("\\D", "", Sys.time()), ".txt"))
 ###############################################################################
 # Optional Additonal Analyses
 ###############################################################################
