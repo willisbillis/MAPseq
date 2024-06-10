@@ -26,7 +26,7 @@ jobs:
       - name: Configuring conda
         run: |
           conda env create -f .github/envs/mapseq_env.yml
-          conda update --all
+          conda update -n mapseq_env --all
 
       - name: export environment
         run: |
