@@ -169,12 +169,11 @@ ggsave("scatter_nFeatRNA.v.pct.mt_filtered.png", nfeat_mt_plot,
 sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 sc_total$patient_id[sc_total$MULTI_ID == "Doublet"] = "Doublet"
+sc_total$patient_id[sc_total$MULTI_ID == "Negative"] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
                            sep = "-")
-neg_cells_mask = sc_total$MULTI_ID == "Negative"
-sc_total$sample_id[neg_cells_mask] = "Negative"
 stats = data.frame(sample_id = unique(sc_total$sample_id))
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
 stats$Unfiltered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -363,6 +362,7 @@ sc = ScaleData(sc)
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
+DefaultAssay(sc) = "SCT"
 sc_v3 = sc
 sc_v3[["ADT"]] = NULL
 sc_v3[["RNA"]] = NULL
@@ -408,7 +408,7 @@ write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################
-saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
                file=paste0(PROJECT_DIR, "/",

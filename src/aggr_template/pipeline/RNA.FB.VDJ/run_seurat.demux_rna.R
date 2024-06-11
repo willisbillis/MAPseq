@@ -87,7 +87,7 @@ for (idx in seq_len(nrow(aggr_df))) {
   if (ncol(sc_sub) > nrow(sc_sub)) {
     sc_sub = NormalizeData(sc_sub, normalization.method = "CLR",
                            verbose = FALSE)
-    hashtag = MULTIseqDemux(sc_sub, quantile = 0.15, verbose = TRUE)
+    hashtag = MULTIseqDemux(sc_sub, autoThresh = TRUE, verbose = TRUE)
     successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
                                                   c("Doublet", "Negative"))])
     failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
