@@ -411,10 +411,10 @@ write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
 saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
-               file=paste0(PROJECT_DIR, "/",
-                           PROJECT_NAME,
-                           ".Rsession.Info.",
-                           gsub("\\D", "", Sys.time()), ".txt"))
+               file = paste0(PROJECT_DIR, "/",
+                             PROJECT_NAME,
+                             ".Rsession.Info.",
+                             gsub("\\D", "", Sys.time()), ".txt"))
 ###############################################################################
 # Optional Additonal Analyses
 ###############################################################################
