@@ -230,7 +230,7 @@ write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
 # SAVE RAW SEURAT OBJECT
 ###############################################################################
 saveRDS(sc_total,
-        paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+        paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 ###############################################################################
 #### BATCH CORRECTION (OPTIONAL) ####
 ###############################################################################
@@ -245,7 +245,7 @@ if (FALSE) {
   non_ig_mask = !grepl(igs, VariableFeatures(sc))
   VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
   sc <- RunPCA(sc, npcs = 40,
-              reduction.name = "rna.pca", verbose = FALSE)
+               reduction.name = "rna.pca", verbose = FALSE)
   sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
                       verbose = FALSE)
   sc <- FindClusters(sc, resolution = 2, algorithm = 4,
