@@ -58,7 +58,7 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "LRA_all_002"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc",
+PROJECT_DIR = paste0("/home/Projects/Scharer_sc",
                      "/LRA.MAPseq/LRA_all_002/analysis/RNA.FB.VDJ")
 RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
