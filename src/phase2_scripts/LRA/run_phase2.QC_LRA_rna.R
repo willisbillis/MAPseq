@@ -56,14 +56,12 @@ plan("multicore", workers = max_cores)
 #### OPTIONS ####
 ###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "ACV02_aggr001"
+PROJECT_NAME = "LRA_all_002"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
 PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc",
-                     "/ACV02/ACV02_aggr001/analysis/RNA.FB.VDJ")
+                     "/LRA.MAPseq/LRA_all_002/analysis/RNA.FB.VDJ")
 RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
-HTO_DEMUX_PATH = paste0(PROJECT_DIR,
-                        "/../../pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv")
 
 GENOME = "hg38"                     # REPLACE, hg38 or mm10
 OUTPUT_FIG_WIDTH =  8               # inches, width of output figures
@@ -87,7 +85,7 @@ if (GENOME == "hg38") {
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
 ###############################################################################
-#### PLOT DEMULTIPLEXING RESULTS (ADT) ####
+#### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
 DefaultAssay(sc_total) = "HTO"
 ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
@@ -95,7 +93,7 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "hash.ID",
+            group.by = "MULTI_ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -104,94 +102,22 @@ ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "HTO_maxID",
-            pt.size = 0)
-ggsave(paste0("vln_max_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
-
-p = VlnPlot(sc_total,
-            features = rownames(sc_total[["HTO"]]),
-            ncol = ncol,
-            group.by = "HTO_classification.global",
+            group.by = "MULTI_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
        width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
-
-###############################################################################
-#### CALCULATE QC METRICS (ADT) ####
-###############################################################################
-sc_total$combo_id = paste0(sc_total$HTO_maxID, "_", sc_total$HTO_secondID)
-for (hto1 in unique(sc_total$HTO_maxID)) {
-  for (hto2 in unique(sc_total$HTO_secondID)) {
-    if (sum(order(c(hto1, hto2)) == c(1, 2)) != 2) {
-      combo_id = paste0(hto2, "_", hto1)
-      sc_total$combo_id[sc_total$HTO_secondID == hto2 &
-                          sc_total$HTO_maxID == hto1] = combo_id
-    }
-  }
-}
-margin_stats = aggregate(sc_total$HTO_margin,
-                         by = list(sc_total$combo_id,
-                                   sc_total$library_id),
-                         FUN = mean)
-sc_total$combo_id = NULL
-
-margin_stats = separate(margin_stats, Group.1,
-                        into = c("HT_1st", "HT_2nd"), sep = "_")
-colnames(margin_stats) = c("HT_1st", "HT_2nd",
-                           "library_id", "hto_separation")
-margin_stats = margin_stats[complete.cases(margin_stats), ]
-margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
-# sort and grab top pairs and worst pairs
-margin_stats = margin_stats[order(margin_stats$total_mixing_degree),]
-best_htos = c(margin_stats$HT_1st[1],
-              margin_stats$HT_2nd[1],
-              "Doublet")
-margin_stats = margin_stats[order(-margin_stats$total_mixing_degree),]
-worst_htos = c(margin_stats$HT_1st[1],
-               margin_stats$HT_2nd[1],
-              "Doublet")
-
-write.csv(margin_stats,
-          paste0("HTC.combos_",PROJECT_NAME,"_metrics.csv"),
-          quote = FALSE, row.names = FALSE)
-
-p = ggplot(margin_stats, aes(hto_separation, library_id,
-                             group = c(HT_1st, HT_2nd))) +
-  geom_boxplot() + labs(title = "HTC Demultiplexing Margins") +
-  xlab("Average Margin Between Cells") +
-  ylab("HTO Combination") +
-  xlim(c(0, max(margin_stats$hto_separation))) +
-  theme_linedraw()
-ggsave(paste0("boxplot_HTC_hto.separation", PROJECT_NAME, ".png"), p,
-       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-Idents(sc_total) = "hash.ID"
-
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
-                                                          best_htos],
-                   feature1 = best_htos[1], feature2 = best_htos[2])
-ggsave(paste0("scatter_best.hto.separation_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
-
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
-                                                          worst_htos],
-                   feature1 = worst_htos[1], feature2 = worst_htos[2])
-ggsave(paste0("scatter_worst.hto.separation_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
-
-sc_total = subset(sc_total, HTO_classification.global != "Doublet")
 ###############################################################################
 #### CALCULATE QC METRICS (RNA) ####
 ###############################################################################
 # Doublet Detection
 DefaultAssay(sc_total) = "RNA"
 sc_v3 = sc_total
-sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class="Assay")
+sc_v3[["HTO"]] = NULL
+sc_v3[["ADT"]] = NULL
+sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class = "Assay")
 sce <- scDblFinder(as.SingleCellExperiment(sc_v3),
-                   samples="library_id", BPPARAM=MulticoreParam(max_cores))
+                   samples = "library_id", BPPARAM = MulticoreParam(max_cores))
 sc_total$scDblFinder.score <- sce$scDblFinder.score
 
 # Ig and mitochondrial reads detection
@@ -204,7 +130,7 @@ ggsave("scatter_pct.Ig.v.pct.mt_alldata.png",
 
 p = DensityScatter(sc_total, "scDblFinder.score", "percent.mt",
                    quantiles = TRUE)
-ggsave("scatter_pct.dbl.v.pct.mt_alldata.png",
+ggsave("scatter_dbl.v.pct.mt_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 p = DensityScatter(sc_total, "nCount_RNA", "nFeature_RNA",
@@ -242,51 +168,18 @@ ggsave("scatter_nFeatRNA.v.pct.mt_filtered.png", nfeat_mt_plot,
 ###############################################################################
 #### QUANTIFY QC FILTERING ####
 ###############################################################################
-hto_reference = read.csv(HTO_DEMUX_PATH)
 # adjust metadata to accomodate Seurat's AggregateExpression
 sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
-hto_reference$library_id = gsub("_", "-", hto_reference$library_id)
-hto_reference$patient_id = gsub("_", "-", hto_reference$patient_id)
-# pair hto reference with seurat object
-hto_reference$match_id = paste(hto_reference$library_id,
-                               hto_reference$patient_id,
-                               hto_reference$hashtag,
-                               sep = "-")
-sc_total$match_id = paste(sc_total$library_id,
-                          sc_total$patient_id,
-                          sc_total$hash.ID,
-                          sep = "-")
-# add metadata from hto reference to seurat object
-for (col_id in names(hto_reference)[4:ncol(hto_reference)]) {
-  sc_id = sc_total$match_id
-  hto_id = hto_reference$match_id
-  sc_total@meta.data[[col_id]] = hto_reference[[col_id]][match(sc_id, hto_id)]
-}
+sc_total$patient_id[sc_total$MULTI_ID == "Doublet"] = "Doublet"
+sc_total$patient_id[sc_total$MULTI_ID == "Negative"] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
-hto_reference$sample_id = paste(hto_reference$library_id,
-                                hto_reference$patient_id,
-                                sep = "-")
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
                            sep = "-")
-neg_cells_mask = sc_total$HTO_classification.global == "Negative"
-sc_total$sample_id[neg_cells_mask] = "Negative"
-stats = data.frame(match_id = hto_reference$match_id)
-
-if (ncol(hto_reference) > 3) {
-  stats = merge(stats, hto_reference[, 3:ncol(hto_reference)], by="match_id")
-} else {
-  stats$sample_id = hto_reference$sample_id[match(stats$match_id,
-                                                  hto_reference$match_id)]
-}
-stats$match_id = NULL
-sc_total$match_id = NULL
-neg_df = data.frame(sample_id = "Negative")
-neg_df[names(stats)[names(stats) != "sample_id"]] = NA
-stats = rbind(stats, neg_df)
+stats = data.frame(sample_id = unique(sc_total$sample_id))
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
-stats$Unfiltered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+stats$Unfiltered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                      sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 cells_rna = AggregateExpression(sc_total,
@@ -315,20 +208,14 @@ sc = subset(sc_total,
               nFeature_RNA > MIN_GENE_READS &
               nFeature_RNA < MAX_GENE_READS)
 
-# HTO Filter
-DefaultAssay(sc) = "ADT"
-VariableFeatures(sc) <- rownames(sc[["ADT"]])
-sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
-sc = ScaleData(sc)
-
 sample_id_counts = as.data.frame(table(sc$sample_id))
-stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                    sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 
-cells_rna = AggregateExpression(sc, group.by="sample_id")$RNA %>% colSums
-cells_adt = AggregateExpression(sc, group.by="sample_id")$ADT %>% colSums
-cells_hto = AggregateExpression(sc, group.by="sample_id")$HTO %>% colSums
+cells_rna = AggregateExpression(sc, group.by = "sample_id")$RNA %>% colSums
+cells_adt = AggregateExpression(sc, group.by = "sample_id")$ADT %>% colSums
+cells_hto = AggregateExpression(sc, group.by = "sample_id")$HTO %>% colSums
 
 stats$Filtered_Avg_Expression.RNA = round(cells_rna[match(stats$sample_id,
                                                           names(cells_rna))] /
@@ -343,6 +230,11 @@ stats[is.na(stats)] = 0
 write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
           quote = FALSE, row.names = FALSE)
 ###############################################################################
+# SAVE RAW SEURAT OBJECT
+###############################################################################
+saveRDS(sc_total,
+        paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+###############################################################################
 #### BATCH CORRECTION (OPTIONAL) ####
 ###############################################################################
 if (FALSE) {
@@ -356,7 +248,7 @@ if (FALSE) {
   non_ig_mask = !grepl(igs, VariableFeatures(sc))
   VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
   sc <- RunPCA(sc, npcs = 40,
-              reduction.name = "rna.pca", verbose = FALSE)
+               reduction.name = "rna.pca", verbose = FALSE)
   sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
                       verbose = FALSE)
   sc <- FindClusters(sc, resolution = 2, algorithm = 4,
@@ -452,7 +344,7 @@ if (FALSE) {
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
 DefaultAssay(sc) = "RNA"
-sc <- SCTransform(sc)
+sc <- SCTransform(sc, verbose = FALSE)
 # Filter out Ig genes from VariableFeatures, they will clog the results as
 #     they are highly-variable by nature
 non_ig_mask = !grepl(igs, VariableFeatures(sc))
@@ -464,10 +356,16 @@ sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
 sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
               reduction.name = "umap.rna",
               verbose = FALSE)
+
+DefaultAssay(sc) = "ADT"
+VariableFeatures(sc) <- rownames(sc[["ADT"]])
+sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
+sc = ScaleData(sc)
 ###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
+DefaultAssay(sc) = "SCT"
 sc_v3 = sc
 sc_v3[["ADT"]] = NULL
 sc_v3[["RNA"]] = NULL
@@ -488,7 +386,7 @@ sc@reductions$ref.umap = sc_v3@reductions$ref.umap
 graph = "SCT_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = graph,
-                    algorithm = 4, verbose = FALSE)
+                    algorithm = 3, verbose = FALSE)
 }
 
 p = clustree(sc, prefix = paste0(graph, "_res."))
@@ -499,60 +397,37 @@ sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
-# DEG testing between clusters
+# DEG testing between clusters (one vs all)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "SCT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
-# DEP testing between clusters
+# DEP testing between clusters (one vs all)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
-
-# Conserved markers between clusters
-non_hc = subset(sc, endotype != "Healthy_Control_Donor")
-sym_diff <- function(a, b) setdiff(union(a, b), intersect(a, b))
-for (cl_num in unique(Idents(non_hc))) {
-  cons_markers = FindConservedMarkers(non_hc, ident.1 = cl_num,
-                                      assay = "SCT",
-                                      grouping.var = "endotype")
-  cons_markers$cluster = cl_num
-  cons_markers$gene = rownames(cons_markers)
-  if (!exists("all_cons_markers")) {
-    all_cons_markers = cons_markers
-  } else {
-    if (ncol(cons_markers) != ncol(all_cons_markers)) {
-      missing_cols = sym_diff(names(cons_markers), names(all_cons_markers))
-      cons_markers[missing_cols] = NA
-    }
-    all_cons_markers = rbind(all_cons_markers, cons_markers)
-  }
-}
-write.csv(all_cons_markers,
-          "DEG_nonHC_conserved.markers_cluster.v.endotype.csv",
-          quote = FALSE, row.names = FALSE)
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################
-saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
-               file=paste0(PROJECT_DIR, "/",
-                           PROJECT_NAME,
-                           ".Rsession.Info.",
-                           gsub("\\D", "", Sys.time()), ".txt"))
+               file = paste0(PROJECT_DIR, "/",
+                             PROJECT_NAME,
+                             ".Rsession.Info.",
+                             gsub("\\D", "", Sys.time()), ".txt"))
 ###############################################################################
 # Optional Additonal Analyses
 ###############################################################################
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
 #      token with rsconnect
 if (FALSE) {
-  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay="SCT", layer = "counts")
-  adt_data = LayerData(sc, assay="ADT", layer = "data")
-  sct_data = LayerData(sc, assay="SCT", layer = "data")
+  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
+  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
+  adt_data = LayerData(sc, assay = "ADT", layer = "data")
+  sct_data = LayerData(sc, assay = "SCT", layer = "data")
   sct_act_cts = rbind(sct_cts, adt_cts)
   sct_act_data = rbind(sct_data, adt_data)
   sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
