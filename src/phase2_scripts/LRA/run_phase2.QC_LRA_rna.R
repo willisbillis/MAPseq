@@ -11,6 +11,11 @@ p_load(Seurat, Signac, ggplot2, clustree, dplyr, future, parallel, reticulate,
 p_load_gh("SGDDNB/ShinyCell")
 p_load_gh("cellgeni/sceasy")
 
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")
+}
+remotes::install_github("satijalab/azimuth", ref = "master")
+
 # Set python path to ensure reticulate packages can be used
 python_path = system("which python", intern = TRUE)
 use_python(python_path)
