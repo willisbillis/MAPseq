@@ -43,7 +43,7 @@ set.seed(1234)
 #### SET RESOURCE LIMITS ####
 ###############################################################################
 max_cores = 32
-max_mem = 32
+max_mem = 128
 if (max_cores == -1) {
   max_cores = detectCores()
 }
