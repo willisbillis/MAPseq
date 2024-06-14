@@ -383,7 +383,7 @@ sc@reductions$ref.umap = sc_v3@reductions$ref.umap
 graph = "SCT_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = graph,
-                    algorithm = 4, verbose = FALSE)
+                    algorithm = 3, verbose = FALSE)
 }
 
 p = clustree(sc, prefix = paste0(graph, "_res."))
@@ -421,10 +421,10 @@ capture.output(sessionInfo(),
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
 #      token with rsconnect
 if (FALSE) {
-  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay="SCT", layer = "counts")
-  adt_data = LayerData(sc, assay="ADT", layer = "data")
-  sct_data = LayerData(sc, assay="SCT", layer = "data")
+  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
+  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
+  adt_data = LayerData(sc, assay = "ADT", layer = "data")
+  sct_data = LayerData(sc, assay = "SCT", layer = "data")
   sct_act_cts = rbind(sct_cts, adt_cts)
   sct_act_data = rbind(sct_data, adt_data)
   sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
