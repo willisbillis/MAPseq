@@ -152,7 +152,7 @@ ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
-DBL_LIMIT = 0.5       # REPLACE, maximum scDblFinder score to permit
+DBL_LIMIT = 0.8       # REPLACE, maximum scDblFinder score to permit
 MIN_GENE_READS = 100   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
@@ -173,6 +173,7 @@ sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 sc_total$patient_id[sc_total$MULTI_ID == "Doublet"] = "Doublet"
 sc_total$patient_id[sc_total$MULTI_ID == "Negative"] = "Negative"
+sc_total = sc_total[, !is.na(sc_total$patient_id)]
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
@@ -206,7 +207,8 @@ sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
               scDblFinder.score < DBL_LIMIT &
               nFeature_RNA > MIN_GENE_READS &
-              nFeature_RNA < MAX_GENE_READS)
+              nFeature_RNA < MAX_GENE_READS &
+              MULTI_ID != "Doublet")
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
