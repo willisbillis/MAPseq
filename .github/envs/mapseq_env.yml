@@ -9,3 +9,4 @@ dependencies:
   - bustools<1.0
   - leidenalg
   - r-seurat
+  - bioconductor-glmgampoi
