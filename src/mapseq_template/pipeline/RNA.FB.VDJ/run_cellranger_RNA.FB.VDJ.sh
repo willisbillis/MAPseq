@@ -39,7 +39,7 @@ for sample in "${rna_samples[@]}"; do
     SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
 
     if [ ${#vdj_samples[@]} != 0 ]; then
-        ## VDJ SAMPLES DETECTED, RUN CR MULTI
+        ## VDJ SAMPLES DETECTED
         # Create the config csv for the sample being run
         echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
@@ -60,29 +60,28 @@ for sample in "${rna_samples[@]}"; do
         printf '%s\n' $hashtag_sample $FASTQ_PATH 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         printf '%s\n' $vdj_sample $FASTQ_PATH VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
-        # Run the Cell Ranger multi command for the sample
-        cellranger multi --id $sample \
-        --csv $SAMPLE_CONFIG_CSV \
-        --localcores $NCPU --localmem $MEM &>> $OUTPUT_FILE
-
-        cp $sample/outs/per_sample_outs/$sample/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
     else
-        ## NO VDJ SAMPLES DETECTED, RUN CR COUNT
+        ## NO VDJ SAMPLES DETECTED
         # Create the config csv for the sample being run
-        printf '%s\n' fastqs sample library_type | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' create-bam true | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        echo "[feature]" >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' reference $GEX_FEAT_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+
+        echo "[libraries]" >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' fastq_id fastqs feature_types | paste -sd ',' >> $SAMPLE_CONFIG_CSV
         gex_sample=$sample
         # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $GEX_FEAT_NAMING_ID
         hashtag_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$GEX_FEAT_NAMING_ID/p")
-        printf '%s\n' $FASTQ_PATH $gex_sample 'Gene Expression' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $FASTQ_PATH $hashtag_sample 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-
-        # Run the Cell Ranger count command for the sample
-        cellranger count --id $sample \
-            --create-bam=true \
-            --transcriptome $GEX_REF_PATH --feature-ref $GEX_FEAT_REF_PATH \
-            --libraries $SAMPLE_CONFIG_CSV \
-            --localcores $NCPU --localmem $MEM &>> $OUTPUT_FILE
-        
-        cp $sample/outs/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
+        printf '%s\n' $gex_sample $FASTQ_PATH 'Gene Expression' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
+        printf '%s\n' $hashtag_sample $FASTQ_PATH 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
     fi
+
+    # Run the Cell Ranger multi command for the sample
+    cellranger multi --id $sample \
+    --csv $SAMPLE_CONFIG_CSV \
+    --localcores $NCPU --localmem $MEM &>> $OUTPUT_FILE
+
+    cp $sample/outs/per_sample_outs/$sample/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
 done
