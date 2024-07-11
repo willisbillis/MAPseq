@@ -58,8 +58,8 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "KF_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/KF_all/analysis/RNA.FB.VDJ"
-RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
+PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/enriched.Bcells/KF_all/analysis/RNA.FB.VDJ"
+RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 
 GENOME = "hg38"                     # REPLACE, hg38 or mm10
@@ -150,9 +150,9 @@ ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
 #### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MAX_PCT_MT = 10        # REPLACE, maximum percent mitochondrial reads per cell
-DBL_LIMIT = 0.6       # REPLACE, minimum scDblFinder score to permit
-MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
+MAX_PCT_MT = 15        # REPLACE, maximum percent mitochondrial reads per cell
+DBL_LIMIT = 0.75       # REPLACE, minimum scDblFinder score to permit
+MIN_GENE_READS = 300   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
@@ -206,7 +206,8 @@ sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
               scDblFinder.score < DBL_LIMIT &
               nFeature_RNA > MIN_GENE_READS &
-              nFeature_RNA < MAX_GENE_READS)
+              nFeature_RNA < MAX_GENE_READS &
+              MULTI_ID != "Doublet")
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -305,7 +306,7 @@ write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################
-saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
                file=paste0(PROJECT_DIR, "/",
