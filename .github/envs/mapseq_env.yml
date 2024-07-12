@@ -10,3 +10,4 @@ dependencies:
   - leidenalg
   - r-seurat
   - bioconductor-glmgampoi
+  - biopython
