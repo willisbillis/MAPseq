@@ -237,7 +237,7 @@ saveRDS(sc_total,
 if (FALSE) {
   #### RNA Harmony Batch correction ####
   DefaultAssay(sc) = "RNA"
-  sc[["RNA"]] = split(sc[["RNA"]], f = sc$sample_id)
+  sc[["RNA"]] = split(sc[["RNA"]], f = sc$sample_id, layers = c("counts"))
   sc <- SCTransform(sc, verbose = FALSE)
 
   # Filter out Ig genes from VariableFeatures, they will clog the results as
