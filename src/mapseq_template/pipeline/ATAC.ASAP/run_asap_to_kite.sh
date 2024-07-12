@@ -1,8 +1,8 @@
+#!/bin/bash
 # run_cellranger_ATAC.sh - written by MEW (https://github.com/willisbillis) Jan 2024
 # This script runs the asap_to_kite_v2.py help script written by
 # Caleb Lareau (https://github.com/caleblareau) to prepare ASAP fastq
 # files for the kite (https://github.com/pachterlab/kite) pipeline.
-# Formatted for the ATAC + ASAP side of the LRA MAPseq project started in 2023.
 #
 # NOTICE: At this point, the user has generated the ATAC and ASAP fastqs.
 ################################################################################
@@ -15,16 +15,27 @@ TOOL_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/tools
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
 OUTPUT_FILE=$OUTPUT_DIR/asap_to_kite.log
 ################################################################################
+# Create output directory if it doesn't exist
 mkdir -p $OUTPUT_DIR
-cd $OUTPUT_DIR
-sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
-sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
-asap_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*))
 
+# Change to the output directory
+cd $OUTPUT_DIR
+
+# Extract sample names from the sample manifest
+sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
+
+# Filter for ASAP samples and remove duplicates
+asap_samples=($(grep -E ".*${ASAP_NAMING_ID}.*" <<< "${sample_name_col[@]}" | uniq))
+
+# Get Python version
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
+
+# Log information about the script execution
 echo "[INFO] $(date) Running asap_to_kite_v2.py using python version $python_version and binary $(which python)" &>> $OUTPUT_FILE
 
+# Loop through each ASAP sample
 for sample in "${asap_samples[@]}"; do
+    # Run the asap_to_kite_v2.py script
     python $TOOL_PATH/asap_to_kite_v2.py -f $FASTQ_PATH \
         -s $sample -o $OUTPUT_DIR/$sample -j TotalSeqB \
         -c $NCPU &>> $OUTPUT_FILE
