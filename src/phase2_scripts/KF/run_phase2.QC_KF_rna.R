@@ -58,7 +58,7 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "KF_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/enriched.Bcells/KF_all/analysis/RNA.FB.VDJ"
+PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/sorted.Bcells/KF_all/analysis/RNA.FB.VDJ"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 
