@@ -147,26 +147,29 @@ for (idx in seq_len(nrow(metadata_df))) {
     hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
     names(hto_count_sums) = rownames(hashtag)
 
-    # check for failed hashtags (< 1 HTO count per cell on average)
-    if (sum(hto_count_sums < (ncol(hashtag) / nrow(hto_ref_sub))) > 0) {
-      print(paste("[WARNING] Hashtag staining failed for the",
-                  "following hashtags! Excluding from final object."))
-      failed_htos = names(hto_count_sums[hto_count_sums <
-                                           (ncol(hashtag) / nrow(hto_ref_sub))])
-      print(hto_ref_sub$patient_id[match(failed_htos,
-                                         hto_ref_sub$hashtag)])
-      print(failed_htos)
-      hto_ref_sub = hto_ref_sub[!(hto_ref_sub$hashtag %in% failed_htos), ]
-      hashtag = subset(hashtag, features = hto_ref_sub$hashtag)
+    # Check if there are enough cells to normalize data and demultiplex
+    if (ncol(hashtag) > nrow(hashtag)) {
+      hashtag <- NormalizeData(hashtag, assay = "HTO",
+                               normalization.method = "CLR",
+                               verbose = FALSE)
+      hashtag = MULTIseqDemux(hashtag, autoThresh = TRUE, verbose = TRUE)
+      successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
+                                                    c("Doublet", "Negative"))])
+      failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
+                                            successful_htos)]
+      if (length(failed_htos) > 0) {
+        print(paste("[WARNING] Demultiplexing failed for the",
+                    "following hashtags! Excluding from final object."))
+        print("patient_id:")
+        print(hto_ref_sub$patient_id[match(failed_htos,
+                                          hto_ref_sub$hashtag)])
+        print(failed_htos)
+      }
+      hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$MULTI_ID,
+                                                         hto_ref_sub$hashtag)]
+    } else {
+      print("[WARNING] Pool failed. Too few cells to demultiplex.")
     }
-    hashtag <- NormalizeData(hashtag, assay = "HTO",
-                             normalization.method = "CLR",
-                             verbose = FALSE)
-    hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99,
-                        verbose = FALSE)
-
-    hashtag$patient_id = hto_ref_sub$patient_id[match(hashtag$hash.ID,
-                                                      hto_ref_sub$hashtag)]
   } else {
     print(paste0("Only one hashtag in ASAP sample", asap_lib_id,
                  ". No demultiplexing performed."))
@@ -184,7 +187,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   if (ncol(hto_ref_sub) > 3) {
     for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
       hashtag@meta.data[[metadata_col]] =
-        hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
+        hto_ref_sub[[metadata_col]][match(hashtag$MULTI_ID,
                                           hto_ref_sub$hashtag)]
     }
   }
