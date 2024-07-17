@@ -19,11 +19,20 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
 
     echo "  Concatenating RNA fastq files..."
 
-    # Concatenate fastq files for each sample
-    # Only list symlinked files in the outs directory
-    sample_names=($(ls -l "$full_dir" | grep '^l' | awk '{print $9}' | awk -F '_S' '{print $1}' | sort -u))
+    # Get all files in the full directory
+    full_sample_names=($(ls $full_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
 
-    for sample in "${sample_names[@]}"; do
+    # Get all files in the shallow directory
+    shallow_sample_names=($(ls $shallow_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
+
+    # Get the union of samples from both directories
+    union_samples=($(sort -u <<< "${full_sample_names[@]} ${shallow_sample_names[@]}"))
+
+    # Filter out samples with ".mgd" in their names
+    non_mgd_samples=($(echo "${union_samples[@]}" | grep -v ".mgd"))
+
+    for sample_path in "${non_mgd_samples[@]}"; do
+      sample=$(basename $sample_path)
       # Remove existing concatenated files if they exist
       if [[ -f "$shallow_dir/${sample}sh_S1_R1_001.fastq.gz" ]]; then
         rm "$shallow_dir/${sample}sh_S1_R1_001.fastq.gz"
@@ -35,8 +44,8 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
       # Check if both full and shallow files exist
       full_file_r1="$full_dir/${sample}*_R1_001.fastq.gz"
       full_file_r2="$full_dir/${sample}*_R2_001.fastq.gz"
-      shallow_file_r1="$shallow_dir/${sample}sh*_R1_001.fastq.gz"
-      shallow_file_r2="$shallow_dir/${sample}sh*_R2_001.fastq.gz"
+      shallow_file_r1="$shallow_dir/${sample}*_R1_001.fastq.gz"
+      shallow_file_r2="$shallow_dir/${sample}*_R2_001.fastq.gz"
 
       # Resolve symlinks to get the original file paths
       full_file_r1=$(readlink -f $full_file_r1)
@@ -74,10 +83,16 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
         cat $full_file_r1 $shallow_file_r1 > "$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
         cat $full_file_r2 $shallow_file_r2 > "$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
       else
-        echo "WARNING: Missing files for sample $sample in directory $mapseq_dir (RNA). Creating files from full directory data."
-        # Create new files with the same naming scheme as the merged files
-        cp "$full_file_r1" "$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
-        cp "$full_file_r2" "$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
+        echo "WARNING: Missing files for sample $sample in directory $mapseq_dir (RNA). Creating files from available data."
+        # Check if shallow files exist and copy them if they do
+        if [[ -f "$shallow_file_r1" && -f "$shallow_file_r2" ]]; then
+          cp "$shallow_file_r1" "$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
+          cp "$shallow_file_r2" "$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
+        # Otherwise, copy the full files if they exist
+        elif [[ -f "$full_file_r1" && -f "$full_file_r2" ]]; then
+          cp "$full_file_r1" "$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
+          cp "$full_file_r2" "$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
+        fi
       fi
     done
   fi
@@ -91,11 +106,20 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
 
     echo "  Concatenating ATAC fastq files..."
 
-    # Concatenate fastq files for each sample
-    # Only list symlinked files in the outs directory
-    sample_names=($(ls -l "$full_dir" | grep '^l' | awk '{print $9}' | awk -F '_S' '{print $1}'))
+    # Get all files in the full directory
+    full_sample_names=($(ls $full_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
 
-    for sample in "${sample_names[@]}"; do
+    # Get all files in the shallow directory
+    shallow_sample_names=($(ls $shallow_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
+
+    # Get the union of samples from both directories
+    union_samples=($(sort -u <<< "${full_sample_names[@]} ${shallow_sample_names[@]}"))
+
+    # Filter out samples with ".mgd" in their names
+    non_mgd_samples=($(echo "${union_samples[@]}" | grep -v ".mgd"))
+
+    for sample_path in "${non_mgd_samples[@]}"; do
+      sample=$(basename $sample_path)
       # Remove existing concatenated files if they exist
       if [[ -f "$shallow_dir/${sample}_S1_R1_001.fastq.gz" ]]; then
         rm "$shallow_dir/${sample}_S1_R1_001.fastq.gz"
@@ -172,12 +196,20 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
         cat $full_file_i1 $shallow_file_i1 > "$full_dir/${sample}.mgd_S1_I1_001.fastq.gz"
         cat $full_file_i2 $shallow_file_i2 > "$full_dir/${sample}.mgd_S1_I2_001.fastq.gz"
       else
-        echo "WARNING: Missing files for sample $sample in directory $mapseq_dir (ATAC). Creating files from full directory data."
-        # Create new files with the same naming scheme as the merged files
-        cp "$full_file_r1" "$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
-        cp "$full_file_r2" "$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
-        cp "$full_file_i1" "$full_dir/${sample}.mgd_S1_I1_001.fastq.gz"
-        cp "$full_file_i2" "$full_dir/${sample}.mgd_S1_I2_001.fastq.gz"
+        echo "WARNING: Missing files for sample $sample in directory $mapseq_dir (ATAC). Creating files from available data."
+        # Check if shallow files exist and copy them if they do
+        if [[ -f "$shallow_file_r1" && -f "$shallow_file_r2" && -f "$shallow_file_i1" && -f "$shallow_file_i2" ]]; then
+          cp "$shallow_file_r1" "$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
+          cp "$shallow_file_r2" "$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
+          cp "$shallow_file_i1" "$full_dir/${sample}.mgd_S1_I1_001.fastq.gz"
+          cp "$shallow_file_i2" "$full_dir/${sample}.mgd_S1_I2_001.fastq.gz"
+        # Otherwise, copy the full files if they exist
+        elif [[ -f "$full_file_r1" && -f "$full_file_r2" && -f "$full_file_i1" && -f "$full_file_i2" ]]; then
+          cp "$full_file_r1" "$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
+          cp "$full_file_r2" "$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
+          cp "$full_file_i1" "$full_dir/${sample}.mgd_S1_I1_001.fastq.gz"
+          cp "$full_file_i2" "$full_dir/${sample}.mgd_S1_I2_001.fastq.gz"
+        fi
       fi
     done
   fi
