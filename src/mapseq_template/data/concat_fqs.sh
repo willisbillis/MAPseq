@@ -35,8 +35,11 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
     # Get basenames of shallow_sample_names
     shallow_sample_basenames=($(for name in "${shallow_sample_names[@]}"; do echo $(basename $name); done))
 
-    # Get the union of samples from both directories
-    union_samples=($(sort -u <<< "${full_sample_basenames[@]} ${shallow_sample_basenames[@]}"))
+    # Get the unique union of samples from both directories
+    combined_samples+=("${full_sample_basenames[@]}" "${shallow_sample_basenames[@]}")
+    IFS=$' '
+    union_samples=($(printf "%s\n" "${combined_samples[@]}" | sort -u | tr '\n' ' '))
+    unset IFS
 
     for sample in "${union_samples[@]}"; do
       # Remove existing concatenated files if they exist
@@ -73,14 +76,6 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
           cat "$file" >> "$shallow_dir/${sample}sh_S1_R2_001.fastq.gz"
         done
         shallow_file_r2="$shallow_dir/${sample}sh_S1_R2_001.fastq.gz"
-      fi
-
-      # Check if a merged file already exists
-      merged_file_r1="$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
-      merged_file_r2="$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
-      if [[ -f "$merged_file_r1" && -f "$merged_file_r2" ]]; then
-        echo "    Merged files for sample $sample already exist. Skipping concatenation."
-        continue
       fi
 
       if [[ -f "$full_file_r1" && -f "$shallow_file_r1" && -f "$full_file_r2" && -f "$shallow_file_r2" ]]; then
@@ -127,21 +122,23 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
       continue
     fi
 
-    # Get all files in the full directory
+    ## Get all files in the full directory
     full_sample_names=($(ls $full_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
     # Get basenames of full_sample_names
-    full_sample_basenames=($(for name in "${full_sample_names[@]}"; do echo $(basename "$name"); done))
+    full_sample_basenames=($(for name in "${full_sample_names[@]}"; do echo $(basename $name); done))
 
     # Get all files in the shallow directory
     shallow_sample_names=($(ls $shallow_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
     # Get basenames of shallow_sample_names
-    shallow_sample_basenames=($(for name in "${shallow_sample_names[@]}"; do echo $(basename "$name"); done))
+    shallow_sample_basenames=($(for name in "${shallow_sample_names[@]}"; do echo $(basename $name); done))
 
-    # Get the union of samples from both directories
-    union_samples=($(sort -u <<< "${full_sample_basenames[@]} ${shallow_sample_basenames[@]}"))
+    # Get the unique union of samples from both directories
+    combined_samples+=("${full_sample_basenames[@]}" "${shallow_sample_basenames[@]}")
+    IFS=$' '
+    union_samples=($(printf "%s\n" "${combined_samples[@]}" | sort -u | tr '\n' ' '))
+    unset IFS
 
     for sample_path in "${union_samples[@]}"; do
-      sample=$(basename $sample_path)
       # Remove existing concatenated files if they exist
       if [[ -f "$shallow_dir/${sample}_S1_R1_001.fastq.gz" ]]; then
         rm "$shallow_dir/${sample}_S1_R1_001.fastq.gz"
@@ -198,16 +195,6 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
       if [[ $(echo $shallow_file_i2 | wc -w) -gt 1 ]]; then
         cat $shallow_file_i2 > "$shallow_dir/${sample}_S1_I2_001.fastq.gz"
         shallow_file_i2="$shallow_dir/${sample}_S1_I2_001.fastq.gz"
-      fi
-
-      # Check if a merged file already exists
-      merged_file_r1="$full_dir/${sample}.mgd_S1_R1_001.fastq.gz"
-      merged_file_r2="$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
-      merged_file_i1="$full_dir/${sample}.mgd_S1_I1_001.fastq.gz"
-      merged_file_i2="$full_dir/${sample}.mgd_S1_I2_001.fastq.gz"
-      if [[ -f "$merged_file_r1" && -f "$merged_file_r2" && -f "$merged_file_i1" && -f "$merged_file_i2" ]]; then
-        echo "    Merged files for sample $sample already exist. Skipping concatenation."
-        continue
       fi
 
       if [[ -f "$full_file_r1" && -f "$shallow_file_r1" && -f "$full_file_r2" && -f "$shallow_file_r2" && -f "$full_file_i1" && -f "$shallow_file_i1" && -f "$full_file_i2" && -f "$shallow_file_i2" ]]; then
