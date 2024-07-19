@@ -247,22 +247,22 @@ saveRDS(sc_total,
 if (FALSE) {
   #### RNA Harmony Batch correction ####
   DefaultAssay(sc) = "RNA"
-  split_column = "donor_id"
-  sc[["RNA"]] = split(sc[["RNA"]], f = sc[[split_column]], layers = "counts")
+  split_column = "sample_id"
+  sc[["RNA"]] = split(sc[["RNA"]], f = sc@meta.data[[split_column]], layers = "counts")
   sc <- SCTransform(sc, verbose = FALSE)
 
   # Filter out Ig genes from VariableFeatures, they will clog the results as
   #     they are highly-variable by nature
   non_ig_mask = !grepl(igs, VariableFeatures(sc))
   VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
-  sc <- RunPCA(sc, npcs = 40,
+  sc <- RunPCA(sc, npcs = 15,
                reduction.name = "rna.pca", verbose = FALSE)
-  sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
+  sc <- FindNeighbors(sc, dims = 1:15, reduction = "rna.pca",
                       verbose = FALSE)
   sc <- FindClusters(sc, resolution = 2, algorithm = 4,
                      cluster.name = "unintegrated_rna.clusters",
                      verbose = FALSE)
-  sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
+  sc <- RunUMAP(sc, dims = 1:15, reduction = "rna.pca",
                 reduction.name = "umap.rna.unintegrated",
                 verbose = FALSE)
   # visualize by batch annotations
@@ -278,12 +278,12 @@ if (FALSE) {
   sc = JoinLayers(sc, assay = "RNA")
 
   sc <- FindNeighbors(sc, reduction = "integrated.rna.harmony",
-                      dims = 1:40, verbose = FALSE)
+                      dims = 1:15, verbose = FALSE)
   sc <- FindClusters(sc, resolution = 2, algorithm = 4,
                      cluster.name = "rna.clusters",
                      verbose = FALSE)
   sc <- RunUMAP(sc, reduction = "integrated.rna.harmony",
-                dims = 1:40, reduction.name = "umap.rna",
+                dims = 1:15, reduction.name = "umap.rna",
                 verbose = FALSE)
   p <- DimPlot(sc, reduction = "integrated.rna.harmony",
                group.by = split_column)
@@ -300,14 +300,14 @@ if (FALSE) {
                   do.center = TRUE,
                   do.scale = FALSE,
                   verbose = FALSE)
-  sc <- RunPCA(sc, npcs = 40,
+  sc <- RunPCA(sc, npcs = 15,
                reduction.name = "adt.pca", verbose = FALSE)
-  sc <- FindNeighbors(sc, dims = 1:40, reduction = "adt.pca",
+  sc <- FindNeighbors(sc, dims = 1:15, reduction = "adt.pca",
                       verbose = FALSE)
   sc <- FindClusters(sc, resolution = 2, algorithm = 4,
                      cluster.name = "unintegrated_adt.clusters",
                      verbose = FALSE)
-  sc <- RunUMAP(sc, dims = 1:40, reduction = "adt.pca",
+  sc <- RunUMAP(sc, dims = 1:15, reduction = "adt.pca",
                 reduction.name = "umap.adt.unintegrated",
                 verbose = FALSE)
   # visualize by batch annotations
@@ -324,12 +324,12 @@ if (FALSE) {
   sc = JoinLayers(sc)
 
   sc <- FindNeighbors(sc, reduction = "integrated.adt.harmony",
-                      dims = 1:40, verbose = FALSE)
+                      dims = 1:15, verbose = FALSE)
   sc <- FindClusters(sc, resolution = 2, algorithm = 4,
                      cluster.name = "adt.clusters",
                      verbose = FALSE)
   sc <- RunUMAP(sc, reduction = "integrated.adt.harmony",
-                dims = 1:40, reduction.name = "umap.adt",
+                dims = 1:15, reduction.name = "umap.adt",
                 verbose = FALSE)
   p <- DimPlot(sc, reduction = "integrated.adt.harmony",
                group.by = split_column)
@@ -339,7 +339,7 @@ if (FALSE) {
   #### (Optional) WNN Integration of RNA and ADT assays ####
   sc <- FindMultiModalNeighbors(
     sc, reduction.list = list("rna.pca", "adt.pca"),
-    dims.list = list(1:40, 1:40), verbose = FALSE
+    dims.list = list(1:15, 1:15), verbose = FALSE
   )
   sc = RunUMAP(sc, nn.name = "weighted.nn",  reduction.name = "wnn.umap",
                reduction.key = "wnnUMAP_", verbose = FALSE)
