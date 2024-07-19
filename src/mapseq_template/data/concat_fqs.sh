@@ -19,20 +19,26 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
 
     echo "  Concatenating RNA fastq files..."
 
+    # Check if orig.fqs directory exists
+    if [[ -d "$full_dir/orig.fqs" ]]; then
+      echo "    orig.fqs directory exists. Skipping concatenation for RNA."
+      continue
+    fi
+
     # Get all files in the full directory
     full_sample_names=($(ls $full_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
+    # Get basenames of full_sample_names
+    full_sample_basenames=($(for name in "${full_sample_names[@]}"; do echo $(basename $name); done))
 
     # Get all files in the shallow directory
     shallow_sample_names=($(ls $shallow_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
+    # Get basenames of shallow_sample_names
+    shallow_sample_basenames=($(for name in "${shallow_sample_names[@]}"; do echo $(basename $name); done))
 
     # Get the union of samples from both directories
-    union_samples=($(sort -u <<< "${full_sample_names[@]} ${shallow_sample_names[@]}"))
+    union_samples=($(sort -u <<< "${full_sample_basenames[@]} ${shallow_sample_basenames[@]}"))
 
-    # Filter out samples with ".mgd" in their names
-    non_mgd_samples=($(echo "${union_samples[@]}" | grep -v ".mgd"))
-
-    for sample_path in "${non_mgd_samples[@]}"; do
-      sample=$(basename $sample_path)
+    for sample in "${union_samples[@]}"; do
       # Remove existing concatenated files if they exist
       if [[ -f "$shallow_dir/${sample}sh_S1_R1_001.fastq.gz" ]]; then
         rm "$shallow_dir/${sample}sh_S1_R1_001.fastq.gz"
@@ -94,6 +100,15 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
           cp "$full_file_r2" "$full_dir/${sample}.mgd_S1_R2_001.fastq.gz"
         fi
       fi
+
+      # Create orig.fqs directory and move original fastq files
+      mkdir -p "$full_dir/orig.fqs"
+      mv "$full_dir"/${sample}*_R1_001.fastq.gz "$full_dir/orig.fqs"
+      mv "$full_dir"/${sample}*_R2_001.fastq.gz "$full_dir/orig.fqs"
+
+      # Rename mgd files
+      mv $full_dir/orig.fqs/*.mgd* $full_dir
+      rename 's/.mgd_S1/_S1/' $full_dir/*.mgd*.gz
     done
   fi
 
@@ -106,19 +121,26 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
 
     echo "  Concatenating ATAC fastq files..."
 
+    # Check if orig.fqs directory exists
+    if [[ -d "$full_dir/orig.fqs" ]]; then
+      echo "    orig.fqs directory exists. Skipping concatenation for ATAC."
+      continue
+    fi
+
     # Get all files in the full directory
     full_sample_names=($(ls $full_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
+    # Get basenames of full_sample_names
+    full_sample_basenames=($(for name in "${full_sample_names[@]}"; do echo $(basename "$name"); done))
 
     # Get all files in the shallow directory
     shallow_sample_names=($(ls $shallow_dir/*gz | awk -F '_S' '{print $1}' | sort -u))
+    # Get basenames of shallow_sample_names
+    shallow_sample_basenames=($(for name in "${shallow_sample_names[@]}"; do echo $(basename "$name"); done))
 
     # Get the union of samples from both directories
-    union_samples=($(sort -u <<< "${full_sample_names[@]} ${shallow_sample_names[@]}"))
+    union_samples=($(sort -u <<< "${full_sample_basenames[@]} ${shallow_sample_basenames[@]}"))
 
-    # Filter out samples with ".mgd" in their names
-    non_mgd_samples=($(echo "${union_samples[@]}" | grep -v ".mgd"))
-
-    for sample_path in "${non_mgd_samples[@]}"; do
+    for sample_path in "${union_samples[@]}"; do
       sample=$(basename $sample_path)
       # Remove existing concatenated files if they exist
       if [[ -f "$shallow_dir/${sample}_S1_R1_001.fastq.gz" ]]; then
@@ -211,6 +233,15 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
           cp "$full_file_i2" "$full_dir/${sample}.mgd_S1_I2_001.fastq.gz"
         fi
       fi
+    
+      # Create orig.fqs directory and move original fastq files
+      mkdir -p "$full_dir/orig.fqs"
+      mv "$full_dir"/${sample}*_001.fastq.gz "$full_dir/orig.fqs"
+      mv "$full_dir"/${sample}*_001.fastq.gz "$full_dir/orig.fqs"
+
+      # Rename mgd files
+      mv $full_dir/orig.fqs/*.mgd* $full_dir
+      rename 's/.mgd_S1/_S1/' $full_dir/*.mgd*.gz
     done
   fi
 done
