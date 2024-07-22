@@ -8,6 +8,8 @@ dependencies:
   - kallisto<1.0
   - bustools<1.0
   - leidenalg
+  - r-biocmanager
+  - r-pacman
   - r-seurat
   - bioconductor-glmgampoi
   - biopython
