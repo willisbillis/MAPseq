@@ -36,20 +36,13 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
     shallow_sample_basenames=($(for name in "${shallow_sample_names[@]}"; do echo $(basename $name); done))
 
     # Get the unique union of samples from both directories
+    unset combined_samples
     combined_samples+=("${full_sample_basenames[@]}" "${shallow_sample_basenames[@]}")
     IFS=$' '
     union_samples=($(printf "%s\n" "${combined_samples[@]}" | sort -u | tr '\n' ' '))
     unset IFS
 
     for sample in "${union_samples[@]}"; do
-      # Remove existing concatenated files if they exist
-      if [[ -f "$shallow_dir/${sample}sh_S1_R1_001.fastq.gz" ]]; then
-        rm "$shallow_dir/${sample}sh_S1_R1_001.fastq.gz"
-      fi
-      if [[ -f "$shallow_dir/${sample}sh_S1_R2_001.fastq.gz" ]]; then
-        rm "$shallow_dir/${sample}sh_S1_R2_001.fastq.gz"
-      fi
-
       # Check if both full and shallow files exist
       full_file_r1="$full_dir/${sample}*_R1_001.fastq.gz"
       full_file_r2="$full_dir/${sample}*_R2_001.fastq.gz"
@@ -66,16 +59,16 @@ find "$base_dir" -maxdepth 1 -type d -name "LRA0[0-9][0-9]" | while read -r dir;
       if [[ $(echo $shallow_file_r1 | wc -w) -gt 1 ]]; then
         # Concatenate all files in shallow_file_r1 into a single file
         for file in $shallow_file_r1; do
-          cat "$file" >> "$shallow_dir/${sample}sh_S1_R1_001.fastq.gz"
+          cat "$file" >> "$shallow_dir/${sample}_S1_R1_001.fastq.gz"
         done
-        shallow_file_r1="$shallow_dir/${sample}sh_S1_R1_001.fastq.gz"
+        shallow_file_r1="$shallow_dir/${sample}_S1_R1_001.fastq.gz"
       fi
       if [[ $(echo $shallow_file_r2 | wc -w) -gt 1 ]]; then
         # Concatenate all files in shallow_file_r2 into a single file
         for file in $shallow_file_r2; do
-          cat "$file" >> "$shallow_dir/${sample}sh_S1_R2_001.fastq.gz"
+          cat "$file" >> "$shallow_dir/${sample}_S1_R2_001.fastq.gz"
         done
-        shallow_file_r2="$shallow_dir/${sample}sh_S1_R2_001.fastq.gz"
+        shallow_file_r2="$shallow_dir/${sample}_S1_R2_001.fastq.gz"
       fi
 
       if [[ -f "$full_file_r1" && -f "$shallow_file_r1" && -f "$full_file_r2" && -f "$shallow_file_r2" ]]; then
