@@ -12,3 +12,4 @@ dependencies:
   - r-pacman
   - bioconductor-glmgampoi
   - biopython
+  - anndata
