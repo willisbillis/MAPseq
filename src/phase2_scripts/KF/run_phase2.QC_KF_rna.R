@@ -152,7 +152,7 @@ ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 15        # REPLACE, maximum percent mitochondrial reads per cell
 DBL_LIMIT = 0.75       # REPLACE, minimum scDblFinder score to permit
-MIN_GENE_READS = 300   # REPLACE, minimum genes with reads per cell
+MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
@@ -234,7 +234,7 @@ write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
 # SAVE RAW SEURAT OBJECT
 ###############################################################################
 saveRDS(sc_total,
-        paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+        paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 ###############################################################################
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
@@ -319,10 +319,10 @@ capture.output(sessionInfo(),
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
 #      token with rsconnect
 if (FALSE) {
-  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay="SCT", layer = "counts")
-  adt_data = LayerData(sc, assay="ADT", layer = "data")
-  sct_data = LayerData(sc, assay="SCT", layer = "data")
+  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
+  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
+  adt_data = LayerData(sc, assay = "ADT", layer = "data")
+  sct_data = LayerData(sc, assay = "SCT", layer = "data")
   sct_act_cts = rbind(sct_cts, adt_cts)
   sct_act_data = rbind(sct_data, adt_data)
   sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
