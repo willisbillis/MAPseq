@@ -27,17 +27,17 @@ set.seed(1234)                # set seed for reproducibility
 import_kite_counts <- function(data_path) {
   library(data.table)
   library(Matrix)
-  mtx <- fread(paste0(data_path, "/featurecounts.mtx"), header = FALSE)
-  dim <- mtx[1,]
-  mtx <- mtx[-1,]
+  mtx <- fread(paste0(data_path, "/cells_x_features.mtx"), header = FALSE)
+  dim <- mtx[1, ]
+  mtx <- mtx[-1, ]
   matx <- sparseMatrix(i = mtx[[1]], j = mtx[[2]], x = mtx[[3]],
                        dims=c(dim[[1]],dim[[2]]))
-  rownames(matx) <- fread(paste0(data_path, "/featurecounts.barcodes.txt"),
+  rownames(matx) <- fread(paste0(data_path, "/cells_x_features.barcodes.txt"),
                           header = FALSE)[[1]]
-  colnames(matx) <- fread(paste0(data_path, "/featurecounts.genes.txt"),
+  colnames(matx) <- fread(paste0(data_path, "/cells_x_features.genes.txt"),
                           header = FALSE)[[1]]
   # match Seurat's replacement of underscores with dashes
-  colnames(matx) = gsub("_","-", colnames(matx))
+  colnames(matx) = gsub("_", "-", colnames(matx))
   return(t(matx))
 }
 ################################################################################
@@ -89,7 +89,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   run_id = metadata_df[idx, "run_id"]
   features_path = paste0(PROJECT_PATH, "/", run_id,
                          "/pipeline/ATAC.ASAP/ASAP/", asap_lib_id,
-                         "/featurecounts")
+                         "/counts_unfiltered")
   hto <- import_kite_counts(features_path)
   cells = barcodes$V1[barcodes$library_id == atac_lib_id]
   library_suffix = match(atac_lib_id, aggr_df$library_id)
