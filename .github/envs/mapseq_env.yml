@@ -13,3 +13,4 @@ dependencies:
   - bioconductor-glmgampoi
   - biopython
   - anndata
+  - kb-python
