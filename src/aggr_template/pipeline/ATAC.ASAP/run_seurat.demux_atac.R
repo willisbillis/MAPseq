@@ -31,7 +31,7 @@ import_kite_counts <- function(data_path) {
   dim <- mtx[1, ]
   mtx <- mtx[-1, ]
   matx <- sparseMatrix(i = mtx[[1]], j = mtx[[2]], x = mtx[[3]],
-                       dims=c(dim[[1]],dim[[2]]))
+                       dims=c(dim[[1]], dim[[2]]))
   rownames(matx) <- fread(paste0(data_path, "/cells_x_features.barcodes.txt"),
                           header = FALSE)[[1]]
   colnames(matx) <- fread(paste0(data_path, "/cells_x_features.genes.txt"),
