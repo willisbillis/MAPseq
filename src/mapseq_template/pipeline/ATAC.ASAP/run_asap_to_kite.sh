@@ -31,7 +31,6 @@ done < $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv
 asap_samples=()
 for sample in "${sample_name_col[@]}"; do
   if [[ $sample =~ .*$ASAP_NAMING_ID.* ]]; then
-    echo $sample
     asap_samples+=("$sample")
   fi
 done
