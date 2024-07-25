@@ -14,10 +14,23 @@ TOOL_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/tools
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
 OUTPUT_FILE=$OUTPUT_DIR/kite_asap_mapping.log
 ################################################################################
+# Change to the output directory
 cd $OUTPUT_DIR
-sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
-sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
-asap_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*))
+
+# Extract sample names from the sample manifest
+sample_name_col=()
+while IFS=',' read -ra array; do
+  sample_name_col+=("${array[1]}")
+done < $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv
+
+# Filter for ASAP samples and remove duplicates
+asap_samples=()
+for sample in "${sample_name_col[@]}"; do
+  if [[ $sample =~ .*$ASAP_NAMING_ID.* ]]; then
+    echo $sample
+    asap_samples+=("$sample")
+  fi
+done
 
 echo "$(date) Using HTO feature reference located at $ASAP_FEAT_REF_PATH" &>> $OUTPUT_FILE
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
@@ -37,6 +50,6 @@ for sample in "${asap_samples[@]}"; do
   sed '1d' < FeatureBarcodes.tsv > FeatureBarcodes_noheader.tsv
   rm FeatureBarcodes.tsv
 
-  kb ref -i mismatch.idx -f1 mismatch.fa -g t2g.txt --kallisto /usr/local/bin/kallisto --workflow kite FeatureBarcodes_noheader.tsv
-  kb count --verbose --cellranger --kallisto /usr/local/bin/kallisto --workflow kite:10xFB -i mismatch.idx -g t2g.txt -x 10XV3 ../${sample}*.gz
+  kb ref -i mismatch.idx -f1 mismatch.fa -g t2g.txt --kallisto /usr/local/bin/kallisto --workflow kite FeatureBarcodes_noheader.tsv &>> $OUTPUT_FILE
+  kb count --verbose --cellranger --kallisto /usr/local/bin/kallisto --workflow kite:10xFB -i mismatch.idx -g t2g.txt -x 10XV3 ../${sample}*.gz &>> $OUTPUT_FILE
 done

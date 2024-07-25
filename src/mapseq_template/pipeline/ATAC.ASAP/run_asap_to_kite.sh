@@ -22,10 +22,19 @@ mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 
 # Extract sample names from the sample manifest
-sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
+sample_name_col=()
+while IFS=',' read -ra array; do
+  sample_name_col+=("${array[1]}")
+done < $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv
 
 # Filter for ASAP samples and remove duplicates
-asap_samples=($(grep -E ".*${ASAP_NAMING_ID}.*" <<< "${sample_name_col[@]}" | uniq))
+asap_samples=()
+for sample in "${sample_name_col[@]}"; do
+  if [[ $sample =~ .*$ASAP_NAMING_ID.* ]]; then
+    echo $sample
+    asap_samples+=("$sample")
+  fi
+done
 
 # Get Python version
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
