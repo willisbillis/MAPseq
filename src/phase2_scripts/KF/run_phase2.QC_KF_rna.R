@@ -286,7 +286,7 @@ for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
 
 p = clustree(sc, prefix = paste0(graph, "_res."))
 ggsave("clustree_clusters_rna.png", p,
-       width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
+       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
@@ -309,10 +309,10 @@ write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
 saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
-               file=paste0(PROJECT_DIR, "/",
-                           PROJECT_NAME,
-                           ".Rsession.Info.",
-                           gsub("\\D", "", Sys.time()), ".txt"))
+               file = paste0(PROJECT_DIR, "/",
+                             PROJECT_NAME,
+                             ".Rsession.Info.",
+                             gsub("\\D", "", Sys.time()), ".txt"))
 ###############################################################################
 # Optional Additonal Analyses
 ###############################################################################
@@ -332,9 +332,9 @@ if (FALSE) {
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = FALSE,
                shiny.title = paste0(PROJECT_NAME, " RNA + ADT + HTO"),
-               shiny.dir = paste0("shiny_", PROJECT_NAME, "_rna"),
+               shiny.dir = paste0("shiny_", PROJECT_NAME, "enrichedBcells_rna"),
                gex.assay = "SCT_ADT")
-  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "_rna"))
+  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "enrichedBcells_rna"))
 }
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
