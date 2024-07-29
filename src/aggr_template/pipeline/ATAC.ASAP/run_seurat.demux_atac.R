@@ -23,24 +23,6 @@ set.seed(1234)                # set seed for reproducibility
 # Matrix: processing ASAP counts matrices
 
 ################################################################################
-## Custom functions
-import_kite_counts <- function(data_path) {
-  library(data.table)
-  library(Matrix)
-  mtx <- fread(paste0(data_path, "/cells_x_features.mtx"), header = FALSE)
-  dim <- mtx[1, ]
-  mtx <- mtx[-1, ]
-  matx <- sparseMatrix(i = mtx[[1]], j = mtx[[2]], x = mtx[[3]],
-                       dims=c(dim[[1]], dim[[2]]))
-  rownames(matx) <- fread(paste0(data_path, "/cells_x_features.barcodes.txt"),
-                          header = FALSE)[[1]]
-  colnames(matx) <- fread(paste0(data_path, "/cells_x_features.genes.txt"),
-                          header = FALSE)[[1]]
-  # match Seurat's replacement of underscores with dashes
-  colnames(matx) = gsub("_", "-", colnames(matx))
-  return(t(matx))
-}
-################################################################################
 # Import all the global variables for this project
 PROJECT_PATH = Sys.getenv("PROJECT_PATH")[1]
 PROJECT_NAME = Sys.getenv("PROJECT_NAME")[1]
@@ -90,11 +72,11 @@ for (idx in seq_len(nrow(metadata_df))) {
   features_path = paste0(PROJECT_PATH, "/", run_id,
                          "/pipeline/ATAC.ASAP/ASAP/", asap_lib_id,
                          "/counts_unfiltered")
-  hto <- import_kite_counts(features_path)
+  hto <- Read10X(features_path)
   cells = barcodes$V1[barcodes$library_id == atac_lib_id]
   library_suffix = match(atac_lib_id, aggr_df$library_id)
   colnames(hto) = paste0(colnames(hto), "-", library_suffix)
-  cmat <- hto[,colnames(hto) %in% cells]
+  cmat <- hto[, colnames(hto) %in% cells]
 
   metadata_df[idx, c("HTO_cells",
                      "ATAC_cells",
