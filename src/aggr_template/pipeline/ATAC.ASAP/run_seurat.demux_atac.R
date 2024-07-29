@@ -72,11 +72,11 @@ for (idx in seq_len(nrow(metadata_df))) {
   features_path = paste0(PROJECT_PATH, "/", run_id,
                          "/pipeline/ATAC.ASAP/ASAP/", asap_lib_id,
                          "/counts_unfiltered/cellranger")
-  hto <- Read10X(data.dir = features_path)
+  hto <- Read10X(data.dir = features_path, strip.suffix = TRUE)
   cells = barcodes$V1[barcodes$library_id == atac_lib_id]
   library_suffix = match(atac_lib_id, aggr_df$library_id)
   colnames(hto) = paste0(colnames(hto), "-", library_suffix)
-  cmat <- hto[, colnames(hto) %in% cells]
+  cmat <- hto[, cells %in% colnames(hto)]
 
   metadata_df[idx, c("HTO_cells",
                      "ATAC_cells",
