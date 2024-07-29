@@ -50,5 +50,5 @@ for sample in "${asap_samples[@]}"; do
   rm FeatureBarcodes.tsv
 
   kb ref -i mismatch.idx -f1 mismatch.fa -g t2g.txt --kallisto /usr/local/bin/kallisto --workflow kite FeatureBarcodes_noheader.tsv &>> $OUTPUT_FILE
-  kb count --verbose --cellranger --kallisto /usr/local/bin/kallisto --workflow kite:10xFB -i mismatch.idx -g t2g.txt -x 10XV3 ../${sample}*.gz &>> $OUTPUT_FILE
+  kb count --verbose --cellranger -w NONE --kallisto /usr/local/bin/kallisto --workflow kite:10xFB -i mismatch.idx -g t2g.txt -x 10XV3 ../${sample}*.gz &>> $OUTPUT_FILE
 done
