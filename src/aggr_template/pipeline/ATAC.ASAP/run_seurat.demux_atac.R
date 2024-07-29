@@ -71,7 +71,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   run_id = metadata_df[idx, "run_id"]
   features_path = paste0(PROJECT_PATH, "/", run_id,
                          "/pipeline/ATAC.ASAP/ASAP/", asap_lib_id,
-                         "/counts_unfiltered")
+                         "/counts_unfiltered/cellranger")
   hto <- Read10X(data.dir = features_path)
   cells = barcodes$V1[barcodes$library_id == atac_lib_id]
   library_suffix = match(atac_lib_id, aggr_df$library_id)
