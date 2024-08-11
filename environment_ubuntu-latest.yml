@@ -9,10 +9,10 @@ dependencies:
   - _r-mutex=1.0.1=anacondar_1
   - _sysroot_linux-64_curr_repodata_hack=3=haa98f57_10
   - anndata=0.10.8=pyhd8ed1ab_0
-  - argcomplete=3.4.0=pyhd8ed1ab_0
+  - argcomplete=3.5.0=pyhd8ed1ab_0
   - arpack=3.9.1=nompi_h77f6705_101
   - array-api-compat=1.8=pyhd8ed1ab_0
-  - attrs=24.1.0=pyh71513ae_0
+  - attrs=24.2.0=pyh71513ae_0
   - beautifulsoup4=4.12.3=py312h06a4308_0
   - binutils_impl_linux-64=2.40=ha1999f0_7
   - bioconductor-beachmat=2.18.0=r43hf17093f_1
@@ -53,7 +53,7 @@ dependencies:
   - cached_property=1.5.2=pyha770c72_1
   - cairo=1.18.0=hebfffa5_3
   - certifi=2024.7.4=py312h06a4308_0
-  - cffi=1.16.0=py312h5eee18b_1
+  - cffi=1.17.0=py312h1671c18_0
   - charset-normalizer=3.3.2=pyhd3eb1b0_0
   - click=8.1.7=py312h06a4308_0
   - colorama=0.4.6=py312h06a4308_0
@@ -83,7 +83,7 @@ dependencies:
   - gmp=6.3.0=hac33072_2
   - graphite2=1.3.14=h295c915_1
   - gsl=2.7.1=h6e86dc7_1
-  - gxx_impl_linux-64=14.1.0=h2879b86_0
+  - gxx_impl_linux-64=14.1.0=h8d00ecb_0
   - h2=4.1.0=pyhd8ed1ab_0
   - h5py=3.11.0=nompi_py312hb7ab980_102
   - harfbuzz=9.0.0=hda332d3_1
@@ -122,7 +122,7 @@ dependencies:
   - libbrotlienc=1.1.0=hd590300_1
   - libcblas=3.9.0=23_linux64_openblas
   - libcurl=8.9.1=hdb1bdb2_0
-  - libdeflate=1.20=hd590300_0
+  - libdeflate=1.21=h4bc722e_0
   - libedit=3.1.20230828=h5eee18b_0
   - libev=4.33=h7f8727e_1
   - libexpat=2.6.2=h59595ed_0
@@ -131,7 +131,7 @@ dependencies:
   - libgcc-ng=14.1.0=h77fa898_0
   - libgfortran-ng=14.1.0=h69a702a_0
   - libgfortran5=14.1.0=hc5f4f2c_0
-  - libglib=2.80.3=h8a4344b_1
+  - libglib=2.80.3=h315aac3_2
   - libgomp=14.1.0=h77fa898_0
   - libhwloc=2.11.1=default_hecaa2ac_1000
   - libiconv=1.17=hd590300_2
@@ -149,7 +149,7 @@ dependencies:
   - libssh2=1.11.0=h0841786_0
   - libstdcxx-devel_linux-64=14.1.0=h5d3d1c9_100
   - libstdcxx-ng=14.1.0=hc0a3c3a_0
-  - libtiff=4.6.0=h1dd3fc0_3
+  - libtiff=4.6.0=h46a8edc_4
   - libuuid=2.38.1=h0b41bf4_0
   - libwebp-base=1.4.0=hd590300_0
   - libxcb=1.16=hd590300_0
@@ -176,7 +176,7 @@ dependencies:
   - numpy=2.0.1=py312h1103770_0
   - numpy_groupies=0.11.2=pyhd8ed1ab_0
   - oniguruma=6.9.9=hd590300_0
-  - openjpeg=2.5.2=h488ebb8_0
+  - openjpeg=2.5.2=he7f1fd0_0
   - openssl=3.3.1=h4bc722e_2
   - packaging=24.1=py312h06a4308_0
   - pandas=2.2.2=py312h1d6d2e6_1
@@ -199,15 +199,15 @@ dependencies:
   - pysam=0.22.1=py312hcfdcdd7_2
   - pyseq-align=1.0.2=py312hf67a6ed_4
   - pysocks=1.7.1=py312h06a4308_0
-  - python=3.12.4=h194c7f8_0_cpython
+  - python=3.12.5=h2ad013b_0_cpython
   - python-dateutil=2.9.0post0=py312h06a4308_2
   - python-fastjsonschema=2.20.0=pyhd8ed1ab_0
   - python-igraph=0.11.6=py312h0e1f547_0
   - python-tzdata=2024.1=pyhd8ed1ab_0
   - python_abi=3.12=4_cp312
   - pytz=2024.1=py312h06a4308_0
-  - pyyaml=6.0.1=py312h5eee18b_0
-  - pyzmq=26.0.3=py312h8fd38d8_0
+  - pyyaml=6.0.2=py312h41a817b_0
+  - pyzmq=26.1.0=py312h7ab5c7e_0
   - qhull=2020.2=hdb19cb5_2
   - r-abind=1.4_5=r43h142f84f_0
   - r-base=4.3.3=h9967228_13
@@ -230,7 +230,7 @@ dependencies:
   - readline=8.2=h5eee18b_0
   - referencing=0.35.1=pyhd8ed1ab_0
   - requests=2.32.3=py312h06a4308_0
-  - rpds-py=0.19.1=py312hf008fa9_0
+  - rpds-py=0.20.0=py312hf008fa9_0
   - scanpy=1.10.1=pyhd8ed1ab_0
   - scikit-learn=1.5.1=py312h775a589_0
   - scipy=1.14.0=py312hc2bc53b_1
@@ -238,7 +238,7 @@ dependencies:
   - seaborn-base=0.13.2=pyhd8ed1ab_0
   - sed=4.8=h7b6447c_0
   - session-info=1.0.0=pyhd8ed1ab_0
-  - setuptools=72.1.0=pyhd8ed1ab_0
+  - setuptools=72.1.0=py312h06a4308_0
   - shortuuid=1.0.13=pyhd8ed1ab_0
   - six=1.16.0=pyhd3eb1b0_1
   - soupsieve=2.5=py312h06a4308_0
@@ -256,7 +256,7 @@ dependencies:
   - toml=0.10.2=pyhd3eb1b0_0
   - tomlkit=0.13.0=pyha770c72_0
   - tornado=6.4.1=py312h5eee18b_0
-  - tqdm=4.66.4=py312he106c6f_0
+  - tqdm=4.66.5=pyhd8ed1ab_0
   - traitlets=5.14.3=py312h06a4308_0
   - typing-extensions=4.12.2=hd8ed1ab_0
   - typing_extensions=4.12.2=pyha770c72_0
@@ -264,7 +264,7 @@ dependencies:
   - umap-learn=0.5.6=py312h7900ff3_0
   - urllib3=2.2.2=py312h06a4308_0
   - webencodings=0.5.1=py312h06a4308_2
-  - wheel=0.43.0=py312h06a4308_0
+  - wheel=0.44.0=pyhd8ed1ab_0
   - xmltodict=0.13.0=py312h06a4308_0
   - xorg-kbproto=1.0.7=h7f98852_1002
   - xorg-libice=1.1.1=hd590300_0
