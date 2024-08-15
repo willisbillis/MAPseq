@@ -43,7 +43,7 @@ set.seed(1234)                # set seed for reproducibility
 #### SET RESOURCE LIMITS ####
 ###############################################################################
 max_cores = 32
-max_mem = 32
+max_mem = 128
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -58,7 +58,7 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "LRA_all"
 # REPLACE, path to ATAC.ASAP analysis dir from MAPseq pipeline
-PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq",
+PROJECT_DIR = paste0("/home/Projects/Scharer_sc/LRA.MAPseq",
                      "/LRA_all/analysis/ATAC.ASAP")
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,
                          "/data/raw_atac.hto_", PROJECT_NAME, ".RDS")

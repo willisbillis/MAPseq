@@ -54,9 +54,9 @@ plan("multicore", workers = max_cores)
 #### OPTIONS ####
 ###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "ACV02_all_002"
+PROJECT_NAME = "ACV02_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/ACV02/ACV02_all_002/analysis/RNA.FB.VDJ"
+PROJECT_DIR = "/home/Projects/Scharer_sc/ACV02/ACV02_all/analysis/RNA.FB.VDJ"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 
@@ -148,10 +148,10 @@ ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
 #### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MAX_PCT_MT = 10        # REPLACE, maximum percent mitochondrial reads per cell
-DBL_LIMIT = 0.6       # REPLACE, minimum scDblFinder score to permit
+MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
+DBL_LIMIT = 0.75       # REPLACE, minimum scDblFinder score to permit
 MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
-MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
+MAX_GENE_READS = 10000  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
 p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt",
@@ -203,7 +203,8 @@ sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
               scDblFinder.score < DBL_LIMIT &
               nFeature_RNA > MIN_GENE_READS &
-              nFeature_RNA < MAX_GENE_READS)
+              nFeature_RNA < MAX_GENE_READS &
+              MULTI_ID != "Doublet")
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
