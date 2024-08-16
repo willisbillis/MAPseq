@@ -451,7 +451,6 @@ if (FALSE) {
                                        data = sct_act_data)
   DefaultAssay(sc) = "SCT_ADT"
   sc[["SCT_ADT"]] = as(sc[["SCT_ADT"]], Class = "Assay")
-  sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
   sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
   sc[["SCT"]] = as(sc[["SCT"]], Class = "Assay")
   sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
