@@ -76,7 +76,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   cells = barcodes$V1[barcodes$library_id == atac_lib_id]
   library_suffix = match(atac_lib_id, aggr_df$library_id)
   colnames(hto) = paste0(colnames(hto), "-", library_suffix)
-  cmat <- hto[, cells %in% colnames(hto)]
+  cmat <- hto[, colnames(hto) %in% cells]
 
   metadata_df[idx, c("HTO_cells",
                      "ATAC_cells",
