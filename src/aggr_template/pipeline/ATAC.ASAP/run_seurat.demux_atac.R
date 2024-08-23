@@ -134,7 +134,14 @@ for (idx in seq_len(nrow(metadata_df))) {
       hashtag <- NormalizeData(hashtag, assay = "HTO",
                                normalization.method = "CLR",
                                verbose = FALSE)
-      hashtag = MULTIseqDemux(hashtag, autoThresh = TRUE, verbose = TRUE)
+      if (ncol(hashtag) < 25000) {
+        hashtag = HTODemux(hashtag, kfunc = "kmeans")
+        hashtag$MULTI_ID = hashtag$hash.ID
+        print(table(hashtag$MULTI_ID))
+        print(summary(t(hashtag@assays$HTO@layers$data)))
+      } else {
+        hashtag = MULTIseqDemux(hashtag, autoThresh = TRUE, verbose = TRUE)
+      }
       successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
                                                     c("Doublet", "Negative"))])
       failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
