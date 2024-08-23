@@ -137,6 +137,7 @@ for (idx in seq_len(nrow(metadata_df))) {
       if (ncol(hashtag) < 25000) {
         hashtag = HTODemux(hashtag, kfunc = "kmeans")
         hashtag$MULTI_ID = hashtag$hash.ID
+        hashtag$MULTI_classification = hashtag$HTO_classification
         print(table(hashtag$MULTI_ID))
         print(summary(t(hashtag@assays$HTO@layers$data)))
       } else {
@@ -200,6 +201,7 @@ for (idx in seq_len(nrow(metadata_df))) {
 
 sc_total = merge(atac_obj_list[[1]], c(atac_obj_list[2:idx]))
 sc_total = JoinLayers(sc_total, assay = "HTO")
+sc_total = sc_total[, !is.na(sc_total$nCount_HTO)]
 
 DefaultAssay(sc_total) = "ATAC"
 
