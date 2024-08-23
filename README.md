@@ -7,10 +7,14 @@ processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) da
 
 ## Pre-Installation Requirements
 
-We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide a [`environment.yaml`](environment.yaml) file for easy installation with conda. This can be run and initialized with:
+Supported Operating Systems:
+ - Ubuntu 22.04
+
+
+We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide an `environment.yml` file for easy installation with conda. This can be run and initialized with:
 
 ```bash
-conda create --name mapseq_env --file environment_<your_machine_os>.yml
+conda env create --name mapseq_env --file environment_<your_machine_os>.yml
 conda activate mapseq_env
 ```
 
@@ -18,10 +22,10 @@ conda activate mapseq_env
 
 * Cell Ranger (v8.0.0) [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
 * Cell Ranger ATAC (v2.1.0) [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/2.1/installation)
-* kallisto (v0.46.1) [(install here)](https://pachterlab.github.io/kallisto/download)
-* bustools (v0.39.3) [(install here)](https://bustools.github.io/download)
+* kallisto (<v1.0) [(install here)](https://pachterlab.github.io/kallisto/download)
+* bustools (<v1.0) [(install here)](https://bustools.github.io/download)
 * cellbender (v0.3.0) [(install here)](https://cellbender.readthedocs.io/en/latest/installation/index.html)
-* leidenalg (v0.10.0) [(install here)](https://leidenalg.readthedocs.io/en/stable/install.html)
+* leidenalg (<v1.0) [(install here)](https://leidenalg.readthedocs.io/en/stable/install.html)
 
 ### Installation
 
@@ -63,7 +67,5 @@ Citing
 If you make use of this software for your work we would appreciate it if you would include the citation in any subsequent work. You may cite it using the dropdown menu in the top right of this page.
 
 Known Issues
-
----------
-
+------------
 * No currently known issues

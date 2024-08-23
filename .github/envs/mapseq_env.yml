@@ -1,0 +1,14 @@
+name: mapseq_env
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base
+  - python
+  - leidenalg
+  - r-biocmanager
+  - r-pacman
+  - bioconductor-glmgampoi
+  - biopython
+  - anndata
+  - kb-python

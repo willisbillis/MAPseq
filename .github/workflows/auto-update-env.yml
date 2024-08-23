@@ -1,0 +1,48 @@
+
+name: Update Conda Environment
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"  # Runs at midnight on Sunday
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  create-env:
+    name: ${{ matrix.os }} 
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+        
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configuring conda
+        run: |
+          conda env create -f .github/envs/mapseq_env.yml
+          conda update -y -n mapseq_env --all
+
+      - name: export environment
+        run: |
+          conda env export -n mapseq_env | grep -v "^prefix: " > "environment_${{ matrix.os }}.yml"
+
+      - name: push environment.yml to branch
+        run: |
+          git config user.name 'GitHub Actions'
+          git config user.email 'actions@github.com'
+          git checkout -b dependencies_update
+          git branch --set-upstream-to=origin/main dependencies_update
+          git add "environment_${{ matrix.os }}.yml"
+          git commit -a -m "Add updated environment_${{ matrix.os }}.yml"
+          git push -u origin dependencies_update
+
+      - name: Create Pull Request
+        run: gh pr create -B main -H dependencies_update --title 'Merge dependencies_update into main' --body 'Created by Github action'
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
