@@ -13,7 +13,12 @@ Supported Operating Systems:
 
 We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide an `environment.yml` file for easy installation with conda. This can be run and initialized with:
 
-```bash
+# Clone the repository
+git clone https://github.com/willisbillis/MAPseq.git
+# Or, if you have GitHub CLI installed:
+# gh repo clone willisbillis/MAPseq
+
+cd MAPseq
 conda env create --name mapseq_env --file environment_<your_machine_os>.yml
 conda activate mapseq_env
 ```
