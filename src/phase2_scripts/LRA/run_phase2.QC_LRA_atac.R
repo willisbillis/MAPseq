@@ -62,8 +62,6 @@ PROJECT_DIR = paste0("/home/Projects/Scharer_sc/LRA.MAPseq",
                      "/LRA_all/analysis/ATAC.ASAP")
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,
                          "/data/raw_atac.hto_", PROJECT_NAME, ".RDS")
-HTO_DEMUX_PATH = paste0(PROJECT_DIR,
-                        "/../../pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 
 GENOME = "GRCh38"                     # REPLACE (GRCh38 or GRCm39)
 OUTPUT_FIG_WIDTH =  8                 # inches, width of output figures
@@ -73,7 +71,6 @@ OUTPUT_FIG_HEIGHT = 8                 # inches, height of output figures
 ###############################################################################
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
-hto_reference = read.csv(HTO_DEMUX_PATH)
 ###############################################################################
 #### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
@@ -83,30 +80,20 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "hash.ID",
+            group.by = "MULTI_ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "HTO_maxID",
-            pt.size = 0)
-ggsave(paste0("vln_max_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
-
-p = VlnPlot(sc_total,
-            features = rownames(sc_total[["HTO"]]),
-            ncol = ncol,
-            group.by = "HTO_classification.global",
+            group.by = "MULTI_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
-
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 ###############################################################################
 #### CALCULATE QC METRICS (HTO) ####
 ###############################################################################

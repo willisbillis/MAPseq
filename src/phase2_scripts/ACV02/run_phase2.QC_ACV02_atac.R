@@ -62,8 +62,6 @@ PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc/ACV02",
                      "/ACV02_all/analysis/ATAC.ASAP")
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,
                          "/data/raw_atac.hto_", PROJECT_NAME, ".RDS")
-HTO_DEMUX_PATH = paste0(PROJECT_DIR,
-                        "/../../pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 
 GENOME = "GRCh38"                     # REPLACE (GRCh38 or GRCm39)
 OUTPUT_FIG_WIDTH =  8                 # inches, width of output figures
@@ -73,7 +71,6 @@ OUTPUT_FIG_HEIGHT = 8                 # inches, height of output figures
 ###############################################################################
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
-hto_reference = read.csv(HTO_DEMUX_PATH)
 ###############################################################################
 #### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
@@ -83,7 +80,7 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "hash.ID",
+            group.by = "MULTI_ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -92,43 +89,11 @@ ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "HTO_maxID",
-            pt.size = 0)
-ggsave(paste0("vln_max_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
-
-p = VlnPlot(sc_total,
-            features = rownames(sc_total[["HTO"]]),
-            ncol = ncol,
-            group.by = "HTO_classification.global",
+            group.by = "MULTI_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
        width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
-
-cells_use = colnames(sc_total[, !is.na(sc_total$HTO_maxID)])
-p = FeatureScatter(sc_total, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
-                   split.by = "HTO_maxID", cells = cells_use, ncol = ncol) +
-  scale_x_continuous(trans = "log10") +
-  scale_y_continuous(trans = "log10") +
-  stat_ellipse(aes(group = asap_id),
-               sc_total@meta.data[!is.na(sc_total@meta.data$HTO_maxID), ]) +
-  labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
-ggsave("featscatter_nctATAC.v.nctHTO_HTO_maxid_alldata.png", p,
-       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
-
-cells_use = colnames(sc_total[, !is.na(sc_total$hash.ID)])
-p = FeatureScatter(sc_total, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
-                   split.by = "hash.ID", cells = cells_use,
-                   ncol = ceiling((nrow(sc_total[["HTO"]]) + 2) / 3)) +
-  scale_x_continuous(trans = "log10") +
-  scale_y_continuous(trans = "log10") +
-  stat_ellipse(aes(group = asap_id),
-               sc_total@meta.data[!is.na(sc_total@meta.data$hash.ID), ]) +
-  labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
-ggsave("featscatter_nctATAC.v.nctHTO_calledHT_alldata.png", p,
-       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### CALCULATE QC METRICS (HTO) ####
 ###############################################################################

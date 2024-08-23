@@ -58,12 +58,10 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "MISC_all"
 # REPLACE, path to ATAC.ASAP analysis dir from MAPseq pipeline
-PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc/MISC.MAPseq",
+PROJECT_DIR = paste0("/home/Projects/Scharer_sc/MISC.MAPseq",
                      "/MISC_all/analysis/ATAC.ASAP")
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,
                          "/data/raw_atac.hto_", PROJECT_NAME, ".RDS")
-HTO_DEMUX_PATH = paste0(PROJECT_DIR,
-                        "/../../pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 
 GENOME = "GRCh38"                     # REPLACE (GRCh38 or GRCm39)
 OUTPUT_FIG_WIDTH =  8                 # inches, width of output figures
@@ -82,30 +80,20 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "hash.ID",
+            group.by = "MULTI_ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "HTO_maxID",
-            pt.size = 0)
-ggsave(paste0("vln_max_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
-
-p = VlnPlot(sc_total,
-            features = rownames(sc_total[["HTO"]]),
-            ncol = ncol,
-            group.by = "HTO_classification.global",
+            group.by = "MULTI_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
-
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 ###############################################################################
 #### CALCULATE QC METRICS (HTO) ####
 ###############################################################################
