@@ -61,7 +61,8 @@ for sample in "${rna_samples[@]}"; do
         printf '%s\n' $vdj_sample $FASTQ_PATH VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
 
     else
-        ## NO VDJ SAMPLES DETECTED
+        ## NO VDJ SAMPLES DETECTED, CONSIDER USING 'cellranger count'
+        ## Performance comparison with 'cellranger multi' recommended
         # Create the config csv for the sample being run
         echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
         printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
