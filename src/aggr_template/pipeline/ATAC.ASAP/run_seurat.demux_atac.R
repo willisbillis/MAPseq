@@ -23,24 +23,6 @@ set.seed(1234)                # set seed for reproducibility
 # Matrix: processing ASAP counts matrices
 
 ################################################################################
-## Custom functions
-import_kite_counts <- function(data_path) {
-  library(data.table)
-  library(Matrix)
-  mtx <- fread(paste0(data_path, "/featurecounts.mtx"), header = FALSE)
-  dim <- mtx[1,]
-  mtx <- mtx[-1,]
-  matx <- sparseMatrix(i = mtx[[1]], j = mtx[[2]], x = mtx[[3]],
-                       dims=c(dim[[1]],dim[[2]]))
-  rownames(matx) <- fread(paste0(data_path, "/featurecounts.barcodes.txt"),
-                          header = FALSE)[[1]]
-  colnames(matx) <- fread(paste0(data_path, "/featurecounts.genes.txt"),
-                          header = FALSE)[[1]]
-  # match Seurat's replacement of underscores with dashes
-  colnames(matx) = gsub("_","-", colnames(matx))
-  return(t(matx))
-}
-################################################################################
 # Import all the global variables for this project
 PROJECT_PATH = Sys.getenv("PROJECT_PATH")[1]
 PROJECT_NAME = Sys.getenv("PROJECT_NAME")[1]
@@ -89,12 +71,12 @@ for (idx in seq_len(nrow(metadata_df))) {
   run_id = metadata_df[idx, "run_id"]
   features_path = paste0(PROJECT_PATH, "/", run_id,
                          "/pipeline/ATAC.ASAP/ASAP/", asap_lib_id,
-                         "/featurecounts")
-  hto <- import_kite_counts(features_path)
+                         "/counts_unfiltered/cellranger")
+  hto <- Read10X(data.dir = features_path, strip.suffix = TRUE)
   cells = barcodes$V1[barcodes$library_id == atac_lib_id]
   library_suffix = match(atac_lib_id, aggr_df$library_id)
   colnames(hto) = paste0(colnames(hto), "-", library_suffix)
-  cmat <- hto[,colnames(hto) %in% cells]
+  cmat <- hto[, colnames(hto) %in% cells]
 
   metadata_df[idx, c("HTO_cells",
                      "ATAC_cells",
@@ -147,26 +129,37 @@ for (idx in seq_len(nrow(metadata_df))) {
     hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
     names(hto_count_sums) = rownames(hashtag)
 
-    # check for failed hashtags (< 1 HTO count per cell on average)
-    if (sum(hto_count_sums < (ncol(hashtag) / nrow(hto_ref_sub))) > 0) {
-      print(paste("[WARNING] Hashtag staining failed for the",
-                  "following hashtags! Excluding from final object."))
-      failed_htos = names(hto_count_sums[hto_count_sums <
-                                           (ncol(hashtag) / nrow(hto_ref_sub))])
-      print(hto_ref_sub$patient_id[match(failed_htos,
-                                         hto_ref_sub$hashtag)])
-      print(failed_htos)
-      hto_ref_sub = hto_ref_sub[!(hto_ref_sub$hashtag %in% failed_htos), ]
-      hashtag = subset(hashtag, features = hto_ref_sub$hashtag)
+    # Check if there are enough cells to normalize data and demultiplex
+    if (ncol(hashtag) > nrow(hashtag)) {
+      hashtag <- NormalizeData(hashtag, assay = "HTO",
+                               normalization.method = "CLR",
+                               verbose = FALSE)
+      if (ncol(hashtag) < 25000) {
+        hashtag = HTODemux(hashtag, kfunc = "kmeans")
+        hashtag$MULTI_ID = hashtag$hash.ID
+        hashtag$MULTI_classification = hashtag$HTO_classification
+        print(table(hashtag$MULTI_ID))
+        print(summary(t(hashtag@assays$HTO@layers$data)))
+      } else {
+        hashtag = MULTIseqDemux(hashtag, autoThresh = TRUE, verbose = TRUE)
+      }
+      successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
+                                                    c("Doublet", "Negative"))])
+      failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
+                                            successful_htos)]
+      if (length(failed_htos) > 0) {
+        print(paste("[WARNING] Demultiplexing failed for the",
+                    "following hashtags! Excluding from final object."))
+        print("patient_id:")
+        print(hto_ref_sub$patient_id[match(failed_htos,
+                                          hto_ref_sub$hashtag)])
+        print(failed_htos)
+      }
+      hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$MULTI_ID,
+                                                         hto_ref_sub$hashtag)]
+    } else {
+      print("[WARNING] Pool failed. Too few cells to demultiplex.")
     }
-    hashtag <- NormalizeData(hashtag, assay = "HTO",
-                             normalization.method = "CLR",
-                             verbose = FALSE)
-    hashtag <- HTODemux(hashtag, assay = "HTO", positive.quantile = 0.99,
-                        verbose = FALSE)
-
-    hashtag$patient_id = hto_ref_sub$patient_id[match(hashtag$hash.ID,
-                                                      hto_ref_sub$hashtag)]
   } else {
     print(paste0("Only one hashtag in ASAP sample", asap_lib_id,
                  ". No demultiplexing performed."))
@@ -184,7 +177,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   if (ncol(hto_ref_sub) > 3) {
     for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
       hashtag@meta.data[[metadata_col]] =
-        hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
+        hto_ref_sub[[metadata_col]][match(hashtag$MULTI_ID,
                                           hto_ref_sub$hashtag)]
     }
   }
@@ -208,6 +201,7 @@ for (idx in seq_len(nrow(metadata_df))) {
 
 sc_total = merge(atac_obj_list[[1]], c(atac_obj_list[2:idx]))
 sc_total = JoinLayers(sc_total, assay = "HTO")
+sc_total = sc_total[, !is.na(sc_total$nCount_HTO)]
 
 DefaultAssay(sc_total) = "ATAC"
 

@@ -43,7 +43,7 @@ set.seed(1234)                # set seed for reproducibility
 #### SET RESOURCE LIMITS ####
 ###############################################################################
 max_cores = 32
-max_mem = 32
+max_mem = 128
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -58,12 +58,10 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "LRA_all"
 # REPLACE, path to ATAC.ASAP analysis dir from MAPseq pipeline
-PROJECT_DIR = paste0("/home/boss_lab/Projects/Scharer_sc/LRA.MAPseq",
+PROJECT_DIR = paste0("/home/Projects/Scharer_sc/LRA.MAPseq",
                      "/LRA_all/analysis/ATAC.ASAP")
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,
                          "/data/raw_atac.hto_", PROJECT_NAME, ".RDS")
-HTO_DEMUX_PATH = paste0(PROJECT_DIR,
-                        "/../../pipeline/ATAC.ASAP/hashtag_ref_atac.csv")
 
 GENOME = "GRCh38"                     # REPLACE (GRCh38 or GRCm39)
 OUTPUT_FIG_WIDTH =  8                 # inches, width of output figures
@@ -73,7 +71,6 @@ OUTPUT_FIG_HEIGHT = 8                 # inches, height of output figures
 ###############################################################################
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
-hto_reference = read.csv(HTO_DEMUX_PATH)
 ###############################################################################
 #### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
@@ -83,93 +80,20 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "hash.ID",
+            group.by = "MULTI_ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "HTO_maxID",
-            pt.size = 0)
-ggsave(paste0("vln_max_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
-
-p = VlnPlot(sc_total,
-            features = rownames(sc_total[["HTO"]]),
-            ncol = ncol,
-            group.by = "HTO_classification.global",
+            group.by = "MULTI_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
-       width = OUTPUT_FIG_WIDTH * floor(ncol*0.5))
-
-###############################################################################
-#### CALCULATE QC METRICS (HTO) ####
-###############################################################################
-sc_total$combo_id = paste0(sc_total$HTO_maxID, "_", sc_total$HTO_secondID)
-for (hto1 in unique(sc_total$HTO_maxID)) {
-  for (hto2 in unique(sc_total$HTO_secondID)) {
-    if (sum(order(c(hto1, hto2)) == c(1, 2)) != 2) {
-      combo_id = paste0(hto2, "_", hto1)
-      sc_total$combo_id[sc_total$HTO_secondID == hto2 &
-                          sc_total$HTO_maxID == hto1] = combo_id
-    }
-  }
-}
-margin_stats = aggregate(sc_total$HTO_margin,
-                         by = list(sc_total$combo_id,
-                                   sc_total$atac_id),
-                         FUN = mean)
-
-margin_stats = separate(margin_stats, Group.1,
-                        into = c("HT_1st", "HT_2nd"), sep = "_")
-colnames(margin_stats) = c("HT_1st", "HT_2nd",
-                           "library_id", "hto_separation")
-margin_stats = margin_stats[complete.cases(margin_stats), ]
-margin_stats = margin_stats[margin_stats$HT_1st != margin_stats$HT_2nd, ]
-# sort and grab top pairs and worst pairs
-margin_stats = margin_stats[order(margin_stats$hto_separation), ]
-best_htos = c(margin_stats$HT_1st[1],
-              margin_stats$HT_2nd[1],
-              "Doublet")
-margin_stats = margin_stats[order(-margin_stats$hto_separation), ]
-worst_htos = c(margin_stats$HT_1st[1],
-               margin_stats$HT_2nd[1],
-               "Doublet")
-
-write.csv(margin_stats,
-          paste0("HTB.combos_", PROJECT_NAME, "_metrics.csv"),
-          quote = FALSE, row.names = FALSE)
-
-p = ggplot(margin_stats, aes(hto_separation, library_id,
-                             group = c(HT_1st, HT_2nd))) +
-  geom_boxplot() + labs(title = "HTB Demultiplexing Margins") +
-  xlab("Average Margin Between Cells") +
-  ylab("HTO Combination") +
-  xlim(c(0, max(margin_stats$hto_separation))) +
-  theme_linedraw()
-ggsave(paste0("boxplot_HTB_hto.separation", PROJECT_NAME, ".png"), p,
-       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-Idents(sc_total) = "hash.ID"
-
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
-                                                          best_htos],
-                   feature1 = best_htos[1], feature2 = best_htos[2])
-ggsave(paste0("scatter_best.hto.separation_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
-
-p = FeatureScatter(sc_total, cells = colnames(sc_total)[sc_total$hash.ID %in%
-                                                          worst_htos],
-                   feature1 = worst_htos[1], feature2 = worst_htos[2])
-ggsave(paste0("scatter_worst.hto.separation_", PROJECT_NAME, ".png"),
-       p, height = OUTPUT_FIG_HEIGHT, width = OUTPUT_FIG_WIDTH)
-
-sc_total = subset(sc_total, HTO_classification.global != "Doublet")
+       width = OUTPUT_FIG_WIDTH * floor(ncol * 0.5))
 ###############################################################################
 #### ATTACH LATEST GENE ANNOTATIONS TO ATAC DATA ####
 ###############################################################################

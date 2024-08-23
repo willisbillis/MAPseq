@@ -14,10 +14,22 @@ TOOL_PATH=$PROJECT_PATH/pipeline/ATAC.ASAP/tools
 OUTPUT_DIR=$PROJECT_PATH/pipeline/ATAC.ASAP/ASAP
 OUTPUT_FILE=$OUTPUT_DIR/kite_asap_mapping.log
 ################################################################################
+# Change to the output directory
 cd $OUTPUT_DIR
-sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
-sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
-asap_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${ASAP_NAMING_ID}.*))
+
+# Extract sample names from the sample manifest
+sample_name_col=()
+while IFS=',' read -ra array; do
+  sample_name_col+=("${array[1]}")
+done < $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv
+
+# Filter for ASAP samples and remove duplicates
+asap_samples=()
+for sample in "${sample_name_col[@]}"; do
+  if [[ $sample =~ .*$ASAP_NAMING_ID.* ]]; then
+    asap_samples+=("$sample")
+  fi
+done
 
 echo "$(date) Using HTO feature reference located at $ASAP_FEAT_REF_PATH" &>> $OUTPUT_FILE
 python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
@@ -31,19 +43,12 @@ for sample in "${asap_samples[@]}"; do
   WD=$OUTPUT_DIR/$sample
   mkdir -p $WD
   cd $WD
-  barcodes_csv=FeatureBarcodes.csv
   # cut just the HTO names and sequences from the full table
-  cut -d, -f2,5 < $ASAP_FEAT_REF_PATH > $barcodes_csv
-  # generate the mismatch FASTA and t2g files (for following commands, see tutorial at https://github.com/pachterlab/kite)
-  python $TOOL_PATH/kite/featuremap/featuremap.py $barcodes_csv --header &>> $OUTPUT_FILE
-  # build kallisto index with mismatch fasta and a k-mer length equal to the length of the Feature Barcodes (of the HTO)
-  kallisto index -i FeaturesMismatch.idx -k 15 FeaturesMismatch.fa &>> $OUTPUT_FILE
-  # pseudoalign the reads
-  kallisto bus -i FeaturesMismatch.idx -o ./ -x 10xv3 -t $NCPU $OUTPUT_DIR/${sample}*fastq.gz &>> $OUTPUT_FILE
-  # run bustools (note we are NOT running the whitelist filtering command from the tutorial,
-  # we are trusting the barcodes we have are good 10x barcodes. Removed because this filtered too many cells in the past)
-  bustools sort -t $NCPU -o output_sorted.bus output.bus &>> $OUTPUT_FILE
-  mkdir -p featurecounts/
-  # generate the counts matrix using bustools
-  bustools count -o featurecounts/featurecounts --genecounts -g FeaturesMismatch.t2g -e matrix.ec -t transcripts.txt output_sorted.bus &>> $OUTPUT_FILE
+  awk -v OFS="\t" -F"," '{print $5,$2}' $ASAP_FEAT_REF_PATH > FeatureBarcodes.tsv
+  # Remove header from TSV
+  sed '1d' < FeatureBarcodes.tsv > FeatureBarcodes_noheader.tsv
+  rm FeatureBarcodes.tsv
+
+  kb ref -i mismatch.idx -f1 mismatch.fa -g t2g.txt --kallisto /usr/local/bin/kallisto --workflow kite FeatureBarcodes_noheader.tsv &>> $OUTPUT_FILE
+  kb count --verbose --cellranger -w NONE --kallisto /usr/local/bin/kallisto --workflow kite:10xFB -i mismatch.idx -g t2g.txt -x 10XV3 ../${sample}*.gz &>> $OUTPUT_FILE
 done

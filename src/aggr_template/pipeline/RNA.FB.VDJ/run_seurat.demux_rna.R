@@ -12,7 +12,6 @@ if (!require("pacman", quietly = TRUE)) {
 library(pacman)
 
 p_load(Seurat, hdf5r)
-p_load_gh("samuel-marsh/scCustomize")
 
 set.seed(1234) # set seed for reproducibility
 # make sure Seurat v5 is used
@@ -32,15 +31,6 @@ OUTS_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/pipeline/RNA.FB.VDJ/", PRO
 OUTPUT_DIR <- paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/RNA.FB.VDJ")
 ################################################################################
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
-
-#h5_path = paste0(OUTS_DIR, "/count/cellbender_feature_bc_matrix_filtered.h5")
-#sc_data <- Read_CellBender_h5_Mat(h5_path)
-#sc_data = list("Gene Expression" =
-#                 sc_data[!(grepl("^anti-", rownames(sc_data)) |
-#                           grepl("^HTC", rownames(sc_data))), ],
-#               "Antibody Capture" =
-#                sc_data[grepl("^anti-", rownames(sc_data)) |
-#                         grepl("^HTC", rownames(sc_data)), ])
 
 sc_data <- Read10X_h5(paste0(OUTS_DIR, "/count/filtered_feature_bc_matrix.h5"))
 sc_total <- CreateSeuratObject(
@@ -87,7 +77,7 @@ for (idx in seq_len(nrow(aggr_df))) {
   if (ncol(sc_sub) > nrow(sc_sub)) {
     sc_sub = NormalizeData(sc_sub, normalization.method = "CLR",
                            verbose = FALSE)
-    hashtag = MULTIseqDemux(sc_sub, quantile = 0.15, verbose = TRUE)
+    hashtag = MULTIseqDemux(sc_sub, autoThresh = TRUE, verbose = TRUE)
     successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
                                                   c("Doublet", "Negative"))])
     failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
@@ -127,7 +117,7 @@ sub_obj_list = sub_obj_list[lengths(sub_obj_list) != 0]
 sc_total <- merge(sub_obj_list[[1]], c(sub_obj_list[2:length(sub_obj_list)]))
 sc_total <- JoinLayers(sc_total, assay = "HTO")
 sc_total[["HTO"]] = subset(sc_total[["HTO"]],
-                           features = 
+                           features =
                              rownames(sc_total)[rownames(sc_total) %in%
                                                 (hto_reference$hashtag)])
 sc_total <- JoinLayers(sc_total, assay = "RNA")

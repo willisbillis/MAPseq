@@ -33,6 +33,7 @@ if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_
     ATAC_FLOWCELL_ID=$(basename $ATAC_FC_PATH)
     # Standardize where fastqs live between received FQs and non-demuxed FQs
     NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
+    mkdir -p $NEW_FQ_PATH
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/$ATAC_FLOWCELL_ID/*/*.gz $NEW_FQ_PATH
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/*.gz $NEW_FQ_PATH
     # rearrange mkfastq outputs
@@ -40,11 +41,13 @@ if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
     rm -r $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path
 
-    mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$ATAC_FLOWCELL_ID/all/all/all
-    cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_ATAC.html
-    cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_ATAC.html
+    # MEW (07/19/2024)
+    # Commented out - not working anymore, maybe mkfastq doesn't generate htmls anymore?
+    #mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$ATAC_FLOWCELL_ID/all/all/all
+    #cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_ATAC.html
+    #cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_ATAC.html
 
-    cp $OUTPUT_DIR/reports/* $PROJECT_PATH/reports
+    #cp $OUTPUT_DIR/reports/* $PROJECT_PATH/reports
 elif [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
     # fastqs were already generated, move the fastqs from the data directory
     ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
@@ -70,17 +73,20 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ ${#rna_fqs[@
     RNA_FLOWCELL_ID=$(basename $RNA_FC_PATH)
     # Standardize where fastqs live between received FQs and non-demuxed FQs
     NEW_FQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
+    mkdir -p $NEW_FQ_PATH
     mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/$RNA_FLOWCELL_ID/*.gz $NEW_FQ_PATH
     # rearrange mkfastq outputs
     mkdir -p $NEW_FQ_PATH/mkfastq_outputs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
     rm -r $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path
 
-    mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$RNA_FLOWCELL_ID/all/all/all
-    cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_RNA.html
-    cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_RNA.html
+    # MEW (07/19/2024)
+    # Commented out - not working anymore, maybe mkfastq doesn't generate htmls anymore?
+    #mkfastq_report_dir=$NEW_FQ_PATH/mkfastq_outputs/Reports/html/$RNA_FLOWCELL_ID/all/all/all
+    #cp $mkfastq_report_dir/lane.html $OUTPUT_DIR/reports/lane.stats_${PROJECT_NAME}_RNA.html
+    #cp $mkfastq_report_dir/laneBarcode.html $OUTPUT_DIR/reports/laneBarcode.stats_${PROJECT_NAME}_RNA.html
 
-    cp $OUTPUT_DIR/reports/* $PROJECT_PATH/reports
+    #cp $OUTPUT_DIR/reports/* $PROJECT_PATH/reports
 elif [[ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
     # fastqs were already generated, move the fastqs from the data directory
     RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs

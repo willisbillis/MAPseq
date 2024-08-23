@@ -58,8 +58,8 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "KF_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/KF_all/analysis/RNA.FB.VDJ"
-RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
+PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/enriched.Bcells/KF_all/analysis/RNA.FB.VDJ"
+RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 
 GENOME = "hg38"                     # REPLACE, hg38 or mm10
@@ -150,8 +150,8 @@ ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
 #### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MAX_PCT_MT = 10        # REPLACE, maximum percent mitochondrial reads per cell
-DBL_LIMIT = 0.6       # REPLACE, minimum scDblFinder score to permit
+MAX_PCT_MT = 15        # REPLACE, maximum percent mitochondrial reads per cell
+DBL_LIMIT = 0.75       # REPLACE, minimum scDblFinder score to permit
 MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
@@ -206,7 +206,8 @@ sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
               scDblFinder.score < DBL_LIMIT &
               nFeature_RNA > MIN_GENE_READS &
-              nFeature_RNA < MAX_GENE_READS)
+              nFeature_RNA < MAX_GENE_READS &
+              MULTI_ID != "Doublet")
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -233,7 +234,7 @@ write.csv(stats, "QC.rna_sampleID_filtering.stats.csv",
 # SAVE RAW SEURAT OBJECT
 ###############################################################################
 saveRDS(sc_total,
-        paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+        paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 ###############################################################################
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
@@ -259,11 +260,11 @@ sc = ScaleData(sc)
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
-DefaultAssay(sc) = "SCT"
+DefaultAssay(sc) = "RNA"
 sc_v3 = sc
 sc_v3[["ADT"]] = NULL
-sc_v3[["RNA"]] = NULL
-sc_v3[["SCT"]] = as(sc_v3[["SCT"]], Class = "Assay")
+sc_v3[["SCT"]] = NULL
+sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class = "Assay")
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
 sc_v3 <- RunAzimuth(sc_v3, reference = "pbmcref")
 
@@ -285,7 +286,7 @@ for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
 
 p = clustree(sc, prefix = paste0(graph, "_res."))
 ggsave("clustree_clusters_rna.png", p,
-       width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
+       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
@@ -305,23 +306,23 @@ write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################
-saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
-               file=paste0(PROJECT_DIR, "/",
-                           PROJECT_NAME,
-                           ".Rsession.Info.",
-                           gsub("\\D", "", Sys.time()), ".txt"))
+               file = paste0(PROJECT_DIR, "/",
+                             PROJECT_NAME,
+                             ".Rsession.Info.",
+                             gsub("\\D", "", Sys.time()), ".txt"))
 ###############################################################################
 # Optional Additonal Analyses
 ###############################################################################
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
 #      token with rsconnect
 if (FALSE) {
-  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay="SCT", layer = "counts")
-  adt_data = LayerData(sc, assay="ADT", layer = "data")
-  sct_data = LayerData(sc, assay="SCT", layer = "data")
+  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
+  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
+  adt_data = LayerData(sc, assay = "ADT", layer = "data")
+  sct_data = LayerData(sc, assay = "SCT", layer = "data")
   sct_act_cts = rbind(sct_cts, adt_cts)
   sct_act_data = rbind(sct_data, adt_data)
   sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
@@ -331,17 +332,17 @@ if (FALSE) {
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = FALSE,
                shiny.title = paste0(PROJECT_NAME, " RNA + ADT + HTO"),
-               shiny.dir = paste0("shiny_", PROJECT_NAME, "_rna"),
+               shiny.dir = paste0("shiny_", PROJECT_NAME, "enrichedBcells_rna"),
                gex.assay = "SCT_ADT")
-  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "_rna"))
+  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "enrichedBcells_rna"))
 }
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
 if (FALSE) {
-  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay="SCT", layer = "counts")
-  adt_data = LayerData(sc, assay="ADT", layer = "data")
-  sct_data = LayerData(sc, assay="SCT", layer = "data")
+  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
+  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
+  adt_data = LayerData(sc, assay = "ADT", layer = "data")
+  sct_data = LayerData(sc, assay = "SCT", layer = "data")
   sct_act_cts = rbind(sct_cts, adt_cts)
   sct_act_data = rbind(sct_data, adt_data)
   sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
