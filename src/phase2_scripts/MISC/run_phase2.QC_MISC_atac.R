@@ -43,7 +43,7 @@ set.seed(1234)                # set seed for reproducibility
 #### SET RESOURCE LIMITS ####
 ###############################################################################
 max_cores = 32
-max_mem = 32
+max_mem = 256
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -528,4 +528,21 @@ if (FALSE) {
                shiny.dir = paste0("shiny_", PROJECT_NAME, "_atac"),
                gex.assay="pseudoRNA")
   rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "_atac"))
+}
+###############################################################################
+# Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
+if (FALSE) {
+  sc <- AddMetaData(sc, t(LayerData(sc, assay = "HTO")))
+  DefaultAssay(sc) = "ATAC"
+  gene_activities = GeneActivity(sc)
+  sc[["pseudoRNA"]] <- CreateAssayObject(counts = gene_activities)
+  sc <- NormalizeData(
+    object = sc,
+    assay = "pseudoRNA",
+    normalization.method = "LogNormalize",
+    scale.factor = median(sc$nCount_pseudoRNA)
+  )
+  DefaultAssay(sc) = "pseudoRNA"
+  sceasy::convertFormat(sc, from = "seurat", to = "anndata",
+                        outFile = paste0("qc_atac.pseudorna_", PROJECT_NAME, ".h5ad"))
 }
