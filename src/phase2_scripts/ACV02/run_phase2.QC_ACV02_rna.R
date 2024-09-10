@@ -81,6 +81,12 @@ if (GENOME == "hg38") {
 
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
+
+# Add extra metadata for cells that couldn't be demuxed (this saves 16K cells!)
+sc_total$treatment[sc_total$run_id %in% c("ACV02R006", "ACV02R007",
+                                          "ACV02R008", "ACV02R009")] = "HC"
+sc_total$celltype[sc_total$run_id %in% c("ACV02R006", "ACV02R007")] = "CMV"
+sc_total$celltype[sc_total$run_id %in% c("ACV02R008", "ACV02R009")] = "COVID"
 ###############################################################################
 #### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
@@ -150,7 +156,7 @@ ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
 DBL_LIMIT = 0.75       # REPLACE, minimum scDblFinder score to permit
-MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
+MIN_GENE_READS = 300   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = 10000  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
