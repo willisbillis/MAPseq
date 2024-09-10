@@ -82,11 +82,11 @@ if (GENOME == "hg38") {
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
 
-# Add extra metadata for cells that couldn't be demuxed (this saves 16K cells!)
+# Add extra metadata for cells that couldn't be demuxed (this saves 10K cells!)
 sc_total$treatment[sc_total$run_id %in% c("ACV02R006", "ACV02R007",
                                           "ACV02R008", "ACV02R009")] = "HC"
-sc_total$celltype[sc_total$run_id %in% c("ACV02R006", "ACV02R007")] = "CMV"
-sc_total$celltype[sc_total$run_id %in% c("ACV02R008", "ACV02R009")] = "COVID"
+sc_total$stim[sc_total$run_id %in% c("ACV02R006", "ACV02R007")] = "CMV"
+sc_total$stim[sc_total$run_id %in% c("ACV02R008", "ACV02R009")] = "COVID"
 ###############################################################################
 #### PLOT DEMULTIPLEXING RESULTS ####
 ###############################################################################
@@ -176,6 +176,7 @@ sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 sc_total$patient_id[sc_total$MULTI_ID == "Doublet"] = "Doublet"
 sc_total$patient_id[sc_total$MULTI_ID == "Negative"] = "Negative"
+sc_total$patient_id[is.na(sc_total$patient_id)] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
@@ -369,11 +370,11 @@ sc = ScaleData(sc)
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
-DefaultAssay(sc) = "SCT"
+DefaultAssay(sc) = "RNA"
 sc_v3 = sc
 sc_v3[["ADT"]] = NULL
-sc_v3[["RNA"]] = NULL
-sc_v3[["SCT"]] = as(sc_v3[["SCT"]], Class = "Assay")
+sc_v3[["SCT"]] = NULL
+sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class = "Assay")
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
 sc_v3 <- RunAzimuth(sc_v3, reference = "pbmcref")
 
@@ -448,10 +449,10 @@ if (FALSE) {
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
 if (FALSE) {
-  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay="SCT", layer = "counts")
-  adt_data = LayerData(sc, assay="ADT", layer = "data")
-  sct_data = LayerData(sc, assay="SCT", layer = "data")
+  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
+  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
+  adt_data = LayerData(sc, assay = "ADT", layer = "data")
+  sct_data = LayerData(sc, assay = "SCT", layer = "data")
   sct_act_cts = rbind(sct_cts, adt_cts)
   sct_act_data = rbind(sct_data, adt_data)
   sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
@@ -463,5 +464,7 @@ if (FALSE) {
   sc[["SCT"]] = as(sc[["SCT"]], Class = "Assay")
   sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
   sceasy::convertFormat(sc, from = "seurat", to = "anndata",
-                        outFile = paste0("qc_sct.adt_", PROJECT_NAME, ".h5ad"))
+                        outFile = paste0(PROJECT_DIR,
+                                         "/data/qc_sct.adt_",
+                                         PROJECT_NAME, ".h5ad"))
 }
