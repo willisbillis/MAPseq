@@ -78,13 +78,15 @@ for (idx in seq_len(nrow(aggr_df))) {
     sc_sub = NormalizeData(sc_sub, normalization.method = "CLR",
                            verbose = FALSE)
     hashtag = MULTIseqDemux(sc_sub, autoThresh = TRUE, verbose = TRUE)
+    hashtag = hashtag[, hashtag$MULTI_ID %in% c("Doublet", "Negative",
+                                                hto_ref_sub$hashtag)]
     successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
                                                   c("Doublet", "Negative"))])
     failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
                                           successful_htos)]
     if (length(failed_htos) > 0) {
       print(paste("[WARNING] Demultiplexing failed for the",
-                  "following hashtags! Excluding from final object."))
+                  "following hashtags!"))
       print("patient_id:")
       print(hto_ref_sub$patient_id[match(failed_htos,
                                          hto_ref_sub$hashtag)])
@@ -116,10 +118,6 @@ for (idx in seq_len(nrow(aggr_df))) {
 sub_obj_list = sub_obj_list[lengths(sub_obj_list) != 0]
 sc_total <- merge(sub_obj_list[[1]], c(sub_obj_list[2:length(sub_obj_list)]))
 sc_total <- JoinLayers(sc_total, assay = "HTO")
-sc_total[["HTO"]] = subset(sc_total[["HTO"]],
-                           features =
-                             rownames(sc_total)[rownames(sc_total) %in%
-                                                (hto_reference$hashtag)])
 sc_total <- JoinLayers(sc_total, assay = "RNA")
 sc_total <- JoinLayers(sc_total, assay = "ADT")
 DefaultAssay(sc_total) <- "RNA"
