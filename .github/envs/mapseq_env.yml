@@ -12,3 +12,9 @@ dependencies:
   - biopython
   - anndata
   - kb-python
+  - r-curl
+  - r-ragg
+  - r-mass
+  - r-httpuv
+  - r-rjson
+  - r-azimuth
