@@ -61,13 +61,11 @@ For the changes to take effect, the shell must be reloaded. We recommend doing t
 If you have a question, error, or bug to report, please use the [issue page](https://github.com/willisbillis/MAPseq/issues).
 
 Resources
-
 ---------
 
 * [MAPseq tutorial](docs/quickstart.md)
 
 Citing
-
 ---------
 
 If you make use of this software for your work we would appreciate it if you would include the citation in any subsequent work. You may cite it using the dropdown menu in the top right of this page.
