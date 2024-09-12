@@ -254,12 +254,12 @@ if (FALSE) {
   VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
   sc <- RunPCA(sc, npcs = 40,
                reduction.name = "rna.pca", verbose = FALSE)
-  sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
+  sc <- FindNeighbors(sc, dims = 1:20, reduction = "rna.pca",
                       verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
+  sc <- FindClusters(sc, resolution = 2, algorithm = 3,
                      cluster.name = "unintegrated_rna.clusters",
                      verbose = FALSE)
-  sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
+  sc <- RunUMAP(sc, dims = 1:20, reduction = "rna.pca",
                 reduction.name = "umap.rna.unintegrated",
                 verbose = FALSE)
   # visualize by batch annotations
@@ -275,14 +275,14 @@ if (FALSE) {
   sc = JoinLayers(sc, assay = "RNA")
 
   sc <- FindNeighbors(sc, reduction = "integrated.rna.harmony",
-                      dims = 1:40, verbose = FALSE)
-  sc <- FindClusters(sc, method = 4, algorithm = 4,
+                      dims = 1:20, verbose = FALSE)
+  sc <- FindClusters(sc, resolution = 2, algorithm = 3,
                      cluster.name = "rna.clusters",
                      verbose = FALSE)
   sc <- RunUMAP(sc, reduction = "integrated.rna.harmony",
-                dims = 1:40, reduction.name = "umap.rna",
+                dims = 1:20, reduction.name = "umap.rna",
                 verbose = FALSE)
-  p <- DimPlot(sc, reduction = "integrated.rna.harmony",
+  p <- DimPlot(sc, reduction = "umap.rna",
                group.by = "sample_id")
   ggsave("umap_rna.integrated_sample_id.pdf", p, width = 8, height = 6)
   ggsave("umap_rna.integrated_sample_id.png", p, width = 8, height = 6)
@@ -356,9 +356,9 @@ non_ig_mask = !grepl(igs, VariableFeatures(sc))
 VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
 sc <- RunPCA(sc, npcs = 40,
              reduction.name = "rna.pca", verbose = FALSE)
-sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
+sc <- FindNeighbors(sc, dims = 1:20, reduction = "rna.pca",
                     verbose = FALSE)
-sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
+sc <- RunUMAP(sc, dims = 1:20, reduction = "rna.pca",
               reduction.name = "umap.rna",
               verbose = FALSE)
 
@@ -405,7 +405,7 @@ sc$seurat_clusters = factor(sc$seurat_clusters)
 # DEG testing between clusters (one vs all)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "SCT")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
-write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
+write.csv(all_markers, paste0("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
 # DEP testing between clusters (one vs all)
@@ -457,14 +457,12 @@ if (FALSE) {
   sct_act_data = rbind(sct_data, adt_data)
   sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
                                        data = sct_act_data)
-  DefaultAssay(sc) = "SCT_ADT"
   sc[["SCT_ADT"]] = as(sc[["SCT_ADT"]], Class = "Assay")
-  sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
-  sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
-  sc[["SCT"]] = as(sc[["SCT"]], Class = "Assay")
-  sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
-  sceasy::convertFormat(sc, from = "seurat", to = "anndata",
-                        outFile = paste0(PROJECT_DIR,
-                                         "/data/qc_sct.adt_",
-                                         PROJECT_NAME, ".h5ad"))
+  sc[["HTO"]] = NULL
+  sc[["SCT"]] = NULL
+  sc[["RNA"]] = sc[["SCT_ADT"]]
+  convertFormat(sc, from = "seurat", to = "anndata",
+                outFile = paste0(PROJECT_DIR,
+                                 "/data/qc_sct.adt_",
+                                 PROJECT_NAME, ".h5ad"))
 }
