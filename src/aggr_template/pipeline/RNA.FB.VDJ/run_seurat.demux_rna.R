@@ -72,16 +72,19 @@ for (idx in seq_len(nrow(aggr_df))) {
   hto_ref_sub$hashtag <- gsub("_", "-", hto_ref_sub$hashtag)
   sc_sub <- sc_total[, colnames(sc_total)[sc_total$library_id ==
                                             rna_library_id]]
+  m <- GetAssayData(sc_sub, assay = "HTO", layer = "counts")
+  m <- m + 1
+  new_assay <- CreateAssayObject(counts = m[hto_ref_sub$hashtag, ])
+  sc_sub[["HTO"]] = NULL
+  sc_sub[["HTO"]] <- new_assay
   DefaultAssay(sc_sub) <- "HTO"
   # Check if there are enough cells to normalize data and demultiplex
   if (ncol(sc_sub) > nrow(sc_sub)) {
     sc_sub = NormalizeData(sc_sub, normalization.method = "CLR",
                            verbose = FALSE)
-    hashtag = MULTIseqDemux(sc_sub, autoThresh = TRUE, verbose = TRUE)
-    hashtag = hashtag[, hashtag$MULTI_ID %in% c("Doublet", "Negative",
-                                                hto_ref_sub$hashtag)]
-    successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
-                                                  c("Doublet", "Negative"))])
+    hashtag = HTODemux(sc_sub, verbose = TRUE)
+    successful_htos = unique(hashtag$HTO_maxID[!(hashtag$HTO_maxID %in%
+                                                   c("Doublet", "Negative"))])
     failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
                                           successful_htos)]
     if (length(failed_htos) > 0) {
@@ -92,14 +95,14 @@ for (idx in seq_len(nrow(aggr_df))) {
                                          hto_ref_sub$hashtag)])
       print(failed_htos)
     }
-    hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$MULTI_ID,
+    hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$HTO_maxID,
                                                        hto_ref_sub$hashtag)]
     hashtag$library_id <- rna_library_id
     hashtag$run_id <- run_id
     if (ncol(hto_ref_sub) > 3) {
       for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
         hashtag@meta.data[[metadata_col]] =
-          hto_ref_sub[[metadata_col]][match(hashtag$MULTI_ID,
+          hto_ref_sub[[metadata_col]][match(hashtag$HTO_maxID,
                                             hto_ref_sub$hashtag)]
       }
     }
