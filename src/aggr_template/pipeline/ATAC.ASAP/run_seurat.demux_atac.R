@@ -123,7 +123,7 @@ for (idx in seq_len(nrow(metadata_df))) {
     print(paste("Demultiplexing", asap_lib_id))
 
     library_ht_hto = master_ht[hto_ref_sub$hashtag,
-                               colnames(master_ht) %in% cells]
+                               colnames(master_ht) %in% cells] + 1
     hashtag <- CreateSeuratObject(counts = library_ht_hto, assay = "HTO")
 
     hto_count_sums = rowSums(hashtag@assays$HTO@layers$counts)
@@ -134,16 +134,8 @@ for (idx in seq_len(nrow(metadata_df))) {
       hashtag <- NormalizeData(hashtag, assay = "HTO",
                                normalization.method = "CLR",
                                verbose = FALSE)
-      if (ncol(hashtag) < 25000) {
-        hashtag = HTODemux(hashtag, kfunc = "kmeans")
-        hashtag$MULTI_ID = hashtag$hash.ID
-        hashtag$MULTI_classification = hashtag$HTO_classification
-        print(table(hashtag$MULTI_ID))
-        print(summary(t(hashtag@assays$HTO@layers$data)))
-      } else {
-        hashtag = MULTIseqDemux(hashtag, autoThresh = TRUE, verbose = TRUE)
-      }
-      successful_htos = unique(hashtag$MULTI_ID[!(hashtag$MULTI_ID %in%
+      hashtag = HTODemux(hashtag, kfunc = "kmeans")
+      successful_htos = unique(hashtag$hash.ID[!(hashtag$hash.ID %in%
                                                     c("Doublet", "Negative"))])
       failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
                                             successful_htos)]
@@ -152,10 +144,10 @@ for (idx in seq_len(nrow(metadata_df))) {
                     "following hashtags! Excluding from final object."))
         print("patient_id:")
         print(hto_ref_sub$patient_id[match(failed_htos,
-                                          hto_ref_sub$hashtag)])
+                                           hto_ref_sub$hashtag)])
         print(failed_htos)
       }
-      hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$MULTI_ID,
+      hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$hash.ID,
                                                          hto_ref_sub$hashtag)]
     } else {
       print("[WARNING] Pool failed. Too few cells to demultiplex.")
@@ -177,7 +169,7 @@ for (idx in seq_len(nrow(metadata_df))) {
   if (ncol(hto_ref_sub) > 3) {
     for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
       hashtag@meta.data[[metadata_col]] =
-        hto_ref_sub[[metadata_col]][match(hashtag$MULTI_ID,
+        hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
                                           hto_ref_sub$hashtag)]
     }
   }
