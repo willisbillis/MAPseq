@@ -13,15 +13,22 @@ source ../../project_config.txt
 SAMPLES_ARRAY=($(ls -d $PROJECT_PATH/*/pipeline/ATAC.ASAP/ATAC/*/))
 OUTPUT_DIR=$PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/ATAC
 OUTPUT_FILE=$OUTPUT_DIR/souporcell_atac.log
-SOUPORCELL_PATH=/home/ewilliams/souporcell_release.sif
+SOUPORCELL_PATH=$HOME/souporcell_release.sif
 FASTA=/home/Apps/genomes/cellranger/refdata-cellranger-arc-GRCh38-2020-A-2.0.0/fasta/genome.fa
 HTO_REF=$PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/hashtag_ref_atac.csv
+VCF=$HOME/common_variants_grch38.vcf.gz
 ################################################################################
 # Preflight checks
 if [ ! -f $SOUPORCELL_PATH ]; then
   echo "WARNING: souporcell sif file not found at $SOUPORCELL_PATH"
   echo "Downloading souporcell sif file..."
   singularity pull --arch amd64 $SOUPORCELL_PATH library://wheaton5/souporcell/souporcell:release
+fi
+
+if [ ! -f $VCF ]; then
+  echo "WARNING: common variants file not found at $VCF"
+  echo "Downloading common variants file..."
+  curl ftp://ftp.eng.auburn.edu/pub/whh0027/common_variants_grch38.vcf.gz -o $VCF
 fi
 
 #  code to check whether the fasta file exists
@@ -37,12 +44,23 @@ if [ ! -f $HTO_REF ]; then
   echo "Please provide a valid path to the HTO_REF file."
   exit 1
 fi
-################################################################################
-mkdir -p $OUTPUT_DIR
-cd $PROJECT_PATH
-cp $FASTA $OUTPUT_DIR/reference_genome.fa
-FASTA=$OUTPUT_DIR/reference_genome.fa
 
+#  code to check whether the reference genome has been copied over already
+if [ ! -f "$OUTPUT_DIR/reference_genome.fa" ]; then
+  echo "Copying reference genome to project directory to be visible by container"
+  cp $FASTA $OUTPUT_DIR/reference_genome.fa
+fi
+
+#  code to check whether a log file has been generated already
+if [ ! -f $OUTPUT_FILE ]; then
+  echo "Removing old log file generated at $OUTPUT_FILE"
+  rm $OUTPUT_FILE
+fi
+
+# Create output directory and modify reference genome path
+mkdir -p $OUTPUT_DIR
+FASTA=$OUTPUT_DIR/reference_genome.fa
+################################################################################
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
   if [[ $(basename $sample_path) != reports ]]; then
     sample_name=$(basename $sample_path)
@@ -76,13 +94,15 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
     BAM=${sample_path}outs/possorted_bam.bam
     BARCODES=${sample_path}outs/filtered_peak_bc_matrix/barcodes.tsv
 
-    singularity exec --bind $PROJECT_PATH $SOUPORCELL_PATH souporcell_pipeline.py \
-      -i $BAM \
-      -b $BARCODES \
-      -f $FASTA \
-      -t $NCPU \
-      -o $OUTPUT_DIR/$sample_name \
-      -k $N \
-      --no_umi True
+    singularity exec --bind $PROJECT_PATH $SOUPORCELL_PATH \
+      souporcell_pipeline.py \
+        -i $BAM \
+        -b $BARCODES \
+        -f $FASTA \
+        -t $NCPU \
+        -o $OUTPUT_DIR/$sample_name \
+        -k $N \
+        --common_variants $VCF \
+        --no_umi True >> $OUTPUT_FILE
   fi
 done
