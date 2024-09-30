@@ -50,8 +50,8 @@ fi
 mkdir -p $OUTPUT_DIR
 ################################################################################
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
-  if [[ $(basename $sample_path) != reports ]]; then
-    sample_name=$(basename $sample_path)
+  sample_name=$(basename $sample_path)
+  if [[ $sample_name != reports ]] && [[ ! $sample_name =~ _all$ ]]; then
 
     # Count lines in HTO_REF matching the sample_name
     N=$(awk -F',' -v sn="$sample_name" '$1 == sn {count++} END {print count}' $HTO_REF) 
@@ -88,6 +88,7 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
       -t $NCPU \
       -o $OUTPUT_DIR/$sample_name \
       -k $N \
-      --no_umi True >> $OUTPUT_FILE 2>&1
+      --no_umi True \
+      --skip_remap True >> $OUTPUT_FILE 2>&1
   fi
 done
