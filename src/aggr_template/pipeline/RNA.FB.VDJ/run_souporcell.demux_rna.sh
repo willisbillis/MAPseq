@@ -18,6 +18,14 @@ FASTA=/home/Apps/genomes/cellranger/refdata-gex-GRCh38-2024-A/fasta/genome.fa
 HTO_REF=$PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv
 ################################################################################
 # Preflight checks
+# Check for "souporcell" conda environment
+if [[ $(conda env list | grep '^\*' | awk '{print $1}') != "souporcell" ]]; then
+  echo "ERROR: This script must be run in the 'souporcell' conda environment."
+  echo "Please activate the correct environment and try again:"
+  echo "  conda activate souporcell"
+  exit 1
+fi
+
 if [ ! -d $SOUPORCELL_PATH ]; then
   echo "ERROR: souporcell repo not found at $SOUPORCELL_PATH"
   echo "Follow instructions at \

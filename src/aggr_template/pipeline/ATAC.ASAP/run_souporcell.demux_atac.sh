@@ -18,6 +18,14 @@ FASTA=/home/Apps/genomes/cellranger/refdata-cellranger-arc-GRCh38-2020-A-2.0.0/f
 HTO_REF=$PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/hashtag_ref_atac.csv
 ################################################################################
 # Preflight checks
+# Check for "souporcell" conda environment
+if [[ $(conda env list | grep '^\*' | awk '{print $1}') != "souporcell" ]]; then
+  echo "ERROR: This script must be run in the 'souporcell' conda environment."
+  echo "Please activate the correct environment and try again:"
+  echo "  conda activate souporcell"
+  exit 1
+fi
+
 if [ ! -d $SOUPORCELL_PATH ]; then
   echo "ERROR: souporcell repo not found at $SOUPORCELL_PATH"
   echo "Follow instructions at \
