@@ -77,8 +77,8 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
       exit 1
     fi
 
-    BAM=${sample_path}outs/possorted_bam.bam
-    BARCODES=${sample_path}outs/filtered_peak_bc_matrix/barcodes.tsv
+    BAM=${sample_path}outs/per_sample_outs/$sample_name/count/sample_alignments.bam
+    BARCODES=${sample_path}outs/per_sample_outs/$sample_name/count/sample_filtered_barcodes.csv
 
     echo "Demultiplexing $N samples in pool $sample_name..."
     $SOUPORCELL_PATH/souporcell_pipeline.py \
