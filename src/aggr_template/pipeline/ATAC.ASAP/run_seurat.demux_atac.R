@@ -149,6 +149,43 @@ for (idx in seq_len(nrow(metadata_df))) {
       }
       hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$hash.ID,
                                                          hto_ref_sub$hashtag)]
+
+      souporcell_clusters = paste0(PROJECT_PATH, "/", PROJECT_NAME,
+                                   "/pipeline/ATAC.ASAP/ATAC_demuxing/",
+                                   atac_lib_id, "/clusters.tsv")
+      if (file.exists(souporcell_clusters)) {
+        # Load data
+        clusters_data <- read.table(souporcell_clusters, header = TRUE, sep = "\t")
+        print(table(clusters_data$status))
+        clusters_data = clusters_data[clusters_data$status == "singlet", ]
+        hashtag$barcode = colnames(hashtag)
+
+        # Create combined data frame
+        combined_data <- data.frame(
+          barcode = clusters_data$barcode,
+          cluster = clusters_data$assignment,
+          patient_id = hashtag$patient_id[match(clusters_data$barcode,
+                                                 hashtag$barcode)]
+        )
+        print(head(combined_data))
+
+        # Calculate percentages
+        patient_counts <- combined_data %>%
+          group_by(patient_id, cluster) %>%
+          summarize(count = n())
+        print(patient_counts)
+
+        # Determine main clusters (highest count)
+        main_clusters <- patient_counts %>%
+          group_by(patient_id) %>%
+          slice_max(order_by = count, n = 1)
+        print(main_clusters)
+
+        # Assign metadata (you'll need to replace this part with your actual metadata assignment logic)
+        combined_data <- combined_data %>%
+          left_join(main_clusters, by = c("patient_id", "cluster"))
+        hashtag$patient_id <- combined_data$patient_id
+      }
     } else {
       print("[WARNING] Pool failed. Too few cells to demultiplex.")
     }
@@ -162,6 +199,8 @@ for (idx in seq_len(nrow(metadata_df))) {
                              verbose = FALSE)
     hashtag$patient_id = hto_ref_sub$patient_id
   }
+
+
 
   hashtag$atac_id = atac_lib_id
   hashtag$asap_id = asap_lib_id
