@@ -64,8 +64,7 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
     fi
 
     BAM=${sample_path}outs/per_sample_outs/$sample_name/count/sample_alignments.bam
-    gunzip -k ${sample_path}outs/per_sample_outs/$sample_name/count/sample_filtered_feature_bc_matrix/barcodes.tsv.gz
-    BARCODES=${sample_path}outs/per_sample_outs/$sample_name/count/sample_filtered_feature_bc_matrix/barcodes.tsv
+    BARCODES=${sample_path}outs/per_sample_outs/$sample_name/count/sample_filtered_feature_bc_matrix/barcodes.tsv.gz
 
     #  code to check whether the bam file exists
     if [ ! -f $BAM ]; then
