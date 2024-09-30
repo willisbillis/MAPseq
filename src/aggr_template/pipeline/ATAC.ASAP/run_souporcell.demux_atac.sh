@@ -88,6 +88,7 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
       -t $NCPU \
       -o $OUTPUT_DIR/$sample_name \
       -k $N \
+      --ignore True \
       --no_umi True \
       --skip_remap True >> $OUTPUT_FILE 2>&1
   fi
