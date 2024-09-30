@@ -63,6 +63,9 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
       exit 1 
     fi
 
+    BAM=${sample_path}outs/possorted_bam.bam
+    BARCODES=${sample_path}outs/filtered_peak_bc_matrix/barcodes.tsv
+
     #  code to check whether the bam file exists
     if [ ! -f $BAM ]; then
       echo "ERROR: BAM file not found at $BAM"
@@ -76,9 +79,6 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
       echo "Please provide a valid path to the barcodes file."
       exit 1
     fi
-
-    BAM=${sample_path}outs/possorted_bam.bam
-    BARCODES=${sample_path}outs/filtered_peak_bc_matrix/barcodes.tsv
 
     echo "Demultiplexing $N samples in pool $sample_name..."
     $SOUPORCELL_PATH/souporcell_pipeline.py \
