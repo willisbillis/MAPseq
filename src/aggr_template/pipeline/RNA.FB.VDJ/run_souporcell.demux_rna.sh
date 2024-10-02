@@ -19,7 +19,7 @@ HTO_REF=$PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv
 ################################################################################
 # Preflight checks
 # Check for "souporcell" conda environment
-if [[ $(conda env list | grep '^\*' | awk '{print $1}') != "souporcell" ]]; then
+if [[ $(conda env list | grep '*' | awk '{print $1}') != "souporcell" ]]; then
   echo "ERROR: This script must be run in the 'souporcell' conda environment."
   echo "Please activate the correct environment and try again:"
   echo "  conda activate souporcell"
