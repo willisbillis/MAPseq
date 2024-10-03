@@ -95,48 +95,48 @@ for (idx in seq_len(nrow(aggr_df))) {
                                          hto_ref_sub$hashtag)])
       print(failed_htos)
     }
-    hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$HTO_maxID,
-                                                       hto_ref_sub$hashtag)]
+    hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$hash.ID,
+                                                         hto_ref_sub$hashtag)]
+    if (ncol(hto_ref_sub) > 3) {
+        for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
+          hashtag@meta.data[[metadata_col]] =
+            hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
+                                              hto_ref_sub$hashtag)]
+        }
+      }
 
     souporcell_clusters = paste0(PROJECT_PATH, "/", PROJECT_NAME,
-                                   "/pipeline/RNA.FB.VDJ/RNA_demuxing/",
-                                   rna_library_id, "/clusters.tsv")
+                                  "/pipeline/ATAC.ASAP/ATAC_demuxing/",
+                                  atac_lib_id, "/clusters.tsv")
     if (file.exists(souporcell_clusters)) {
       # Load data
       clusters_data <- read.table(souporcell_clusters, header = TRUE, sep = "\t")
-      clusters_data = clusters_data[clusters_data$status == "singlet", ]
       hashtag$barcode = gsub("\\-.*", "-1", colnames(hashtag))
 
       # Create combined data frame
       combined_data <- data.frame(
-        barcode = clusters_data$barcode,
-        cluster = clusters_data$assignment
+        barcode = clusters_data$barcode[clusters_data$status == "singlet"],
+        cluster = clusters_data$assignment[clusters_data$status == "singlet"]
       )
 
-      if (ncol(hto_ref_sub) > 3) {
-        # Copy metadata columns from hto_ref_sub to hashtag and combined_data
-        for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
-          hashtag@meta.data[[metadata_col]] <- hto_ref_sub[[metadata_col]][match(hashtag$hash.ID, hto_ref_sub$hashtag)]
-          combined_data[[metadata_col]] <- hashtag@meta.data[[metadata_col]][match(combined_data$barcode, hashtag$barcode)]
+      # Copy metadata columns from hto_ref_sub to combined_data
+      combined_data$HTO_maxID = hashtag$HTO_maxID[match(combined_data$barcode, hashtag$barcode)]
+      extra_metadata = c()
+      for (metadata_col in colnames(hto_ref_sub)[3:ncol(hto_ref_sub)]) {
+        combined_data[[metadata_col]] <- hto_ref_sub[[metadata_col]][match(combined_data$HTO_maxID, hto_ref_sub$hashtag)]
+        
+        if ("unique_sample_id" %in% colnames(combined_data)) {
+          combined_data$unique_sample_id = paste0(combined_data$unique_sample_id, "-",
+                                                  combined_data[[metadata_col]])
+        } else {
+          combined_data$unique_sample_id = combined_data[[metadata_col]]
         }
-
-        # Create unique_sample_id by pasting patient_id and all metadata columns after "barcode"
-        hashtag$unique_sample_id <- paste0(hashtag$patient_id, 
-                                          do.call(paste0, hashtag@meta.data[, (which(colnames(hashtag@meta.data) == "barcode") + 1):ncol(hashtag@meta.data)]))
-        combined_data$unique_sample_id <- hashtag$unique_sample_id[match(combined_data$barcode, hashtag$barcode)]
-        combined_data$patient_id = hashtag$patient_id[match(combined_data$barcode, hashtag$barcode)]
-
-      } else {
-        # If no extra metadata columns, use patient_id as unique_sample_id
-        hashtag$unique_sample_id <- hashtag$patient_id
-        combined_data$unique_sample_id <- hashtag$patient_id[match(combined_data$barcode, hashtag$barcode)]
+        extra_metadata = c(extra_metadata, metadata_col)
       }
-      
-      combined_data$cluster <- as.integer(combined_data$cluster)
-      combined_data <- combined_data %>% filter(!is.na(patient_id))
 
       # Calculate proportions for each unique_sample_id within each cluster
       proportions_df <- combined_data %>%
+        filter(!is.na(patient_id)) %>%
         group_by(cluster) %>%
         mutate(total_cluster_cells = n()) %>%
         group_by(unique_sample_id, cluster) %>%
@@ -170,8 +170,8 @@ for (idx in seq_len(nrow(aggr_df))) {
           if (!(current_sample %in% cluster_mapping$unique_sample_id)) {
             # Assign the sample to the cluster
             cluster_mapping <- rbind(cluster_mapping, 
-                                    data.frame(cluster = current_cluster, 
-                                              unique_sample_id = current_sample))
+                                      data.frame(cluster = current_cluster, 
+                                                unique_sample_id = current_sample))
 
             # Remove assigned cluster and sample from further consideration
             unassigned_clusters <- setdiff(unassigned_clusters, current_cluster)
@@ -215,25 +215,30 @@ for (idx in seq_len(nrow(aggr_df))) {
       } else if (length(unassigned_samples) > 1) {
         print(paste0("[WARNING] Unable to assign all clusters for ",
                       "samples using Process of Elimination."))
-        print(paste0("Consider manually reviewing the clusters for ",
+        print(paste0("[WARNING] Unable to assign cluster for ",
                       "sample ", paste(unassigned_samples), "."))
       }
 
-      # Use cluster_mapping to fill in missing metadata and update hashtag
-      combined_data <- combined_data %>%
-        left_join(cluster_mapping, by = "cluster") %>% 
-        group_by(unique_sample_id.y) %>%  
-        fill(starts_with(colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]), 
-            .direction = "downup") %>% 
-        ungroup() 
+      # expand out cluster mapping unique_sample_id into original metadata
+      cluster_mapping <- separate(cluster_mapping, col = "unique_sample_id",
+                                  into = extra_metadata,
+                                  sep = "-",
+                                  remove = TRUE)
 
-      # Update hashtag metadata directly
-      for (metadata_col in colnames(combined_data)[4:ncol(combined_data)]) {
-        hashtag@meta.data[[metadata_col]] <- combined_data[[metadata_col]][match(hashtag$barcode, combined_data$barcode)]
+      # Add cluster and status information to hashtag object
+      hashtag$genotype_cluster = combined_data$cluster[match(hashtag$barcode, combined_data$barcode)]
+      hashtag$genotype_status = clusters_data$status[match(hashtag$barcode, clusters_data$barcode)]
+
+      # Update hashtag metadata
+      for (metadata_col in extra_metadata) {
+        for (geno_cl in unique(cluster_mapping$cluster)) {
+          mask = (hashtag$genotype_cluster == geno_cl) & (is.na(hashtag@meta.data[[metadata_col]]))
+          hashtag@meta.data[[metadata_col]][mask] = cluster_mapping[[metadata_col]][cluster_mapping$cluster == geno_cl]
+        }
       }
 
-      hashtag$unique_sample_id <- combined_data$unique_sample_id.y[match(hashtag$barcode, combined_data$barcode)]
-      hashtag$barcode <- NULL
+      # Remove extraneous metadata column from hashtag object
+      hashtag$barcode = NULL
     }
 
     hashtag$library_id <- rna_library_id
