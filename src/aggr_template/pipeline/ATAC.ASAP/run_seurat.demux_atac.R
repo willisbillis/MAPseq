@@ -235,6 +235,13 @@ for (idx in seq_len(nrow(metadata_df))) {
               # Break the inner loop as we've assigned the cluster
               break 
             } 
+
+            # Check if all samples for this cluster have been assigned
+            if (all(ranked_df$unique_sample_id[ranked_df$cluster == current_cluster] %in% cluster_mapping$unique_sample_id)) {
+              # If all samples are assigned, remove the cluster from unassigned_clusters
+              unassigned_clusters <- setdiff(unassigned_clusters, current_cluster)
+              break # Break the inner loop and move to the next cluster
+            }
           }
         }
 
@@ -265,8 +272,6 @@ for (idx in seq_len(nrow(metadata_df))) {
           print(paste0("Consider manually reviewing the clusters for ",
                        "sample ", paste(unassigned_samples), "."))
         }
-
-        print(cluster_mapping)
 
         # Use cluster_mapping to fill in missing metadata and update hashtag
         combined_data <- combined_data %>%
