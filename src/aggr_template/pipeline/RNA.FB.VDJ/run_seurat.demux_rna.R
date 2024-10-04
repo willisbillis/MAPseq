@@ -106,8 +106,8 @@ for (idx in seq_len(nrow(aggr_df))) {
       }
 
     souporcell_clusters = paste0(PROJECT_PATH, "/", PROJECT_NAME,
-                                  "/pipeline/ATAC.ASAP/ATAC_demuxing/",
-                                  atac_lib_id, "/clusters.tsv")
+                                 "/pipeline/RNA.FB.VDJ/RNA_demuxing/",
+                                 rna_library_id, "/clusters.tsv")
     if (file.exists(souporcell_clusters)) {
       # Load data
       clusters_data <- read.table(souporcell_clusters, header = TRUE, sep = "\t")
@@ -179,8 +179,8 @@ for (idx in seq_len(nrow(aggr_df))) {
               filter(!(cluster == current_cluster & unique_sample_id == current_sample))
 
             # Break the inner loop as we've assigned the cluster
-            break 
-          } 
+            break
+          }
 
           # Check if all samples for this cluster have been assigned
           if (all(ranked_df$unique_sample_id[ranked_df$cluster == current_cluster] %in% cluster_mapping$unique_sample_id)) {
@@ -214,9 +214,9 @@ for (idx in seq_len(nrow(aggr_df))) {
         }
       } else if (length(unassigned_samples) > 1) {
         print(paste0("[WARNING] Unable to assign all clusters for ",
-                      "samples using Process of Elimination."))
+                     "samples using Process of Elimination."))
         print(paste0("[WARNING] Unable to assign cluster for ",
-                      "sample ", paste(unassigned_samples), "."))
+                     "sample ", paste(unassigned_samples), "."))
       }
 
       # expand out cluster mapping unique_sample_id into original metadata
