@@ -80,7 +80,7 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_ID",
+            group.by = "hash.ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -89,7 +89,7 @@ ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_classification",
+            group.by = "HTO_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -133,7 +133,12 @@ saveRDS(sc_total,
 #### CALCULATE QC METRICS (ATAC) ####
 ###############################################################################
 # Remove HT Doublets from object
-sc_total = subset(sc_total, HTO_classification.global != "Doublet")
+if ("genotype_status" %in% colnames(sc_total)) {
+  sc_total = subset(sc_total, (genotype_status != "doublet") &
+                      (HTO_classification.global != "Doublet"))
+} else {
+  sc_total = subset(sc_total, HTO_classification.global != "Doublet")
+}
 # compute nucleosome signal score per cell
 sc_total = NucleosomeSignal(object = sc_total, verbose = FALSE)
 # compute TSS enrichment score per cell
