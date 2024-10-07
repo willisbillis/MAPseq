@@ -110,7 +110,8 @@ for (idx in seq_len(nrow(aggr_df))) {
                                  rna_library_id, "/clusters.tsv")
     if (file.exists(souporcell_clusters)) {
       # Load data
-      clusters_data <- read.table(souporcell_clusters, header = TRUE, sep = "\t")
+      clusters_data <- read.table(souporcell_clusters,
+                                  header = TRUE, sep = "\t")
       hashtag$barcode = gsub("\\-.*", "-1", colnames(hashtag))
 
       # Create combined data frame
@@ -120,13 +121,15 @@ for (idx in seq_len(nrow(aggr_df))) {
       )
 
       # Copy metadata columns from hto_ref_sub to combined_data
-      combined_data$HTO_maxID = hashtag$HTO_maxID[match(combined_data$barcode, hashtag$barcode)]
+      combined_data$HTO_maxID = hashtag$HTO_maxID[match(combined_data$barcode,
+                                                        hashtag$barcode)]
       extra_metadata = c()
       for (metadata_col in colnames(hto_ref_sub)[3:ncol(hto_ref_sub)]) {
         combined_data[[metadata_col]] <- hto_ref_sub[[metadata_col]][match(combined_data$HTO_maxID, hto_ref_sub$hashtag)]
 
         if ("unique_sample_id" %in% colnames(combined_data)) {
-          combined_data$unique_sample_id = paste0(combined_data$unique_sample_id, "-",
+          combined_data$unique_sample_id = paste0(combined_data$unique_sample_id,
+                                                  "-",
                                                   combined_data[[metadata_col]])
         } else {
           combined_data$unique_sample_id = combined_data[[metadata_col]]
@@ -146,15 +149,17 @@ for (idx in seq_len(nrow(aggr_df))) {
           .groups = "drop"
         ) %>%
         group_by(unique_sample_id) %>%
-        mutate(sample_proportion = total_sample_cells / sum(total_sample_cells)) %>%
+        mutate(sample_proportion = total_sample_cells /
+                 sum(total_sample_cells)) %>%
         ungroup()
 
       # Initialize cluster mapping
-      cluster_mapping <- data.frame(cluster = integer(), unique_sample_id = character())
+      cluster_mapping <- data.frame(cluster = integer(),
+                                    unique_sample_id = character())
 
       # Rank Choice Voting (Criteria 1 & 2)
       unassigned_clusters <- unique(proportions_df$cluster)
-      while(length(unassigned_clusters) > 0) {
+      while (length(unassigned_clusters) > 0) {
         # Rank by criteria 1 then criteria 2
         ranked_df <- proportions_df %>%
           filter(cluster %in% unassigned_clusters) %>%
@@ -176,7 +181,8 @@ for (idx in seq_len(nrow(aggr_df))) {
             # Remove assigned cluster and sample from further consideration
             unassigned_clusters <- setdiff(unassigned_clusters, current_cluster)
             proportions_df <- proportions_df %>%
-              filter(!(cluster == current_cluster & unique_sample_id == current_sample))
+              filter(!(cluster == current_cluster &
+                         unique_sample_id == current_sample))
 
             # Break the inner loop as we've assigned the cluster
             break
@@ -192,8 +198,10 @@ for (idx in seq_len(nrow(aggr_df))) {
       }
 
       # Process of Elimination (Criteria 3)
-      unassigned_clusters <- setdiff(unique(combined_data$cluster), cluster_mapping$cluster)
-      unassigned_samples <- setdiff(unique(combined_data$unique_sample_id), cluster_mapping$unique_sample_id)
+      unassigned_clusters <- setdiff(unique(combined_data$cluster),
+                                     cluster_mapping$cluster)
+      unassigned_samples <- setdiff(unique(combined_data$unique_sample_id),
+                                    cluster_mapping$unique_sample_id)
 
       if (length(unassigned_samples) == 1) {
         remaining_sample <- unassigned_samples[1]
@@ -211,7 +219,9 @@ for (idx in seq_len(nrow(aggr_df))) {
 
         # Assign if a suitable cluster is found
         if (length(best_cluster) > 0) {
-          cluster_mapping <- rbind(cluster_mapping, data.frame(cluster = best_cluster, unique_sample_id = remaining_sample))
+          cluster_mapping <- rbind(cluster_mapping,
+                                   data.frame(cluster = best_cluster,
+                                              unique_sample_id = remaining_sample))
         }
       } else if (length(unassigned_samples) > 1) {
         print(paste0("[WARNING] Unable to assign all clusters for ",
@@ -227,13 +237,16 @@ for (idx in seq_len(nrow(aggr_df))) {
                                   remove = TRUE)
 
       # Add cluster and status information to hashtag object
-      hashtag$genotype_cluster = combined_data$cluster[match(hashtag$barcode, combined_data$barcode)]
-      hashtag$genotype_status = clusters_data$status[match(hashtag$barcode, clusters_data$barcode)]
+      hashtag$genotype_cluster = combined_data$cluster[match(hashtag$barcode,
+                                                             combined_data$barcode)]
+      hashtag$genotype_status = clusters_data$status[match(hashtag$barcode,
+                                                           clusters_data$barcode)]
 
       # Update hashtag metadata
       for (metadata_col in extra_metadata) {
         for (geno_cl in unique(cluster_mapping$cluster)) {
-          mask = (hashtag$genotype_cluster == geno_cl) & (is.na(hashtag@meta.data[[metadata_col]]))
+          mask = (hashtag$genotype_cluster == geno_cl) &
+            (is.na(hashtag@meta.data[[metadata_col]]))
           hashtag@meta.data[[metadata_col]][mask] = cluster_mapping[[metadata_col]][cluster_mapping$cluster == geno_cl]
         }
       }
@@ -244,13 +257,6 @@ for (idx in seq_len(nrow(aggr_df))) {
 
     hashtag$library_id <- rna_library_id
     hashtag$run_id <- run_id
-    if (ncol(hto_ref_sub) > 3) {
-      for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
-        hashtag@meta.data[[metadata_col]] =
-          hto_ref_sub[[metadata_col]][match(hashtag$HTO_maxID,
-                                            hto_ref_sub$hashtag)]
-      }
-    }
 
     rna_sub = subset(sc_total, library_id == {{rna_library_id}})
     rna_sub[["HTO"]] = CreateAssay5Object(counts = hashtag[["HTO"]]$counts,
