@@ -214,7 +214,7 @@ for (idx in seq_len(nrow(metadata_df))) {
             arrange(cluster, desc(cluster_proportion), desc(sample_proportion))
 
           # Iterate through ranked samples to handle potential pre-assignments
-          for (i in 1:nrow(ranked_df)) {
+          for (i in seq_len(nrow(ranked_df))) {
             current_row <- ranked_df[i, ]
             current_cluster <- current_row$cluster
             current_sample <- current_row$unique_sample_id
@@ -222,8 +222,8 @@ for (idx in seq_len(nrow(metadata_df))) {
             # Check if the current sample is already assigned to a cluster
             if (!(current_sample %in% cluster_mapping$unique_sample_id)) {
               # Assign the sample to the cluster
-              cluster_mapping <- rbind(cluster_mapping, 
-                                       data.frame(cluster = current_cluster, 
+              cluster_mapping <- rbind(cluster_mapping,
+                                       data.frame(cluster = current_cluster,
                                                   unique_sample_id = current_sample))
 
               # Remove assigned cluster and sample from further consideration
