@@ -132,12 +132,15 @@ saveRDS(sc_total,
 ###############################################################################
 #### CALCULATE QC METRICS (ATAC) ####
 ###############################################################################
-# Remove HT Doublets from object
+# Label doublets from object
 if ("genotype_status" %in% colnames(sc_total)) {
-  sc_total = subset(sc_total, (genotype_status != "doublet") &
-                      (HTO_classification.global != "Doublet"))
+  sc_total$doublet_status = (sc_total$genotype_status == "doublet") |
+    (sc_total$HTO_classification.global == "Doublet")
+  sc_total$negative_status = (sc_total$genotype_status == "unassigned") &
+    (sc_total$HTO_classification.global == "Negative")
 } else {
-  sc_total = subset(sc_total, HTO_classification.global != "Doublet")
+  sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
+  sc_total$negative_status = (sc_total$HTO_classification.global == "Negative")
 }
 # compute nucleosome signal score per cell
 sc_total = NucleosomeSignal(object = sc_total, verbose = FALSE)
@@ -148,27 +151,6 @@ sc_total$pct_reads_in_peaks = sc_total$peak_region_fragments /
   sc_total$passed_filters * 100
 sc_total$blacklist_ratio = sc_total$blacklist_region_fragments /
   sc_total$peak_region_fragments
-# Doublet Detection
-sce <- scDblFinder(as.SingleCellExperiment(sc_total), artificialDoublets = 1,
-                   aggregateFeatures = TRUE, samples = "run_id",
-                   nfeatures = 25, processing = "normFeatures",
-                   BPPARAM = MulticoreParam(max_cores))
-to_exclude <- GRanges(c("M", "chrM", "MT", "X", "Y", "chrX", "chrY"),
-                      IRanges(1L, width = 10^8))
-res <- amulet(Fragments(sc_total)[[1]]@path, regionsToExclude = to_exclude)
-res$scDblFinder.p <- 1 - colData(sce)[row.names(res), "scDblFinder.score"]
-res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
-  FUN = function(x) {
-    x[x < 0.001] <- 0.001 # prevent too much skew from very small or 0 p-values
-    suppressWarnings(aggregation::fisher(x))
-  }
-)
-sc_total$scDblFinder.score <- res$combined
-
-p = DensityScatter(sc_total, "peak_region_fragments", "scDblFinder.score",
-                   quantiles = TRUE, log_x = TRUE, log_y = FALSE)
-ggsave("scatter_peakfrags.v.dbl_alldata.png",
-       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 p = DensityScatter(sc_total, "peak_region_fragments", "TSS.enrichment",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
@@ -214,47 +196,16 @@ ggsave("scatter_peakfrags.v.TSSe_filtered.png",
 # adjust metadata to accomodate Seurat's AggregateExpression
 sc_total$atac_id = gsub("_", "-", sc_total$atac_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
-hto_reference$library_id = gsub("_", "-", hto_reference$library_id)
-hto_reference$patient_id = gsub("_", "-", hto_reference$patient_id)
-# pair hto reference with seurat object
-hto_reference$match_id = paste(hto_reference$library_id,
-                               hto_reference$patient_id,
-                               hto_reference$hashtag,
-                               sep = "-")
-sc_total$match_id = paste(sc_total$atac_id,
-                          sc_total$patient_id,
-                          sc_total$hash.ID,
-                          sep = "-")
-# add metadata from hto reference to seurat object
-for (col_id in names(hto_reference)[4:ncol(hto_reference)]) {
-  sc_id = sc_total$match_id
-  hto_id = hto_reference$match_id
-  sc_total@meta.data[[col_id]] = hto_reference[[col_id]][match(sc_id, hto_id)]
-}
+sc_total$patient_id[sc_total$doublet_status] = "Doublet"
+sc_total$patient_id[sc_total$negative_status] = "Negative"
+sc_total$patient_id[is.na(sc_total$patient_id)] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
-hto_reference$sample_id = paste(hto_reference$library_id,
-                                hto_reference$patient_id,
-                                hto_reference$visit,
-                                sep = "-")
 sc_total$sample_id = paste(sc_total$atac_id,
                            sc_total$patient_id,
+                           sc_total$treatment,
                            sc_total$visit,
                            sep = "-")
-mask = sc_total$HTO_classification.global != "Negative"
-sc_total$sample_id[mask] = sc_total$HTO_classification.global[mask]
-stats = data.frame(match_id = hto_reference$match_id)
-
-if (ncol(hto_reference) > 3) {
-  stats = merge(stats, hto_reference[, 3:ncol(hto_reference)], by = "match_id")
-} else {
-  stats$sample_id = hto_reference$sample_id[match(stats$match_id,
-                                                  hto_reference$match_id)]
-}
-stats$match_id = NULL
-sc_total$match_id = NULL
-neg_df = data.frame(sample_id = "Negative")
-neg_df[names(stats)[names(stats) != "sample_id"]] = NA
-stats = rbind(stats, neg_df)
+stats = data.frame(sample_id = unique(sc_total$sample_id))
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
 stats$Unfiltered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                      sample_id_counts$Var1)]
@@ -278,7 +229,7 @@ sc <- subset(sc_total,
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
                TSS.enrichment > MIN_TSS &
-               scDblFinder.score > DBL_LIMIT)
+               doublet_status == FALSE)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -303,24 +254,23 @@ write.csv(stats, "QC.atac_sampleID_filtering.stats.csv",
           quote = FALSE, row.names = FALSE)
 
 # Create Filtered Feature Scatter of ATAC and HTO fragments/reads
-cells_use = colnames(sc[, !is.na(sc$HTO_maxID)])
-p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
+cells_use = colnames(sc[, !is.na(sc$patient_id)])
+p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "run_id",
                    split.by = "HTO_maxID", cells = cells_use, ncol = ncol) +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
-  stat_ellipse(aes(group = asap_id),
-               sc@meta.data[!is.na(sc@meta.data$HTO_maxID), ]) +
+  stat_ellipse(aes(group = run_id),
+               sc@meta.data[!is.na(sc$patient_id), ]) +
   labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
 ggsave("featscatter_nctATAC.v.nctHTO_HTO_maxid_filtereddata.png", p,
        width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
 
-cells_use = colnames(sc[, !is.na(sc$hash.ID)])
-p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "asap_id",
+p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "run_id",
                    split.by = "hash.ID", cells = cells_use, ncol = ncol) +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
-  stat_ellipse(aes(group = asap_id),
-               sc@meta.data[!is.na(sc@meta.data$hash.ID), ]) +
+  stat_ellipse(aes(group = run_id),
+               sc@meta.data[!is.na(sc$patient_id), ]) +
   labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
 ggsave("featscatter_nctATAC.v.nctHTO_calledHT_filtereddata.png", p,
        width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
@@ -382,7 +332,6 @@ if (FALSE) {
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
 DefaultAssay(sc) = "ATAC"
-batch_column = "endotype"
 n_dims = 30
 
 sc <- RunTFIDF(sc, min.cells = 1)
@@ -390,120 +339,31 @@ sc <- FindTopFeatures(sc, min.cutoff = "q0")
 sc <- RunSVD(sc, n = n_dims, reduction.name = "atac.lsi",
              verbose = FALSE)
 
-sc <- FindNeighbors(sc, dims = 2:n_dims, reduction = "atac.lsi",
+## LOOK AT THIS PLOT AND SET VARIABLE ##
+p = ElbowPlot(sc, ndims = n_dims, reduction = "atac.lsi")
+ggsave("elbow_plot.png", p, width = OUTPUT_FIG_WIDTH,
+       height = OUTPUT_FIG_HEIGHT)
+n_dims_keep = 10
+########################################
+
+sc <- FindNeighbors(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
                     verbose = FALSE)
-sc <- RunUMAP(sc, dims = 2:n_dims, reduction = "atac.lsi",
-              reduction.name = "umap.atac.unintegrated",
+sc <- RunUMAP(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
+              reduction.name = "umap.atac",
               return.model = TRUE, verbose = FALSE)
-# visualize by batch annotations
-p = DimPlot(sc, reduction = "umap.atac.unintegrated", group.by = batch_column)
-ggsave(paste0("umap_atac.unintegrated_", batch_column, ".pdf"), p,
-       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-ggsave(paste0("umap_atac.unintegrated_", batch_column, ".png"), p,
-       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-###############################################################################
-#### LABEL TRANSFER ON NEGATIVE CELLS (OPTIONAL) ####
-###############################################################################
-if (FALSE) {
-  if (!exists("sc_na")) {
-    batch_column = "endotype"
-    n_dims = 30
-    sc_na = sc[, colnames(sc)[is.na(sc[[batch_column]])]]
-    sc <- sc[, colnames(sc)[!is.na(sc[[batch_column]])]]
-    sc_na$label_exists = FALSE
-    sc$label_exists = TRUE
-  }
-
-  # find transfer anchors
-  DefaultAssay(sc) = "ATAC"
-  sc_na = RunTFIDF(sc_na, min.cells = 1)
-  sc_na = FindTopFeatures(sc_na, min.cutoff = "q0")
-  sc_na <- RunSVD(sc_na, n = n_dims, reduction.name = "atac.lsi",
-                  verbose = FALSE)
-
-  transfer_anchors <- FindTransferAnchors(
-    reference = sc,
-    query = sc_na,
-    reference.reduction = "atac.lsi",
-    reduction = "lsiproject",
-    dims = 2:n_dims
-  )
-
-  # map query onto the reference dataset
-  sc_na <- MapQuery(
-    anchorset = transfer_anchors,
-    reference = sc,
-    query = sc_na,
-    refdata = sc[[batch_column]],
-    reference.reduction = "atac.lsi",
-    new.reduction.name = "ref.lsi",
-    reduction.model = "umap.atac.unintegrated"
-  )
-  sc_na[[batch_column]] = sc_na$predicted.id
-  sc <- merge(sc, sc_na)
-  sc = JoinLayers(sc, assay = "HTO")
-
-  # Run dimensionality reduction and clustering on the new
-  #      fully annotated dataset
-  sc <- RunTFIDF(sc, min.cells = 1)
-  sc <- FindTopFeatures(sc, min.cutoff = "q0")
-  sc <- RunSVD(sc, n = n_dims, reduction.name = "atac.lsi",
-               verbose = FALSE)
-  sc <- FindNeighbors(sc, dims = 2:n_dims, reduction = "atac.lsi",
-                      verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
-                     cluster.name = "unintegrated_atac.clusters",
-                     verbose = FALSE)
-  sc <- RunUMAP(sc, dims = 2:n_dims, reduction = "atac.lsi",
-                reduction.name = "umap.atac.unintegrated",
-                verbose = FALSE)
-
-  # visualize by batch annotations
-  p = DimPlot(sc, reduction = "umap.atac.unintegrated", group.by = batch_column,
-              split.by = "label_exists")
-  ggsave(paste0("umap_atac.unintegrated_", batch_column, "_label.split.pdf"), p,
-         width = 2 * OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-  ggsave(paste0("umap_atac.unintegrated_", batch_column, "_label.split.png"), p,
-         width = 2 * OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-  sc <- RunHarmony(
-    object = sc,
-    group.by.vars = batch_column,
-    reduction.use = "atac.lsi",
-    assay.use = "ATAC",
-    project.dim = FALSE
-  )
-  sc <- FindNeighbors(sc, reduction = "harmony",
-                      dims = 2:n_dims, verbose = FALSE)
-  sc <- RunUMAP(sc, reduction = "harmony",
-                dims = 2:n_dims, reduction.name = "umap.atac",
-                return.model = TRUE, verbose = FALSE)
-
-  p <- DimPlot(sc, reduction = "umap.atac", group.by = batch_column,
-               split.by = "label_exists")
-  ggsave(paste0("umap_atac.integrated_", batch_column, ".pdf"), p,
-         width = 2 * OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-  ggsave(paste0("umap_atac.integrated_", batch_column, ".png"), p,
-         width = 2 * OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-}
 ###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
-sc_v3 = sc
-sc_v3[["HTO"]] = NULL
-sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "Assay")
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-sc_v3 <- RunAzimuth(sc_v3, query.modality = "ATAC", reference = "pbmcref")
 
-sc$predicted.celltype.l1 = sc_v3$predicted.celltype.l1
-sc$predicted.celltype.l2 = sc_v3$predicted.celltype.l2
-sc$predicted.celltype.l3 = sc_v3$predicted.celltype.l3
-sc$predicted.celltype.l1.score = sc_v3$predicted.celltype.l1.score
-sc$predicted.celltype.l2.score = sc_v3$predicted.celltype.l2.score
-sc$predicted.celltype.l3.score = sc_v3$predicted.celltype.l3.score
-
-sc@reductions$ref.umap = sc_v3@reductions$ref.umap
+if (!file.exists("annotation_reference/ext.Rds")) {
+  dir.create(file.path("annotation_reference"))
+  download.file("https://zenodo.org/records/7770374/files/ext.Rds",
+                destfile = "annotation_reference/ext.Rds") # PBMC reference
+}
+sc <- RunAzimuth(sc, query.modality = "ATAC",
+                 reference = file.path("annotation_reference"))
 
 graph = "ATAC_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
@@ -529,13 +389,13 @@ write.csv(all_markers, paste0("DAR_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 ###############################################################################
 # save Seurat object
-saveRDS(sc, paste0(PROJECT_DIR,"/data/qc_atac.hto_", PROJECT_NAME, ".RDS"))
+saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_atac.hto_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
-               file=paste0(PROJECT_DIR, "/",
-                           PROJECT_NAME,
-                           ".Rsession.Info.",
-                           gsub("\\D", "", Sys.time()), ".txt"))
+               file = paste0(PROJECT_DIR, "/",
+                             PROJECT_NAME,
+                             ".Rsession.Info.",
+                             gsub("\\D", "", Sys.time()), ".txt"))
 ###############################################################################
 ###############################################################################
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
