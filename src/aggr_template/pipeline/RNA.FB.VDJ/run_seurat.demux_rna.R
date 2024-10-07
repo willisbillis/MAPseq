@@ -11,7 +11,7 @@ if (!require("pacman", quietly = TRUE)) {
 }
 library(pacman)
 
-p_load(Seurat, hdf5r)
+p_load(Seurat, hdf5r, tidyr, dplyr)
 
 set.seed(1234) # set seed for reproducibility
 # make sure Seurat v5 is used
@@ -96,14 +96,14 @@ for (idx in seq_len(nrow(aggr_df))) {
       print(failed_htos)
     }
     hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$hash.ID,
-                                                         hto_ref_sub$hashtag)]
+                                                       hto_ref_sub$hashtag)]
     if (ncol(hto_ref_sub) > 3) {
-        for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
-          hashtag@meta.data[[metadata_col]] =
-            hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
-                                              hto_ref_sub$hashtag)]
-        }
+      for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
+        hashtag@meta.data[[metadata_col]] =
+          hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
+                                            hto_ref_sub$hashtag)]
       }
+    }
 
     souporcell_clusters = paste0(PROJECT_PATH, "/", PROJECT_NAME,
                                  "/pipeline/RNA.FB.VDJ/RNA_demuxing/",
@@ -124,7 +124,7 @@ for (idx in seq_len(nrow(aggr_df))) {
       extra_metadata = c()
       for (metadata_col in colnames(hto_ref_sub)[3:ncol(hto_ref_sub)]) {
         combined_data[[metadata_col]] <- hto_ref_sub[[metadata_col]][match(combined_data$HTO_maxID, hto_ref_sub$hashtag)]
-        
+
         if ("unique_sample_id" %in% colnames(combined_data)) {
           combined_data$unique_sample_id = paste0(combined_data$unique_sample_id, "-",
                                                   combined_data[[metadata_col]])
@@ -161,7 +161,7 @@ for (idx in seq_len(nrow(aggr_df))) {
           arrange(cluster, desc(cluster_proportion), desc(sample_proportion))
 
         # Iterate through ranked samples to handle potential pre-assignments
-        for (i in 1:nrow(ranked_df)) {
+        for (i in seq_len(nrow(ranked_df))) {
           current_row <- ranked_df[i, ]
           current_cluster <- current_row$cluster
           current_sample <- current_row$unique_sample_id
@@ -169,8 +169,8 @@ for (idx in seq_len(nrow(aggr_df))) {
           # Check if the current sample is already assigned to a cluster
           if (!(current_sample %in% cluster_mapping$unique_sample_id)) {
             # Assign the sample to the cluster
-            cluster_mapping <- rbind(cluster_mapping, 
-                                      data.frame(cluster = current_cluster, 
+            cluster_mapping <- rbind(cluster_mapping,
+                                     data.frame(cluster = current_cluster,
                                                 unique_sample_id = current_sample))
 
             # Remove assigned cluster and sample from further consideration
@@ -200,7 +200,8 @@ for (idx in seq_len(nrow(aggr_df))) {
 
         # Find the best cluster for the remaining sample based on cell count
         best_cluster <- combined_data %>%
-          filter(unique_sample_id == remaining_sample, cluster %in% unassigned_clusters) %>%
+          filter(unique_sample_id == remaining_sample,
+                 cluster %in% unassigned_clusters) %>%
           group_by(cluster) %>%
           summarize(cell_count = n()) %>%
           filter(cell_count > 10) %>%
