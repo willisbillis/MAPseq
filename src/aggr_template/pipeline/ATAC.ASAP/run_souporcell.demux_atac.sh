@@ -59,7 +59,7 @@ mkdir -p $OUTPUT_DIR
 ################################################################################
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
   sample_name=$(basename $sample_path)
-  if [[ $sample_name != reports ]] && [[ ! $sample_name =~ _aggr$ ]]; then
+  if [[ $sample_name != reports ]] && [[ ! $sample_name =~ _aggr$ ]] && [[ ! $sample_name =~ _demuxing$ ]]; then
 
     # Count lines in HTO_REF matching the sample_name
     N=$(awk -F',' -v sn="$sample_name" '$1 == sn {count++} END {print count}' $HTO_REF) 
