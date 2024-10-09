@@ -130,9 +130,9 @@ for (idx in seq_len(nrow(aggr_df))) {
         if ("unique_sample_id" %in% colnames(combined_data)) {
           combined_data$unique_sample_id = paste0(combined_data$unique_sample_id,
                                                   "-",
-                                                  combined_data[[metadata_col]])
+                                                  gsub("-", ".+.", combined_data[[metadata_col]]))
         } else {
-          combined_data$unique_sample_id = combined_data[[metadata_col]]
+          combined_data$unique_sample_id = gsub("-", ".+.", combined_data[[metadata_col]])
         }
         extra_metadata = c(extra_metadata, metadata_col)
       }
@@ -247,7 +247,8 @@ for (idx in seq_len(nrow(aggr_df))) {
         for (geno_cl in unique(cluster_mapping$cluster)) {
           mask = (hashtag$genotype_cluster == geno_cl) &
             (is.na(hashtag@meta.data[[metadata_col]]))
-          hashtag@meta.data[[metadata_col]][mask] = cluster_mapping[[metadata_col]][cluster_mapping$cluster == geno_cl]
+          hashtag@meta.data[[metadata_col]][mask] = gsub(".+.", "-",
+                                                         cluster_mapping[[metadata_col]][cluster_mapping$cluster == geno_cl])
         }
       }
 
