@@ -82,7 +82,7 @@ for (idx in seq_len(nrow(aggr_df))) {
   if (ncol(sc_sub) > nrow(sc_sub)) {
     sc_sub = NormalizeData(sc_sub, normalization.method = "CLR",
                            verbose = FALSE)
-    hashtag = HTODemux(sc_sub, verbose = TRUE)
+    hashtag = HTODemux(sc_sub, verbose = FALSE)
     successful_htos = unique(hashtag$HTO_maxID[!(hashtag$HTO_maxID %in%
                                                    c("Doublet", "Negative"))])
     failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
