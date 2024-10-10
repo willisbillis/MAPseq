@@ -364,30 +364,8 @@ sc <- RunUMAP(sc, dims = 1:15, reduction = "rna.pca",
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
-DefaultAssay(sc) = "RNA"
-sc_v3 = sc
-sc_v3[["SCT"]] = NULL
-sc_v3[["HTO"]] = NULL
-sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class = "Assay")
-
-sc_v3 = FindVariableFeatures(sc_v3)
-non_ig_mask = !grepl(igs, VariableFeatures(sc_v3))
-VariableFeatures(sc_v3) = VariableFeatures(sc_v3)[non_ig_mask]
-sc_v3 = ScaleData(sc_v3)
-sc_v3 = RunPCA(sc_v3, npcs = 50)
-sc_v3 <- FindNeighbors(sc_v3, dims = 1:10)
-sc_v3 = RunUMAP(sc_v3, reduction = "pca", dims = 1:10, n.neighbors = 50)
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-sc_v3 <- RunAzimuth(sc_v3, reference = "pbmcref")
-
-sc$predicted.celltype.l1 = sc_v3$predicted.celltype.l1
-sc$predicted.celltype.l2 = sc_v3$predicted.celltype.l2
-sc$predicted.celltype.l3 = sc_v3$predicted.celltype.l3
-sc$predicted.celltype.l1.score = sc_v3$predicted.celltype.l1.score
-sc$predicted.celltype.l2.score = sc_v3$predicted.celltype.l2.score
-sc$predicted.celltype.l3.score = sc_v3$predicted.celltype.l3.score
-
-sc@reductions$ref.umap = sc_v3@reductions$ref.umap
+sc <- RunAzimuth(sc, reference = "pbmcref", assay = "RNA")
 
 # Different cluster resolutions for SCT
 graph = "SCT_snn"
@@ -398,22 +376,18 @@ for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
 
 p = clustree(sc, prefix = paste0(graph, "_res."))
 ggsave("clustree_clusters_rna.png", p,
-       width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
+       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
 # DEG testing between clusters (one vs all)
-all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "SCT")
+DefaultAssay(sc) = "RNA"
+sc = NormalizeData(sc)
+all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste0("DEG_", graph, ".clusters.res0.25.csv"),
-          row.names = FALSE, quote = FALSE)
-
-# DEP testing between clusters (one vs all)
-all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
-all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
-write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
