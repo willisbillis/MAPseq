@@ -355,9 +355,17 @@ non_ig_mask = !grepl(igs, VariableFeatures(sc))
 VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
 sc <- RunPCA(sc, npcs = 40,
              reduction.name = "rna.pca", verbose = FALSE)
-sc <- FindNeighbors(sc, dims = 1:15, reduction = "rna.pca",
+
+## LOOK AT THIS PLOT AND SET VARIABLE ##
+p = ElbowPlot(sc, ndims = 40, reduction = "rna.pca")
+ggsave("elbow_plot.png", p, width = OUTPUT_FIG_WIDTH,
+       height = OUTPUT_FIG_HEIGHT)
+n_dims_keep = 10
+########################################
+
+sc <- FindNeighbors(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
                     verbose = FALSE)
-sc <- RunUMAP(sc, dims = 1:15, reduction = "rna.pca",
+sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
               reduction.name = "umap.rna",
               verbose = FALSE)
 ###############################################################################
@@ -365,6 +373,7 @@ sc <- RunUMAP(sc, dims = 1:15, reduction = "rna.pca",
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
+DefaultAssay(sc) = "RNA"
 sc <- RunAzimuth(sc, reference = "pbmcref", assay = "RNA")
 
 # Different cluster resolutions for SCT

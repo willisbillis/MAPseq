@@ -80,7 +80,7 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_ID",
+            group.by = "hash.ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -89,7 +89,7 @@ ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_classification",
+            group.by = "HTO_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -127,43 +127,25 @@ Annotation(sc_total) = annotations
 ###############################################################################
 #### CALCULATE QC METRICS (ATAC) ####
 ###############################################################################
+# Label doublets from object
+if ("genotype_status" %in% colnames(sc_total)) {
+  sc_total$doublet_status = (sc_total$genotype_status == "doublet") &
+    (sc_total$HTO_classification.global == "Doublet")
+  sc_total$negative_status = (sc_total$genotype_status == "unassigned") |
+    (sc_total$HTO_classification.global == "Negative")
+} else {
+  sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
+  sc_total$negative_status = (sc_total$HTO_classification.global == "Negative")
+}
 # compute nucleosome signal score per cell
 sc_total = NucleosomeSignal(object = sc_total, verbose = FALSE)
-
 # compute TSS enrichment score per cell
 sc_total = TSSEnrichment(object = sc_total, verbose = FALSE)
-
 # add blacklist ratio and fraction of reads in peaks
 sc_total$pct_reads_in_peaks = sc_total$peak_region_fragments /
   sc_total$passed_filters * 100
 sc_total$blacklist_ratio = sc_total$blacklist_region_fragments /
   sc_total$peak_region_fragments
-
-# Doublet Detection
-sc_v3 = sc_total
-sc_v3[["HTO"]] = NULL
-sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "ChromatinAssay")
-sce <- scDblFinder(as.SingleCellExperiment(sc_v3), artificialDoublets = 1,
-                   aggregateFeatures = TRUE, samples = "library_id",
-                   nfeatures = 25, processing = "normFeatures",
-                   BPPARAM = MulticoreParam(max_cores))
-
-to_exclude <- GRanges(c("M", "chrM", "MT", "X", "Y", "chrX", "chrY"),
-                      IRanges(1L, width = 10^8))
-res <- amulet(Fragments(sc_total)@path, regionsToExclude = to_exclude)
-res$scDblFinder.p <- 1 - colData(sce)[row.names(res), "scDblFinder.score"]
-res$combined <- apply(res[, c("scDblFinder.p", "p.value")], 1,
-  FUN = function(x) {
-    x[x < 0.001] <- 0.001 # prevent too much skew from very small or 0 p-values
-    suppressWarnings(aggregation::fisher(x))
-  }
-)
-sc_total$scDblFinder.score <- res$combined
-
-p = DensityScatter(sc_total, "peak_region_fragments", "scDblFinder.score",
-                   quantiles = TRUE)
-ggsave("scatter_peakfrags.v.dbl_alldata.png",
-       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 p = DensityScatter(sc_total, "peak_region_fragments", "TSS.enrichment",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
@@ -183,11 +165,6 @@ ggsave("scatter_peakfrags.v.nsig_alldata.png",
 p = DensityScatter(sc_total, "peak_region_fragments", "blacklist_ratio",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
 ggsave("scatter_peakfrags.v.blacklist_alldata.png",
-       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-p = DensityScatter(sc_total, "nCount_HTO", "nCount_ATAC",
-                   quantiles = TRUE, log_x = TRUE, log_y = TRUE)
-ggsave("scatter_nCountHTO.v.nCountATAC_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### ATAC QC CUTOFFS ####
@@ -351,7 +328,6 @@ if (FALSE) {
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
 DefaultAssay(sc) = "ATAC"
-batch_column = "endotype"
 n_dims = 30
 
 sc <- RunTFIDF(sc, min.cells = 1)
@@ -359,17 +335,18 @@ sc <- FindTopFeatures(sc, min.cutoff = "q0")
 sc <- RunSVD(sc, n = n_dims, reduction.name = "atac.lsi",
              verbose = FALSE)
 
-sc <- FindNeighbors(sc, dims = 2:n_dims, reduction = "atac.lsi",
+## LOOK AT THIS PLOT AND SET VARIABLE ##
+p = ElbowPlot(sc, ndims = n_dims, reduction = "atac.lsi")
+ggsave("elbow_plot.png", p, width = OUTPUT_FIG_WIDTH,
+       height = OUTPUT_FIG_HEIGHT)
+n_dims_keep = 10
+########################################
+
+sc <- FindNeighbors(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
                     verbose = FALSE)
-sc <- RunUMAP(sc, dims = 2:n_dims, reduction = "atac.lsi",
-              reduction.name = "umap.atac.unintegrated",
+sc <- RunUMAP(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
+              reduction.name = "umap.atac",
               return.model = TRUE, verbose = FALSE)
-# visualize by batch annotations
-p = DimPlot(sc, reduction = "umap.atac.unintegrated", group.by = batch_column)
-ggsave(paste0("umap_atac.unintegrated_", batch_column, ".pdf"), p,
-       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-ggsave(paste0("umap_atac.unintegrated_", batch_column, ".png"), p,
-       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### LABEL TRANSFER ON NEGATIVE CELLS (OPTIONAL) ####
 ###############################################################################

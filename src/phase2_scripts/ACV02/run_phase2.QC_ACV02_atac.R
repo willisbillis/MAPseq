@@ -362,6 +362,7 @@ if (!file.exists("annotation_reference/ext.Rds")) {
   download.file("https://zenodo.org/records/7770374/files/ext.Rds",
                 destfile = "annotation_reference/ext.Rds") # PBMC reference
 }
+DefaultAssay(sc) = "ATAC"
 sc <- RunAzimuth(sc, query.modality = "ATAC",
                  reference = file.path("annotation_reference"))
 

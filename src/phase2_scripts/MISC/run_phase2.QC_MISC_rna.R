@@ -54,9 +54,9 @@ plan("multicore", workers = max_cores)
 #### OPTIONS ####
 ###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "MISC001"
+PROJECT_NAME = "MISC_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/MISC.MAPseq/MISC001/analysis/RNA.FB.VDJ"
+PROJECT_DIR = "/home/Projects/Scharer_sc/MISC.MAPseq/MISC_all/analysis/RNA.FB.VDJ"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 GENOME = "hg38"                     # REPLACE, hg38 or mm10
@@ -89,7 +89,7 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_ID",
+            group.by = "hash.ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -98,7 +98,7 @@ ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_classification",
+            group.by = "HTO_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -106,15 +106,18 @@ ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
 ###############################################################################
 #### CALCULATE QC METRICS (RNA) ####
 ###############################################################################
-# Doublet Detection
-DefaultAssay(sc_total) = "RNA"
-sc_v3 = sc_total
-sc_v3[["HTO"]] = NULL
-sc_v3[["ADT"]] = NULL
-sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class = "Assay")
-sce <- scDblFinder(as.SingleCellExperiment(sc_v3),
-                   samples = "library_id", BPPARAM = MulticoreParam(max_cores))
-sc_total$scDblFinder.score <- sce$scDblFinder.score
+# Label doublets from object
+if ("genotype_status" %in% colnames(sc_total)) {
+  sc_total$doublet_status = (sc_total$genotype_status == "doublet") &
+    (sc_total$HTO_classification.global == "Doublet")
+  sc_total$negative_status = (sc_total$genotype_status == "unassigned") |
+    (sc_total$HTO_classification.global == "Negative") &
+      ((sc_total$HTO_classification.global != "Singlet") |
+         (sc_total$genotype_status != "singlet"))
+} else {
+  sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
+  sc_total$negative_status = (sc_total$HTO_classification.global == "Negative")
+}
 
 # Ig and mitochondrial reads detection
 sc_total[["percent.Ig"]] <- PercentageFeatureSet(sc_total, pattern = igs)
@@ -122,11 +125,6 @@ sc_total[["percent.mt"]] <- PercentageFeatureSet(sc_total, pattern = mt_pattern)
 
 p = DensityScatter(sc_total, "percent.Ig", "percent.mt", quantiles = TRUE)
 ggsave("scatter_pct.Ig.v.pct.mt_alldata.png",
-       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-p = DensityScatter(sc_total, "scDblFinder.score", "percent.mt",
-                   quantiles = TRUE)
-ggsave("scatter_dbl.v.pct.mt_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 p = DensityScatter(sc_total, "nCount_RNA", "nFeature_RNA",
@@ -148,13 +146,12 @@ ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
-DBL_LIMIT = 0.6       # REPLACE, minimum scDblFinder score to permit
 MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = 5000  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
 p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt",
-                   quantiles=TRUE, log_x=TRUE)
+                   quantiles = TRUE, log_x = TRUE)
 nfeat_mt_plot <- p +
   geom_hline(yintercept = MAX_PCT_MT, linetype = "dashed") +
   geom_vline(xintercept = c(MIN_GENE_READS, MAX_GENE_READS),
@@ -167,8 +164,9 @@ ggsave("scatter_nFeatRNA.v.pct.mt_filtered.png", nfeat_mt_plot,
 # adjust metadata to accomodate Seurat's AggregateExpression
 sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
-sc_total$patient_id[sc_total$MULTI_ID == "Doublet"] = "Doublet"
-sc_total$patient_id[sc_total$MULTI_ID == "Negative"] = "Negative"
+sc_total$patient_id[sc_total$doublet_status] = "Doublet"
+sc_total$patient_id[sc_total$negative_status] = "Negative"
+sc_total$patient_id[is.na(sc_total$patient_id)] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
@@ -200,10 +198,9 @@ stats$Unfiltered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
 
 sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
-              scDblFinder.score < DBL_LIMIT &
               nFeature_RNA > MIN_GENE_READS &
               nFeature_RNA < MAX_GENE_READS &
-              MULTI_ID != "Doublet")
+              doublet_status != TRUE)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -348,9 +345,17 @@ non_ig_mask = !grepl(igs, VariableFeatures(sc))
 VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
 sc <- RunPCA(sc, npcs = 40,
              reduction.name = "rna.pca", verbose = FALSE)
-sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
+
+## LOOK AT THIS PLOT AND SET VARIABLE ##
+p = ElbowPlot(sc, ndims = 40, reduction = "rna.pca")
+ggsave("elbow_plot.png", p, width = OUTPUT_FIG_WIDTH,
+       height = OUTPUT_FIG_HEIGHT)
+n_dims_keep = 10
+########################################
+
+sc <- FindNeighbors(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
                     verbose = FALSE)
-sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
+sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
               reduction.name = "umap.rna",
               verbose = FALSE)
 
@@ -362,22 +367,9 @@ sc = ScaleData(sc)
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
-DefaultAssay(sc) = "SCT"
-sc_v3 = sc
-sc_v3[["ADT"]] = NULL
-sc_v3[["RNA"]] = NULL
-sc_v3[["SCT"]] = as(sc_v3[["SCT"]], Class = "Assay")
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-sc_v3 <- RunAzimuth(sc_v3, reference = "pbmcref")
-
-sc$predicted.celltype.l1 = sc_v3$predicted.celltype.l1
-sc$predicted.celltype.l2 = sc_v3$predicted.celltype.l2
-sc$predicted.celltype.l3 = sc_v3$predicted.celltype.l3
-sc$predicted.celltype.l1.score = sc_v3$predicted.celltype.l1.score
-sc$predicted.celltype.l2.score = sc_v3$predicted.celltype.l2.score
-sc$predicted.celltype.l3.score = sc_v3$predicted.celltype.l3.score
-
-sc@reductions$ref.umap = sc_v3@reductions$ref.umap
+DefaultAssay(sc) = "RNA"
+sc <- RunAzimuth(sc, reference = "pbmcref", assay = "RNA")
 
 # Different cluster resolutions for SCT
 graph = "SCT_snn"
@@ -388,7 +380,7 @@ for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
 
 p = clustree(sc, prefix = paste0(graph, "_res."))
 ggsave("clustree_clusters_rna.png", p,
-       width=OUTPUT_FIG_WIDTH, height=OUTPUT_FIG_HEIGHT)
+       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 sc$seurat_clusters = sc[[paste0(graph, "_res.", 0.25)]]
 Idents(sc) = "seurat_clusters"
