@@ -170,9 +170,9 @@ ggsave("scatter_peakfrags.v.blacklist_alldata.png",
 #### ATAC QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MIN_PEAK_FRAGMENTS = 1000   # REPLACE, minimum peak fragments per cell
-MAX_PEAK_FRAGMENTS = 35000  # REPLACE, maximum peak fragments per cell
-MIN_PCT_RiP = 80            # REPLACE, minimum percent reads in peaks per cell
+MIN_PEAK_FRAGMENTS = 100   # REPLACE, minimum peak fragments per cell
+MAX_PEAK_FRAGMENTS = 15000  # REPLACE, maximum peak fragments per cell
+MIN_PCT_RiP = 50            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
 MIN_TSS = 2                 # REPLACE, minimum TSS enrichment score per cell
@@ -189,49 +189,20 @@ ggsave("scatter_peakfrags.v.TSSe_filtered.png",
 #### QUANTIFY QC FILTERING ####
 ###############################################################################
 # adjust metadata to accomodate Seurat's AggregateExpression
-sc_total$library_id = gsub("_", "-", sc_total$library_id)
+sc_total$atac_id = gsub("_", "-", sc_total$atac_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
-hto_reference$library_id = gsub("_", "-", hto_reference$library_id)
-hto_reference$patient_id = gsub("_", "-", hto_reference$patient_id)
-# pair hto reference with seurat object
-hto_reference$match_id = paste(hto_reference$library_id,
-                               hto_reference$patient_id,
-                               hto_reference$hashtag,
-                               sep = "-")
-sc_total$match_id = paste(sc_total$library_id,
-                          sc_total$patient_id,
-                          sc_total$hash.ID,
-                          sep = "-")
-# add metadata from hto reference to seurat object
-for (col_id in names(hto_reference)[4:ncol(hto_reference)]) {
-  sc_id = sc_total$match_id
-  hto_id = hto_reference$match_id
-  sc_total@meta.data[[col_id]] = hto_reference[[col_id]][match(sc_id, hto_id)]
-}
+sc_total$patient_id[sc_total$doublet_status] = "Doublet"
+sc_total$patient_id[sc_total$negative_status] = "Negative"
+sc_total$patient_id[is.na(sc_total$patient_id)] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
-hto_reference$sample_id = paste(hto_reference$library_id,
-                                hto_reference$patient_id,
-                                sep = "-")
-sc_total$sample_id = paste(sc_total$library_id,
+sc_total$sample_id = paste(sc_total$atac_id,
                            sc_total$patient_id,
+                           sc_total$clinical_group,
+                           sc_total$visit,
                            sep = "-")
-neg_cells_mask = sc_total$HTO_classification.global == "Negative"
-sc_total$sample_id[neg_cells_mask] = "Negative"
-stats = data.frame(match_id = hto_reference$match_id)
-
-if (ncol(hto_reference) > 3) {
-  stats = merge(stats, hto_reference[, 3:ncol(hto_reference)], by="match_id")
-} else {
-  stats$sample_id = hto_reference$sample_id[match(stats$match_id,
-                                                  hto_reference$match_id)]
-}
-stats$match_id = NULL
-sc_total$match_id = NULL
-neg_df = data.frame(sample_id = "Negative")
-neg_df[names(stats)[names(stats) != "sample_id"]] = NA
-stats = rbind(stats, neg_df)
+stats = data.frame(sample_id = unique(sc_total$sample_id))
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
-stats$Unfiltered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+stats$Unfiltered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                      sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 cell_ct = AggregateExpression(sc_total,
@@ -240,18 +211,23 @@ cell_ct = AggregateExpression(sc_total,
 stats$Unfiltered_Avg_Accessibility = round(cell_ct[match(stats$sample_id,
                                                          names(cell_ct))] /
                                              stats$Unfiltered_Cells)
+cell_ct = AggregateExpression(sc_total,
+                              group.by = "sample_id")$HTO %>%
+  colSums
+stats$Unfiltered_Avg_HTO = round(cell_ct[match(stats$sample_id,
+                                               names(cell_ct))] /
+                                   stats$Unfiltered_Cells)
 
 sc <- subset(sc_total,
              peak_region_fragments > MIN_PEAK_FRAGMENTS &
-               peak_region_fragments < MAX_PEAK_FRAGMENTS &
                pct_reads_in_peaks > MIN_PCT_RiP &
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
                TSS.enrichment > MIN_TSS &
-               scDblFinder.score > DBL_LIMIT)
+               doublet_status == FALSE)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
-stats$Filtered_Cells = sample_id.counts$Freq[match(stats$sample_id,
+stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
                                                    sample_id_counts$Var1)]
 stats[is.na(stats)] = 0
 
@@ -260,11 +236,39 @@ cell_ct = AggregateExpression(sc,
   colSums
 stats$Filtered_Avg_Accessibility = round(cell_ct[match(stats$sample_id,
                                                        names(cell_ct))] /
-                                          stats$Filtered_Cells)
+                                           stats$Filtered_Cells)
+cell_ct = AggregateExpression(sc,
+                              group.by = "sample_id")$HTO %>%
+  colSums
+stats$Filtered_Avg_HTO = round(cell_ct[match(stats$sample_id,
+                                             names(cell_ct))] /
+                                 stats$Filtered_Cells)
 stats[is.na(stats)] = 0
 
 write.csv(stats, "QC.atac_sampleID_filtering.stats.csv",
           quote = FALSE, row.names = FALSE)
+
+# Create Filtered Feature Scatter of ATAC and HTO fragments/reads
+cells_use = colnames(sc[, !is.na(sc$patient_id)])
+p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "run_id",
+                   split.by = "HTO_maxID", cells = cells_use, ncol = ncol) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  stat_ellipse(aes(group = run_id),
+               sc@meta.data[!is.na(sc$patient_id), ]) +
+  labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
+ggsave("featscatter_nctATAC.v.nctHTO_HTO_maxid_filtereddata.png", p,
+       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
+
+p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "run_id",
+                   split.by = "hash.ID", cells = cells_use, ncol = ncol) +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  stat_ellipse(aes(group = run_id),
+               sc@meta.data[!is.na(sc$patient_id), ]) +
+  labs(title = paste(PROJECT_NAME, "ATAC vs HTO Read Depths"))
+ggsave("featscatter_nctATAC.v.nctHTO_calledHT_filtereddata.png", p,
+       width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 # SAVE RAW SEURAT OBJECT
 ###############################################################################
@@ -348,108 +352,19 @@ sc <- RunUMAP(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
               reduction.name = "umap.atac",
               return.model = TRUE, verbose = FALSE)
 ###############################################################################
-#### LABEL TRANSFER ON NEGATIVE CELLS (OPTIONAL) ####
-###############################################################################
-if (FALSE) {
-  if (!exists("sc_na")) {
-    batch_column = "endotype"
-    n_dims = 30
-    sc_na = sc[, colnames(sc)[is.na(sc[[batch_column]])]]
-    sc <- sc[, colnames(sc)[!is.na(sc[[batch_column]])]]
-    sc_na$label_exists = FALSE
-    sc$label_exists = TRUE
-  }
-
-  # find transfer anchors
-  DefaultAssay(sc) = "ATAC"
-  sc_na = RunTFIDF(sc_na, min.cells = 1)
-  sc_na = FindTopFeatures(sc_na, min.cutoff = "q0")
-  sc_na <- RunSVD(sc_na, n = n_dims, reduction.name = "atac.lsi",
-                  verbose = FALSE)
-
-  transfer_anchors <- FindTransferAnchors(
-    reference = sc,
-    query = sc_na,
-    reference.reduction = "atac.lsi",
-    reduction = "lsiproject",
-    dims = 2:n_dims
-  )
-
-  # map query onto the reference dataset
-  sc_na <- MapQuery(
-    anchorset = transfer_anchors,
-    reference = sc,
-    query = sc_na,
-    refdata = sc[[batch_column]],
-    reference.reduction = "atac.lsi",
-    new.reduction.name = "ref.lsi",
-    reduction.model = "umap.atac.unintegrated"
-  )
-  sc_na[[batch_column]] = sc_na$predicted.id
-  sc <- merge(sc, sc_na)
-  sc = JoinLayers(sc, assay = "HTO")
-
-  # Run dimensionality reduction and clustering on the new
-  #      fully annotated dataset
-  sc <- RunTFIDF(sc, min.cells = 1)
-  sc <- FindTopFeatures(sc, min.cutoff = "q0")
-  sc <- RunSVD(sc, n = n_dims, reduction.name = "atac.lsi",
-               verbose = FALSE)
-  sc <- FindNeighbors(sc, dims = 2:n_dims, reduction = "atac.lsi",
-                      verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 4,
-                     cluster.name = "unintegrated_atac.clusters",
-                     verbose = FALSE)
-  sc <- RunUMAP(sc, dims = 2:n_dims, reduction = "atac.lsi",
-                reduction.name = "umap.atac.unintegrated",
-                verbose = FALSE)
-
-  # visualize by batch annotations
-  p = DimPlot(sc, reduction = "umap.atac.unintegrated", group.by = batch_column,
-              split.by = "label_exists")
-  ggsave(paste0("umap_atac.unintegrated_", batch_column, "_label.split.pdf"), p,
-         width = 2 * OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-  ggsave(paste0("umap_atac.unintegrated_", batch_column, "_label.split.png"), p,
-         width = 2 * OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-  sc <- RunHarmony(
-    object = sc,
-    group.by.vars = batch_column,
-    reduction.use = "atac.lsi",
-    assay.use = "ATAC",
-    project.dim = FALSE
-  )
-  sc <- FindNeighbors(sc, reduction = "harmony",
-                      dims = 2:n_dims, verbose = FALSE)
-  sc <- RunUMAP(sc, reduction = "harmony",
-                dims = 2:n_dims, reduction.name = "umap.atac",
-                return.model = TRUE, verbose = FALSE)
-
-  p <- DimPlot(sc, reduction = "umap.atac", group.by = batch_column,
-               split.by = "label_exists")
-  ggsave(paste0("umap_atac.integrated_", batch_column, ".pdf"), p,
-         width = 2 * OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-  ggsave(paste0("umap_atac.integrated_", batch_column, ".png"), p,
-         width = 2 * OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-}
-###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
-sc_v3 = sc
-sc_v3[["HTO"]] = NULL
-sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "Assay")
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-sc_v3 <- RunAzimuth(sc_v3, query.modality = "ATAC", reference = "pbmcref")
 
-sc$predicted.celltype.l1 = sc_v3$predicted.celltype.l1
-sc$predicted.celltype.l2 = sc_v3$predicted.celltype.l2
-sc$predicted.celltype.l3 = sc_v3$predicted.celltype.l3
-sc$predicted.celltype.l1.score = sc_v3$predicted.celltype.l1.score
-sc$predicted.celltype.l2.score = sc_v3$predicted.celltype.l2.score
-sc$predicted.celltype.l3.score = sc_v3$predicted.celltype.l3.score
-
-sc@reductions$ref.umap = sc_v3@reductions$ref.umap
+if (!file.exists("annotation_reference/ext.Rds")) {
+  dir.create(file.path("annotation_reference"))
+  download.file("https://zenodo.org/records/7770374/files/ext.Rds",
+                destfile = "annotation_reference/ext.Rds") # PBMC reference
+}
+DefaultAssay(sc) = "ATAC"
+sc <- RunAzimuth(sc, query.modality = "ATAC",
+                 reference = file.path("annotation_reference"))
 
 graph = "ATAC_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
