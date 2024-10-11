@@ -185,18 +185,12 @@ stats[is.na(stats)] = 0
 cells_rna = AggregateExpression(sc_total,
                                 group.by = "sample_id")$RNA %>%
   colSums
-cells_adt = AggregateExpression(sc_total,
-                                group.by = "sample_id")$ADT %>%
-  colSums
 cells_hto = AggregateExpression(sc_total,
                                 group.by = "sample_id")$HTO %>%
   colSums
 
 stats$Unfiltered_Avg_Expression.RNA = round(cells_rna[match(stats$sample_id,
                                                             names(cells_rna))] /
-                                              stats$Unfiltered_Cells)
-stats$Unfiltered_Avg_Expression.ADT = round(cells_adt[match(stats$sample_id,
-                                                            names(cells_adt))] /
                                               stats$Unfiltered_Cells)
 stats$Unfiltered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
                                                             names(cells_hto))] /
@@ -214,14 +208,10 @@ stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
 stats[is.na(stats)] = 0
 
 cells_rna = AggregateExpression(sc, group.by = "sample_id")$RNA %>% colSums
-cells_adt = AggregateExpression(sc, group.by = "sample_id")$ADT %>% colSums
 cells_hto = AggregateExpression(sc, group.by = "sample_id")$HTO %>% colSums
 
 stats$Filtered_Avg_Expression.RNA = round(cells_rna[match(stats$sample_id,
                                                           names(cells_rna))] /
-                                            stats$Filtered_Cells)
-stats$Filtered_Avg_Expression.ADT = round(cells_adt[match(stats$sample_id,
-                                                          names(cells_adt))] /
                                             stats$Filtered_Cells)
 stats$Filtered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
                                                           names(cells_hto))] /
@@ -410,38 +400,21 @@ capture.output(sessionInfo(),
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
 #      token with rsconnect
 if (FALSE) {
-  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
-  adt_data = LayerData(sc, assay = "ADT", layer = "data")
-  sct_data = LayerData(sc, assay = "SCT", layer = "data")
-  sct_act_cts = rbind(sct_cts, adt_cts)
-  sct_act_data = rbind(sct_data, adt_data)
-  sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
-                                       data = sct_act_data)
-  DefaultAssay(sc) = "SCT_ADT"
+  DefaultAssay(sc) = "SCT"
   sc = FindVariableFeatures(sc)
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = FALSE,
-               shiny.title = paste0(PROJECT_NAME, " RNA + ADT + HTO"),
+               shiny.title = paste0(PROJECT_NAME, " RNA + HTO"),
                shiny.dir = paste0("shiny_", PROJECT_NAME, "_rna"),
-               gex.assay = "SCT_ADT")
+               gex.assay = "SCT")
   rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "_rna"))
 }
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
 if (FALSE) {
-  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
-  adt_data = LayerData(sc, assay = "ADT", layer = "data")
-  sct_data = LayerData(sc, assay = "SCT", layer = "data")
-  sct_act_cts = rbind(sct_cts, adt_cts)
-  sct_act_data = rbind(sct_data, adt_data)
-  sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
-                                       data = sct_act_data)
-  sc[["SCT_ADT"]] = as(sc[["SCT_ADT"]], Class = "Assay")
   sc[["HTO"]] = NULL
   sc[["SCT"]] = NULL
-  sc[["RNA"]] = sc[["SCT_ADT"]]
+  sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
   convertFormat(sc, from = "seurat", to = "anndata",
                 outFile = paste0(PROJECT_DIR,
                                  "/data/qc_sct.adt_",
