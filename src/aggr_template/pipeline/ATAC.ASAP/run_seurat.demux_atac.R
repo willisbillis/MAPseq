@@ -141,7 +141,7 @@ for (idx in seq_len(nrow(metadata_df))) {
                                verbose = FALSE)
       hashtag = HTODemux(hashtag, verbose = FALSE)
       successful_htos = unique(hashtag$hash.ID[!(hashtag$HTO_classification.global %in%
-                                                    c("Doublet", "Negative"))])
+                                                   c("Doublet", "Negative"))])
       failed_htos = hto_ref_sub$hashtag[!(hto_ref_sub$hashtag %in%
                                             successful_htos)]
       if (length(failed_htos) > 0) {
@@ -154,12 +154,12 @@ for (idx in seq_len(nrow(metadata_df))) {
       hashtag$patient_id <- hto_ref_sub$patient_id[match(hashtag$hash.ID,
                                                          hto_ref_sub$hashtag)]
       if (ncol(hto_ref_sub) > 3) {
-          for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
-            hashtag@meta.data[[metadata_col]] =
-              hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
-                                                hto_ref_sub$hashtag)]
-          }
+        for (metadata_col in colnames(hto_ref_sub)[4:ncol(hto_ref_sub)]) {
+          hashtag@meta.data[[metadata_col]] =
+            hto_ref_sub[[metadata_col]][match(hashtag$hash.ID,
+                                              hto_ref_sub$hashtag)]
         }
+      }
 
       na_mask = is.na(hashtag$patient_id)
       hto_recover = hto_recover + sum(!na_mask)
