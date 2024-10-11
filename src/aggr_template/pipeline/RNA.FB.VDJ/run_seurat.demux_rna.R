@@ -61,6 +61,9 @@ hto_reference = hto_reference[hto_reference$library_id %in%
 
 sub_obj_list <- list()
 
+hto_recover = 0
+souporcell_recover = 0
+
 for (idx in seq_len(nrow(aggr_df))) {
   rna_library_id <- aggr_df[idx, "sample_id"]
   run_id <- basename(gsub("\\/pipeline.*", "", aggr_df[idx, "molecule_h5"]))
@@ -104,6 +107,9 @@ for (idx in seq_len(nrow(aggr_df))) {
                                             hto_ref_sub$hashtag)]
       }
     }
+
+    na_mask = is.na(hashtag$patient_id)
+    hto_recover = hto_recover + sum(!na_mask)
 
     souporcell_clusters = paste0(PROJECT_PATH, "/", PROJECT_NAME,
                                  "/pipeline/RNA.FB.VDJ/RNA_demuxing/",
@@ -244,16 +250,19 @@ for (idx in seq_len(nrow(aggr_df))) {
 
       # Update hashtag metadata
       for (metadata_col in extra_metadata) {
-        for (geno_cl in unique(cluster_mapping$cluster)) {
-          mask = (hashtag$genotype_cluster == geno_cl) &
-            (is.na(hashtag@meta.data[[metadata_col]]))
-          hashtag@meta.data[[metadata_col]][mask] = gsub(".\\+.", "-",
-                                                         cluster_mapping[[metadata_col]][cluster_mapping$cluster == geno_cl])
-        }
+        cluster_mapping[[metadata_col]] = gsub(".\\+.", "-",
+                                               cluster_mapping[[metadata_col]])
+        update_vector = cluster_mapping[[metadata_col]][match(hashtag$genotype_cluster,
+                                                              cluster_mapping$cluster)]
+        hashtag@meta.data[[metadata_col]] <- ifelse(na_mask,
+                                                    update_vector,
+                                                    hashtag@meta.data[[metadata_col]])
       }
 
       # Remove extraneous metadata column from hashtag object
       hashtag$barcode = NULL
+
+      souporcell_recover = souporcell_recover + sum(!is.na(hashtag$patient_id))
     }
 
     hashtag$library_id <- rna_library_id
@@ -269,6 +278,9 @@ for (idx in seq_len(nrow(aggr_df))) {
     print("[WARNING] Pool failed. Too few cells to demultiplex.")
   }
 }
+
+print(paste("Recovered", souporcell_recover - hto_recover,
+            "more cells by using souporcell genotype demultiplexing!"))
 
 sub_obj_list = sub_obj_list[lengths(sub_obj_list) != 0]
 sc_total <- merge(sub_obj_list[[1]], c(sub_obj_list[2:length(sub_obj_list)]))
