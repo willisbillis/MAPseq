@@ -387,9 +387,11 @@ Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
 # DEG testing between clusters (one vs all)
-all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "SCT")
+DefaultAssay(sc) = "RNA"
+sc = NormalizeData(sc)
+all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
-write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
+write.csv(all_markers, paste0("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 
 # DEP testing between clusters (one vs all)
