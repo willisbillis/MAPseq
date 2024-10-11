@@ -363,8 +363,8 @@ if (!file.exists("annotation_reference/ext.Rds")) {
                 destfile = "annotation_reference/ext.Rds") # PBMC reference
 }
 DefaultAssay(sc) = "ATAC"
-sc <- RunAzimuth(sc, query.modality = "ATAC",
-                 reference = file.path("annotation_reference"))
+sc <- RunAzimuthATAC(sc, reference = file.path("annotation_reference"),
+                     fragment.path = Fragments(sc)[[1]]@path)
 
 graph = "ATAC_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {

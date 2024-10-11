@@ -363,6 +363,9 @@ if (!file.exists("annotation_reference/ext.Rds")) {
                 destfile = "annotation_reference/ext.Rds") # PBMC reference
 }
 DefaultAssay(sc) = "ATAC"
+new_frags = CreateFragmentObject(Fragments(sc)[[1]]@path)
+Fragments(sc) = NULL
+Fragments(sc) = new_frags
 sc <- RunAzimuth(sc, query.modality = "ATAC",
                  reference = file.path("annotation_reference"))
 
