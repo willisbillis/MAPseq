@@ -131,12 +131,11 @@ Annotation(sc_total) = annotations
 if ("genotype_status" %in% colnames(sc_total)) {
   sc_total$doublet_status = (sc_total$genotype_status == "doublet") &
     (sc_total$HTO_classification.global == "Doublet")
-  sc_total$negative_status = (sc_total$genotype_status == "unassigned") |
-    (sc_total$HTO_classification.global == "Negative")
 } else {
   sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
-  sc_total$negative_status = (sc_total$HTO_classification.global == "Negative")
 }
+sc_total$negative_status = is.na(sc_total$patient_id)
+
 # compute nucleosome signal score per cell
 sc_total = NucleosomeSignal(object = sc_total, verbose = FALSE)
 # compute TSS enrichment score per cell

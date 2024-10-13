@@ -40,8 +40,8 @@ set.seed(1234)
 ###############################################################################
 #### SET RESOURCE LIMITS ####
 ###############################################################################
-max_cores = 32
-max_mem = 128
+max_cores = 16
+max_mem = 512
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -110,14 +110,10 @@ ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
 if ("genotype_status" %in% colnames(sc_total)) {
   sc_total$doublet_status = (sc_total$genotype_status == "doublet") &
     (sc_total$HTO_classification.global == "Doublet")
-  sc_total$negative_status = (sc_total$genotype_status == "unassigned") |
-    (sc_total$HTO_classification.global == "Negative") &
-      ((sc_total$HTO_classification.global != "Singlet") |
-         (sc_total$genotype_status != "singlet"))
 } else {
   sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
-  sc_total$negative_status = (sc_total$HTO_classification.global == "Negative")
 }
+sc_total$negative_status = is.na(sc_total$patient_id)
 
 # Ig and mitochondrial reads detection
 sc_total[["percent.Ig"]] <- PercentageFeatureSet(sc_total, pattern = igs)
