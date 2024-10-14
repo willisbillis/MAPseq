@@ -303,6 +303,9 @@ sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
 DefaultAssay(sc) = "RNA"
 sc <- RunAzimuth(sc, reference = "pbmcref", assay = "RNA")
+sc[["prediction.score.celltype.l1"]] = NULL
+sc[["prediction.score.celltype.l2"]] = NULL
+sc[["prediction.score.celltype.l3"]] = NULL
 
 # Different cluster resolutions for SCT
 graph = "SCT_snn"
