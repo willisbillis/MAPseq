@@ -125,11 +125,6 @@ annotations <- renameSeqlevels(annotations,
 # add the gene information to the object
 Annotation(sc_total) = annotations
 ###############################################################################
-# SAVE RAW SEURAT OBJECT
-###############################################################################
-saveRDS(sc_total,
-        paste0(PROJECT_DIR, "/data/raw_atac.hto_", PROJECT_NAME, ".RDS"))
-###############################################################################
 #### CALCULATE QC METRICS (ATAC) ####
 ###############################################################################
 # Label doublets from object
@@ -171,6 +166,11 @@ p = DensityScatter(sc_total, "peak_region_fragments", "blacklist_ratio",
 ggsave("scatter_peakfrags.v.blacklist_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
+# SAVE RAW SEURAT OBJECT
+###############################################################################
+saveRDS(sc_total,
+        paste0(PROJECT_DIR, "/data/raw_atac.hto_", PROJECT_NAME, ".RDS"))
+###############################################################################
 #### ATAC QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
@@ -179,7 +179,6 @@ MIN_PCT_RiP = 65            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
 MIN_TSS = 4                 # REPLACE, minimum TSS enrichment score per cell
-DBL_LIMIT = 0.05             # REPLACE, minimum Doublet score to permit
 
 p = DensityScatter(sc_total, "peak_region_fragments", "TSS.enrichment",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
@@ -283,7 +282,7 @@ sc$label_exists = TRUE
 
 if (FALSE) {
   DefaultAssay(sc) = "ATAC"
-  batch_column = "endotype"
+  batch_column = "run_id"
   n_dims = 30
 
   sc_na = sc[, colnames(sc)[is.na(sc[[batch_column]])]]
