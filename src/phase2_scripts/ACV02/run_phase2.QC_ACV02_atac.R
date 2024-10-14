@@ -384,7 +384,7 @@ sc$seurat_clusters = factor(sc$seurat_clusters)
 # DAR testing between clusters (one vs all)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ATAC")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
-closest_feats = ClosestFeature(sc, regions=rownames(all_markers))
+closest_feats = ClosestFeature(sc, regions = rownames(all_markers))
 all_markers$gene = closest_feats$gene_name[match(rownames(all_markers),
                                                  closest_feats$query_region)]
 write.csv(all_markers, paste0("DAR_", graph, ".clusters.res0.25.csv"),
