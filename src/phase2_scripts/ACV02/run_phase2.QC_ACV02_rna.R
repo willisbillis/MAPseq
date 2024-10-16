@@ -40,8 +40,8 @@ set.seed(1234)
 ###############################################################################
 #### SET RESOURCE LIMITS ####
 ###############################################################################
-max_cores = 8
-max_mem =512
+max_cores = 2
+max_mem = 32
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -239,11 +239,6 @@ if (FALSE) {
   VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
   sc <- RunPCA(sc, npcs = 40,
                reduction.name = "rna.pca", verbose = FALSE)
-  sc <- FindNeighbors(sc, dims = 1:20, reduction = "rna.pca",
-                      verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 3,
-                     cluster.name = "unintegrated_rna.clusters",
-                     verbose = FALSE)
   sc <- RunUMAP(sc, dims = 1:20, reduction = "rna.pca",
                 reduction.name = "umap.rna.unintegrated",
                 verbose = FALSE)
@@ -259,13 +254,8 @@ if (FALSE) {
   )
   sc = JoinLayers(sc, assay = "RNA")
 
-  sc <- FindNeighbors(sc, reduction = "integrated.rna.harmony",
-                      dims = 1:20, verbose = FALSE)
-  sc <- FindClusters(sc, resolution = 2, algorithm = 3,
-                     cluster.name = "rna.clusters",
-                     verbose = FALSE)
   sc <- RunUMAP(sc, reduction = "integrated.rna.harmony",
-                dims = 1:20, reduction.name = "umap.rna",
+                dims = 1:40, reduction.name = "umap.rna",
                 verbose = FALSE)
   p <- DimPlot(sc, reduction = "umap.rna",
                group.by = "run_id")
@@ -286,8 +276,7 @@ sc <- RunPCA(sc, npcs = 40,
 
 ## LOOK AT THIS PLOT AND SET VARIABLE ##
 p = ElbowPlot(sc, ndims = 40, reduction = "rna.pca")
-ggsave("elbow_plot.png", p, width = OUTPUT_FIG_WIDTH,
-       height = OUTPUT_FIG_HEIGHT)
+
 n_dims_keep = 10
 ########################################
 
