@@ -116,14 +116,11 @@ ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
 ###############################################################################
 #### CALCULATE QC METRICS (RNA) ####
 ###############################################################################
-# Label doublets from object
-if ("genotype_status" %in% colnames(sc_total)) {
-  sc_total$doublet_status = (sc_total$genotype_status == "doublet") &
-    (sc_total$HTO_classification.global == "Doublet")
-} else {
-  sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
-}
-sc_total$negative_status = is.na(sc_total$patient_id)
+# Label doublets and negatives from object
+sc_total$doublet_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Doublet")
+sc_total$negative_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Negative")
 
 # Ig and mitochondrial reads detection
 sc_total[["percent.Ig"]] <- PercentageFeatureSet(sc_total, pattern = igs)
@@ -172,7 +169,6 @@ sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 sc_total$patient_id[sc_total$doublet_status] = "Doublet"
 sc_total$patient_id[sc_total$negative_status] = "Negative"
-sc_total$patient_id[is.na(sc_total$patient_id)] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
@@ -199,8 +195,9 @@ stats$Unfiltered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
 sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
               nFeature_RNA > MIN_GENE_READS &
-              nFeature_RNA < MAX_GENE_READS &
-              doublet_status == FALSE)
+              nFeature_RNA < MAX_GENE_READS&
+              doublet_status == FALSE &
+              negative_status == FALSE)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
