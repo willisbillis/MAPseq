@@ -42,8 +42,8 @@ set.seed(1234)                # set seed for reproducibility
 ###############################################################################
 #### SET RESOURCE LIMITS ####
 ###############################################################################
-max_cores = 32
-max_mem = 128
+max_cores = 16
+max_mem = 512
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -127,14 +127,11 @@ Annotation(sc_total) = annotations
 ###############################################################################
 #### CALCULATE QC METRICS (ATAC) ####
 ###############################################################################
-# Label doublets from object
-if ("genotype_status" %in% colnames(sc_total)) {
-  sc_total$doublet_status = (sc_total$genotype_status == "doublet") &
-    (sc_total$HTO_classification.global == "Doublet")
-} else {
-  sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
-}
-sc_total$negative_status = is.na(sc_total$patient_id)
+# Label doublets and negatives from object
+sc_total$doublet_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Doublet")
+sc_total$negative_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Negative")
 
 # compute nucleosome signal score per cell
 sc_total = NucleosomeSignal(object = sc_total, verbose = FALSE)
@@ -174,8 +171,8 @@ saveRDS(sc_total,
 #### ATAC QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MIN_PEAK_FRAGMENTS = 500   # REPLACE, minimum peak fragments per cell
-MIN_PCT_RiP = 65            # REPLACE, minimum percent reads in peaks per cell
+MIN_PEAK_FRAGMENTS = 100   # REPLACE, minimum peak fragments per cell
+MIN_PCT_RiP = 60            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
 MIN_TSS = 4                 # REPLACE, minimum TSS enrichment score per cell
@@ -196,7 +193,6 @@ sc_total$atac_id = gsub("_", "-", sc_total$atac_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 sc_total$patient_id[sc_total$doublet_status] = "Doublet"
 sc_total$patient_id[sc_total$negative_status] = "Negative"
-sc_total$patient_id[is.na(sc_total$patient_id)] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$atac_id,
                            sc_total$patient_id,
@@ -227,7 +223,8 @@ sc <- subset(sc_total,
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
                TSS.enrichment > MIN_TSS &
-               doublet_status == FALSE)
+               doublet_status == FALSE &
+               negative_status == FALSE)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -254,7 +251,7 @@ write.csv(stats, "QC.atac_sampleID_filtering.stats.csv",
 # Create Filtered Feature Scatter of ATAC and HTO fragments/reads
 cells_use = colnames(sc[, !is.na(sc$patient_id)])
 p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "run_id",
-                   split.by = "HTO_maxID", cells = cells_use, ncol = ncol) +
+                   split.by = "HTO_maxID", cells = cells_use, ncol = 4) +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
   stat_ellipse(aes(group = run_id),
@@ -264,7 +261,7 @@ ggsave("featscatter_nctATAC.v.nctHTO_HTO_maxid_filtereddata.png", p,
        width = OUTPUT_FIG_WIDTH * 2, height = OUTPUT_FIG_HEIGHT)
 
 p = FeatureScatter(sc, "nCount_ATAC", "nCount_HTO", group.by = "run_id",
-                   split.by = "hash.ID", cells = cells_use, ncol = ncol) +
+                   split.by = "hash.ID", cells = cells_use, ncol = 4) +
   scale_x_continuous(trans = "log10") +
   scale_y_continuous(trans = "log10") +
   stat_ellipse(aes(group = run_id),
