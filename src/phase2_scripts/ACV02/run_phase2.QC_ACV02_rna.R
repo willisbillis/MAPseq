@@ -40,8 +40,8 @@ set.seed(1234)
 ###############################################################################
 #### SET RESOURCE LIMITS ####
 ###############################################################################
-max_cores = 2
-max_mem = 32
+max_cores = 16
+max_mem = 512
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -82,12 +82,6 @@ if (GENOME == "hg38") {
 setwd(PROJECT_DIR)
 sc_total = readRDS(RAW_SEURAT_PATH)
 
-# Add extra metadata for cells that couldn't be demuxed (this saves 10K cells!)
-sc_total$treatment[sc_total$run_id %in% c("ACV02R006", "ACV02R007",
-                                          "ACV02R008", "ACV02R009")] = "HC"
-sc_total$stim[sc_total$run_id %in% c("ACV02R006", "ACV02R007")] = "CMV"
-sc_total$stim[sc_total$run_id %in% c("ACV02R008", "ACV02R009")] = "COVID"
-
 # There was no ADT to start, remove it
 sc_total[["ADT"]] = NULL
 ###############################################################################
@@ -123,6 +117,7 @@ sc_total$negative_status = (is.na(sc_total$patient_id)) &
   (sc_total$HTO_classification.global == "Negative")
 
 # Ig and mitochondrial reads detection
+DefaultAssay(sc_total) = "RNA"
 sc_total[["percent.Ig"]] <- PercentageFeatureSet(sc_total, pattern = igs)
 sc_total[["percent.mt"]] <- PercentageFeatureSet(sc_total, pattern = mt_pattern)
 
@@ -139,17 +134,12 @@ p = DensityScatter(sc_total, "nCount_HTO", "nCount_RNA",
                    quantiles = TRUE, log_x = TRUE, log_y = TRUE)
 ggsave("scatter_nCountHTO.v.nCountRNA_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-p = DensityScatter(sc_total, "nFeature_HTO", "nFeature_RNA",
-                   quantiles = TRUE, log_x = TRUE, log_y = TRUE)
-ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
-       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
-MIN_GENE_READS = 300   # REPLACE, minimum genes with reads per cell
+MAX_PCT_MT = 10        # REPLACE, maximum percent mitochondrial reads per cell
+MIN_GENE_READS = 100   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = 10000  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
@@ -172,6 +162,8 @@ sc_total$patient_id[sc_total$negative_status] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
+                           sc_total$treatment,
+                           sc_total$visit,
                            sep = "-")
 stats = data.frame(sample_id = unique(sc_total$sample_id))
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
@@ -195,7 +187,7 @@ stats$Unfiltered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
 sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
               nFeature_RNA > MIN_GENE_READS &
-              nFeature_RNA < MAX_GENE_READS&
+              nFeature_RNA < MAX_GENE_READS &
               doublet_status == FALSE &
               negative_status == FALSE)
 
