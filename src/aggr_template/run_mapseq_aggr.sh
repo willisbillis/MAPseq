@@ -27,14 +27,10 @@ cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && ./run_cellranger.aggr_rna.
 cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && ./run_cellranger.aggr_atac.sh &
 wait
 
-# activate souporcell conda environment
-conda activate souporcell
-# run souporcell genotype demultiplexing for RNA samples
-cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && ./run_souporcell.demux_rna.sh
-# run souporcell genotype demultiplexing for ATAC samples
-cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && ./run_souporcell.demux_atac.sh
-# deactivate souporcell conda environment
-conda deactivate
+# run souporcell genotype demultiplexing for RNA samples in souporcell conda environment
+cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && conda run -n souporcell --live-stream ./run_souporcell.demux_rna.sh
+# run souporcell genotype demultiplexing for ATAC samples in souporcell conda environment
+cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && conda run -n souporcell --live-stream ./run_souporcell.demux_atac.sh
 
 # load RNA cellranger matrices into Seurat and generate a demultiplexed raw Seurat object
 cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && Rscript run_seurat.demux_rna.R
