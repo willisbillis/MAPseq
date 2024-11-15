@@ -135,7 +135,7 @@ for (idx in seq_len(nrow(metadata_df))) {
     names(hto_count_sums) = rownames(hashtag)
 
     # Check if there are enough cells to normalize data and demultiplex
-    if (ncol(hashtag) > nrow(hashtag)) {
+    if (any(hto_count_sums > (0.1 * ncol(hashtag)))) {
       hashtag <- NormalizeData(hashtag, assay = "HTO",
                                normalization.method = "CLR",
                                verbose = FALSE)
@@ -178,132 +178,134 @@ for (idx in seq_len(nrow(metadata_df))) {
           cluster = clusters_data$assignment[clusters_data$status == "singlet"]
         )
 
-        # Copy metadata columns from hto_ref_sub to combined_data
-        combined_data$HTO_maxID = hashtag$HTO_maxID[match(combined_data$barcode, hashtag$barcode)]
-        extra_metadata = c()
-        for (metadata_col in colnames(hto_ref_sub)[3:ncol(hto_ref_sub)]) {
-          combined_data[[metadata_col]] <- hto_ref_sub[[metadata_col]][match(combined_data$HTO_maxID, hto_ref_sub$hashtag)]
-          
-          if ("unique_sample_id" %in% colnames(combined_data)) {
-            combined_data$unique_sample_id = paste0(combined_data$unique_sample_id,
-                                                    "-",
-                                                    gsub("-", ".\\+.", combined_data[[metadata_col]]))
-          } else {
-            combined_data$unique_sample_id = gsub("-", ".\\+.", combined_data[[metadata_col]])
+        if (nrow(combined_data) > 0) {
+          # Copy metadata columns from hto_ref_sub to combined_data
+          combined_data$HTO_maxID = hashtag$HTO_maxID[match(combined_data$barcode, hashtag$barcode)]
+          extra_metadata = c()
+          for (metadata_col in colnames(hto_ref_sub)[3:ncol(hto_ref_sub)]) {
+            combined_data[[metadata_col]] <- hto_ref_sub[[metadata_col]][match(combined_data$HTO_maxID, hto_ref_sub$hashtag)]
+            
+            if ("unique_sample_id" %in% colnames(combined_data)) {
+              combined_data$unique_sample_id = paste0(combined_data$unique_sample_id,
+                                                      "-",
+                                                      gsub("-", ".\\+.", combined_data[[metadata_col]]))
+            } else {
+              combined_data$unique_sample_id = gsub("-", ".\\+.", combined_data[[metadata_col]])
+            }
+            extra_metadata = c(extra_metadata, metadata_col)
           }
-          extra_metadata = c(extra_metadata, metadata_col)
-        }
 
-        # Calculate proportions for each unique_sample_id within each cluster
-        proportions_df <- combined_data %>%
-          filter(!is.na(patient_id)) %>%
-          group_by(cluster) %>%
-          mutate(total_cluster_cells = n()) %>%
-          group_by(unique_sample_id, cluster) %>%
-          summarize(
-            cluster_proportion = n() / first(total_cluster_cells),
-            total_sample_cells = n(),
-            .groups = "drop"
-          ) %>%
-          group_by(unique_sample_id) %>%
-          mutate(sample_proportion = total_sample_cells / sum(total_sample_cells)) %>%
-          ungroup()
+          # Calculate proportions for each unique_sample_id within each cluster
+          proportions_df <- combined_data %>%
+            filter(!is.na(patient_id)) %>%
+            group_by(cluster) %>%
+            mutate(total_cluster_cells = n()) %>%
+            group_by(unique_sample_id, cluster) %>%
+            summarize(
+              cluster_proportion = n() / first(total_cluster_cells),
+              total_sample_cells = n(),
+              .groups = "drop"
+            ) %>%
+            group_by(unique_sample_id) %>%
+            mutate(sample_proportion = total_sample_cells / sum(total_sample_cells)) %>%
+            ungroup()
 
-        # Initialize cluster mapping
-        cluster_mapping <- data.frame(cluster = integer(), unique_sample_id = character())
+          # Initialize cluster mapping
+          cluster_mapping <- data.frame(cluster = integer(), unique_sample_id = character())
 
-        # Rank Choice Voting (Criteria 1 & 2)
-        unassigned_clusters <- unique(proportions_df$cluster)
-        while(length(unassigned_clusters) > 0) {
-          # Rank by criteria 1 then criteria 2
-          ranked_df <- proportions_df %>%
-            filter(cluster %in% unassigned_clusters) %>%
-            arrange(cluster, desc(cluster_proportion), desc(sample_proportion))
+          # Rank Choice Voting (Criteria 1 & 2)
+          unassigned_clusters <- unique(proportions_df$cluster)
+          while(length(unassigned_clusters) > 0) {
+            # Rank by criteria 1 then criteria 2
+            ranked_df <- proportions_df %>%
+              filter(cluster %in% unassigned_clusters) %>%
+              arrange(cluster, desc(cluster_proportion), desc(sample_proportion))
 
-          # Iterate through ranked samples to handle potential pre-assignments
-          for (i in seq_len(nrow(ranked_df))) {
-            current_row <- ranked_df[i, ]
-            current_cluster <- current_row$cluster
-            current_sample <- current_row$unique_sample_id
+            # Iterate through ranked samples to handle potential pre-assignments
+            for (i in seq_len(nrow(ranked_df))) {
+              current_row <- ranked_df[i, ]
+              current_cluster <- current_row$cluster
+              current_sample <- current_row$unique_sample_id
 
-            # Check if the current sample is already assigned to a cluster
-            if (!(current_sample %in% cluster_mapping$unique_sample_id)) {
-              # Assign the sample to the cluster
-              cluster_mapping <- rbind(cluster_mapping,
-                                       data.frame(cluster = current_cluster,
-                                                  unique_sample_id = current_sample))
+              # Check if the current sample is already assigned to a cluster
+              if (!(current_sample %in% cluster_mapping$unique_sample_id)) {
+                # Assign the sample to the cluster
+                cluster_mapping <- rbind(cluster_mapping,
+                                        data.frame(cluster = current_cluster,
+                                                    unique_sample_id = current_sample))
 
-              # Remove assigned cluster and sample from further consideration
-              unassigned_clusters <- setdiff(unassigned_clusters, current_cluster)
-              proportions_df <- proportions_df %>%
-                filter(!(cluster == current_cluster & unique_sample_id == current_sample))
+                # Remove assigned cluster and sample from further consideration
+                unassigned_clusters <- setdiff(unassigned_clusters, current_cluster)
+                proportions_df <- proportions_df %>%
+                  filter(!(cluster == current_cluster & unique_sample_id == current_sample))
 
-              # Break the inner loop as we've assigned the cluster
-              break 
-            } 
+                # Break the inner loop as we've assigned the cluster
+                break 
+              } 
 
-            # Check if all samples for this cluster have been assigned
-            if (all(ranked_df$unique_sample_id[ranked_df$cluster == current_cluster] %in% cluster_mapping$unique_sample_id)) {
-              # If all samples are assigned, remove the cluster from unassigned_clusters
-              unassigned_clusters <- setdiff(unassigned_clusters, current_cluster)
-              break # Break the inner loop and move to the next cluster
+              # Check if all samples for this cluster have been assigned
+              if (all(ranked_df$unique_sample_id[ranked_df$cluster == current_cluster] %in% cluster_mapping$unique_sample_id)) {
+                # If all samples are assigned, remove the cluster from unassigned_clusters
+                unassigned_clusters <- setdiff(unassigned_clusters, current_cluster)
+                break # Break the inner loop and move to the next cluster
+              }
             }
           }
-        }
 
-        # Process of Elimination (Criteria 3)
-        unassigned_clusters <- setdiff(unique(combined_data$cluster), cluster_mapping$cluster)
-        unassigned_samples <- setdiff(unique(combined_data$unique_sample_id), cluster_mapping$unique_sample_id)
+          # Process of Elimination (Criteria 3)
+          unassigned_clusters <- setdiff(unique(combined_data$cluster), cluster_mapping$cluster)
+          unassigned_samples <- setdiff(unique(combined_data$unique_sample_id), cluster_mapping$unique_sample_id)
 
-        if (length(unassigned_samples) == 1) {
-          remaining_sample <- unassigned_samples[1]
+          if (length(unassigned_samples) == 1) {
+            remaining_sample <- unassigned_samples[1]
 
-          # Find the best cluster for the remaining sample based on cell count
-          best_cluster <- combined_data %>%
-            filter(unique_sample_id == remaining_sample, cluster %in% unassigned_clusters) %>%
-            group_by(cluster) %>%
-            summarize(cell_count = n()) %>%
-            filter(cell_count > 10) %>%
-            arrange(desc(cell_count)) %>%
-            slice_head(n = 1) %>%
-            pull(cluster)
+            # Find the best cluster for the remaining sample based on cell count
+            best_cluster <- combined_data %>%
+              filter(unique_sample_id == remaining_sample, cluster %in% unassigned_clusters) %>%
+              group_by(cluster) %>%
+              summarize(cell_count = n()) %>%
+              filter(cell_count > 10) %>%
+              arrange(desc(cell_count)) %>%
+              slice_head(n = 1) %>%
+              pull(cluster)
 
-          # Assign if a suitable cluster is found
-          if (length(best_cluster) > 0) {
-            cluster_mapping <- rbind(cluster_mapping, data.frame(cluster = best_cluster, unique_sample_id = remaining_sample))
+            # Assign if a suitable cluster is found
+            if (length(best_cluster) > 0) {
+              cluster_mapping <- rbind(cluster_mapping, data.frame(cluster = best_cluster, unique_sample_id = remaining_sample))
+            }
+          } else if (length(unassigned_samples) > 1) {
+            print(paste0("[WARNING] Unable to assign all clusters for ",
+                        "samples using Process of Elimination."))
+            print(paste0("[WARNING] Unable to assign cluster for ",
+                        "sample ", paste(unassigned_samples), "."))
           }
-        } else if (length(unassigned_samples) > 1) {
-          print(paste0("[WARNING] Unable to assign all clusters for ",
-                       "samples using Process of Elimination."))
-          print(paste0("[WARNING] Unable to assign cluster for ",
-                       "sample ", paste(unassigned_samples), "."))
+
+          # expand out cluster mapping unique_sample_id into original metadata
+          cluster_mapping <- separate(cluster_mapping, col = "unique_sample_id",
+                                      into = extra_metadata,
+                                      sep = "-",
+                                      remove = TRUE)
+
+          # Add cluster and status information to hashtag object
+          hashtag$genotype_cluster = combined_data$cluster[match(hashtag$barcode, combined_data$barcode)]
+          hashtag$genotype_status = clusters_data$status[match(hashtag$barcode, clusters_data$barcode)]
+
+          # Update hashtag metadata
+          for (metadata_col in extra_metadata) {
+            cluster_mapping[[metadata_col]] = gsub(".\\+.", "-",
+                                                  cluster_mapping[[metadata_col]])
+            update_vector = cluster_mapping[[metadata_col]][match(hashtag$genotype_cluster,
+                                                                  cluster_mapping$cluster)]
+            hashtag@meta.data[[metadata_col]] <- ifelse(na_mask,
+                                                        update_vector,
+                                                        hashtag@meta.data[[metadata_col]])
+          }
+
+          # Remove extraneous metadata column from hashtag object
+          hashtag$barcode = NULL
+
+          souporcell_recover = souporcell_recover + sum(!is.na(hashtag$patient_id))
         }
-
-        # expand out cluster mapping unique_sample_id into original metadata
-        cluster_mapping <- separate(cluster_mapping, col = "unique_sample_id",
-                                    into = extra_metadata,
-                                    sep = "-",
-                                    remove = TRUE)
-
-        # Add cluster and status information to hashtag object
-        hashtag$genotype_cluster = combined_data$cluster[match(hashtag$barcode, combined_data$barcode)]
-        hashtag$genotype_status = clusters_data$status[match(hashtag$barcode, clusters_data$barcode)]
-
-        # Update hashtag metadata
-        for (metadata_col in extra_metadata) {
-          cluster_mapping[[metadata_col]] = gsub(".\\+.", "-",
-                                                cluster_mapping[[metadata_col]])
-          update_vector = cluster_mapping[[metadata_col]][match(hashtag$genotype_cluster,
-                                                                cluster_mapping$cluster)]
-          hashtag@meta.data[[metadata_col]] <- ifelse(na_mask,
-                                                      update_vector,
-                                                      hashtag@meta.data[[metadata_col]])
-        }
-
-        # Remove extraneous metadata column from hashtag object
-        hashtag$barcode = NULL
-
-        souporcell_recover = souporcell_recover + sum(!is.na(hashtag$patient_id))
       }
     } else {
       print("[WARNING] Pool failed. Too few cells to demultiplex.")
