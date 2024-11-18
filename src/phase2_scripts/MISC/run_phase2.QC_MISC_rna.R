@@ -57,7 +57,7 @@ plan("multicore", workers = max_cores)
 PROJECT_NAME = "MISC_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
 PROJECT_DIR = "/home/Projects/Scharer_sc/MISC.MAPseq/MISC_all/analysis/RNA.FB.VDJ"
-RAW_SEURAT_PATH = paste0(PROJECT_DIR,"/data/raw_rna.hto.adt_",
+RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 GENOME = "hg38"                     # REPLACE, hg38 or mm10
 OUTPUT_FIG_WIDTH =  8               # inches, width of output figures
@@ -106,16 +106,14 @@ ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
 ###############################################################################
 #### CALCULATE QC METRICS (RNA) ####
 ###############################################################################
-# Label doublets from object
-if ("genotype_status" %in% colnames(sc_total)) {
-  sc_total$doublet_status = (sc_total$genotype_status == "doublet") &
-    (sc_total$HTO_classification.global == "Doublet")
-} else {
-  sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
-}
-sc_total$negative_status = is.na(sc_total$patient_id)
+# Label doublets and negatives from object
+sc_total$doublet_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Doublet")
+sc_total$negative_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Negative")
 
 # Ig and mitochondrial reads detection
+DefaultAssay(sc_total) = "RNA"
 sc_total[["percent.Ig"]] <- PercentageFeatureSet(sc_total, pattern = igs)
 sc_total[["percent.mt"]] <- PercentageFeatureSet(sc_total, pattern = mt_pattern)
 
@@ -131,11 +129,6 @@ ggsave("scatter_nCountRNA.v.nFeatRNA_alldata.png",
 p = DensityScatter(sc_total, "nCount_HTO", "nCount_RNA",
                    quantiles = TRUE, log_x = TRUE, log_y = TRUE)
 ggsave("scatter_nCountHTO.v.nCountRNA_alldata.png",
-       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-p = DensityScatter(sc_total, "nFeature_HTO", "nFeature_RNA",
-                   quantiles = TRUE, log_x = TRUE, log_y = TRUE)
-ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### RNA QC CUTOFFS ####
@@ -162,7 +155,6 @@ sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 sc_total$patient_id[sc_total$doublet_status] = "Doublet"
 sc_total$patient_id[sc_total$negative_status] = "Negative"
-sc_total$patient_id[is.na(sc_total$patient_id)] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
@@ -196,7 +188,8 @@ sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
               nFeature_RNA > MIN_GENE_READS &
               nFeature_RNA < MAX_GENE_READS &
-              doublet_status != TRUE)
+              doublet_status == FALSE &
+              negative_status == FALSE)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -334,31 +327,27 @@ if (FALSE) {
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
 DefaultAssay(sc) = "RNA"
-sc <- SCTransform(sc, verbose = FALSE)
+sc = NormalizeData(sc, verbose = FALSE)
+sc = FindVariableFeatures(sc, verbose = FALSE)
 # Filter out Ig genes from VariableFeatures, they will clog the results as
 #     they are highly-variable by nature
 non_ig_mask = !grepl(igs, VariableFeatures(sc))
 VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
-sc <- RunPCA(sc, npcs = 40,
-             reduction.name = "rna.pca", verbose = FALSE)
+sc = ScaleData(sc, features = VariableFeatures(sc), verbose = FALSE)
+sc <- RunPCA(sc, npcs = 40, verbose = FALSE)
 
 ## LOOK AT THIS PLOT AND SET VARIABLE ##
-p = ElbowPlot(sc, ndims = 40, reduction = "rna.pca")
-ggsave("elbow_plot.png", p, width = OUTPUT_FIG_WIDTH,
-       height = OUTPUT_FIG_HEIGHT)
+sc = JackStraw(sc, dims = 40)
+sc = ScoreJackStraw(sc, dims = 1:40)
+p = JackStrawPlot(sc, dims = 1:40)
+ggsave("jackstraw_plot.png", p, width = 12, height = 6)
+
 n_dims_keep = 10
 ########################################
 
-sc <- FindNeighbors(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
-                    verbose = FALSE)
-sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
-              reduction.name = "umap.rna",
+sc <- FindNeighbors(sc, dims = 1:n_dims_keep, verbose = FALSE)
+sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction.name = "umap.rna",
               verbose = FALSE)
-
-DefaultAssay(sc) = "ADT"
-VariableFeatures(sc) <- rownames(sc[["ADT"]])
-sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
-sc = ScaleData(sc)
 ###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
