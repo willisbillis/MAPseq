@@ -127,14 +127,11 @@ Annotation(sc_total) = annotations
 ###############################################################################
 #### CALCULATE QC METRICS (ATAC) ####
 ###############################################################################
-# Label doublets from object
-if ("genotype_status" %in% colnames(sc_total)) {
-  sc_total$doublet_status = (sc_total$genotype_status == "doublet") &
-    (sc_total$HTO_classification.global == "Doublet")
-} else {
-  sc_total$doublet_status = (sc_total$HTO_classification.global == "Doublet")
-}
-sc_total$negative_status = is.na(sc_total$patient_id)
+# Label doublets and negatives from object
+sc_total$doublet_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Doublet")
+sc_total$negative_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Negative")
 
 # compute nucleosome signal score per cell
 sc_total = NucleosomeSignal(object = sc_total, verbose = FALSE)
@@ -170,17 +167,16 @@ ggsave("scatter_peakfrags.v.blacklist_alldata.png",
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MIN_PEAK_FRAGMENTS = 100   # REPLACE, minimum peak fragments per cell
-MAX_PEAK_FRAGMENTS = 15000  # REPLACE, maximum peak fragments per cell
-MIN_PCT_RiP = 50            # REPLACE, minimum percent reads in peaks per cell
+MIN_PCT_RiP = 60            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
-MIN_TSS = 2                 # REPLACE, minimum TSS enrichment score per cell
+MIN_TSS = 4                 # REPLACE, minimum TSS enrichment score per cell
 
 p = DensityScatter(sc_total, "peak_region_fragments", "TSS.enrichment",
                    quantiles = TRUE, log_x = TRUE, log_y = FALSE)
 p = p +
   geom_hline(yintercept=MIN_TSS, linetype = "dashed") +
-  geom_vline(xintercept=c(MIN_PEAK_FRAGMENTS, MAX_PEAK_FRAGMENTS),
+  geom_vline(xintercept=MIN_PEAK_FRAGMENTS,
              linetype = "dashed")
 ggsave("scatter_peakfrags.v.TSSe_filtered.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
@@ -192,7 +188,6 @@ sc_total$atac_id = gsub("_", "-", sc_total$atac_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
 sc_total$patient_id[sc_total$doublet_status] = "Doublet"
 sc_total$patient_id[sc_total$negative_status] = "Negative"
-sc_total$patient_id[is.na(sc_total$patient_id)] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$atac_id,
                            sc_total$patient_id,
@@ -223,7 +218,8 @@ sc <- subset(sc_total,
                blacklist_ratio < MAX_BLACKLIST_RATIO &
                nucleosome_signal < MAX_NUCLEOSOME_SIG &
                TSS.enrichment > MIN_TSS &
-               doublet_status == FALSE)
+               doublet_status == FALSE &
+               negative_status == FALSE)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -355,7 +351,6 @@ sc <- RunUMAP(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-
 if (!file.exists("annotation_reference/ext.Rds")) {
   dir.create(file.path("annotation_reference"))
   download.file("https://zenodo.org/records/7770374/files/ext.Rds",
