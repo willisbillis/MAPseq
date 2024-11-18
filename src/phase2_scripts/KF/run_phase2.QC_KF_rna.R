@@ -255,7 +255,7 @@ sc[["prediction.score.celltype.l1"]] = NULL
 sc[["prediction.score.celltype.l2"]] = NULL
 sc[["prediction.score.celltype.l3"]] = NULL
 
-# Different cluster resolutions for SCT
+# Different cluster resolutions for RNA
 graph = "RNA_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = graph,
@@ -275,6 +275,19 @@ all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste0("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
+
+# DEP testing between clusters (one vs all)
+DefaultAssay(sc) = "ADT"
+sc <- NormalizeData(sc, normalization.method = "CLR", margin = 2,
+                    verbose = FALSE)
+sc <- ScaleData(sc, features = rownames(sc[["ADT"]]),
+                do.center = TRUE,
+                do.scale = FALSE,
+                verbose = FALSE)
+all_markers = FindAllMarkers(sc, verbose = FALSE)
+all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
+write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
+          row.names = FALSE, quote = FALSE)
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################
@@ -292,40 +305,40 @@ capture.output(sessionInfo(),
 #      token with rsconnect
 if (FALSE) {
   adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
+  rna_cts = LayerData(sc, assay = "RNA", layer = "counts")
   adt_data = LayerData(sc, assay = "ADT", layer = "data")
-  sct_data = LayerData(sc, assay = "SCT", layer = "data")
-  sct_act_cts = rbind(sct_cts, adt_cts)
-  sct_act_data = rbind(sct_data, adt_data)
-  sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
-                                       data = sct_act_data)
-  DefaultAssay(sc) = "SCT_ADT"
+  rna_data = LayerData(sc, assay = "RNA", layer = "data")
+  rna_act_cts = rbind(rna_cts, adt_cts)
+  rna_act_data = rbind(rna_data, adt_data)
+  sc[["RNA_ADT"]] = CreateAssay5Object(counts = rna_act_cts,
+                                       data = rna_act_data)
+  DefaultAssay(sc) = "RNA_ADT"
   sc = FindVariableFeatures(sc)
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = FALSE,
-               shiny.title = paste0(PROJECT_NAME, " RNA + ADT + HTO"),
-               shiny.dir = paste0("shiny_", PROJECT_NAME, "enrichedBcells_rna"),
-               gex.assay = "SCT_ADT")
-  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "enrichedBcells_rna"))
+               shiny.title = paste0(PROJECT_NAME, " sorted B cells RNA + ADT + HTO"),
+               shiny.dir = paste0("shiny_", PROJECT_NAME, "sortedBcells_rna"),
+               gex.assay = "RNA_ADT")
+  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "sortedBcells_rna"))
 }
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
 if (FALSE) {
   adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
-  sct_cts = LayerData(sc, assay = "SCT", layer = "counts")
+  rna_cts = LayerData(sc, assay = "RNA", layer = "counts")
   adt_data = LayerData(sc, assay = "ADT", layer = "data")
-  sct_data = LayerData(sc, assay = "SCT", layer = "data")
-  sct_act_cts = rbind(sct_cts, adt_cts)
-  sct_act_data = rbind(sct_data, adt_data)
-  sc[["SCT_ADT"]] = CreateAssay5Object(counts = sct_act_cts,
-                                       data = sct_act_data)
-  DefaultAssay(sc) = "SCT_ADT"
-  sc[["SCT_ADT"]] = as(sc[["SCT_ADT"]], Class = "Assay")
+  rna_data = LayerData(sc, assay = "RNA", layer = "data")
+  rna_act_cts = rbind(rna_cts, adt_cts)
+  rna_act_data = rbind(rna_data, adt_data)
+  sc[["RNA_ADT"]] = CreateAssay5Object(counts = rna_act_cts,
+                                       data = rna_act_data)
+  DefaultAssay(sc) = "RNA_ADT"
+  sc[["RNA_ADT"]] = as(sc[["RNA_ADT"]], Class = "Assay")
   sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
   sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
-  sc[["SCT"]] = as(sc[["SCT"]], Class = "Assay")
+  sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
   sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
   sceasy::convertFormat(sc, from = "seurat", to = "anndata",
-                        outFile = paste0("data/qc_sct.adt_",
+                        outFile = paste0("data/qc_rna.adt_",
                                          PROJECT_NAME, ".h5ad"))
 }
