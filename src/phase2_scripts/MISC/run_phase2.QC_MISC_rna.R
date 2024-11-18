@@ -427,10 +427,10 @@ if (FALSE) {
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
 if (FALSE) {
-  adt_cts = LayerData(sc, assay="ADT", layer = "counts")
-  rna_cts = LayerData(sc, assay="RNA", layer = "counts")
-  adt_data = LayerData(sc, assay="ADT", layer = "data")
-  rna_data = LayerData(sc, assay="RNA", layer = "data")
+  adt_cts = LayerData(sc, assay = "ADT", layer = "counts")
+  rna_cts = LayerData(sc, assay = "RNA", layer = "counts")
+  adt_data = LayerData(sc, assay = "ADT", layer = "data")
+  rna_data = LayerData(sc, assay = "RNA", layer = "data")
   rna_act_cts = rbind(rna_cts, adt_cts)
   rna_act_data = rbind(rna_data, adt_data)
   sc[["RNA_ADT"]] = CreateAssay5Object(counts = rna_act_cts,

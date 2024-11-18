@@ -351,7 +351,6 @@ sc <- RunUMAP(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-
 if (!file.exists("annotation_reference/ext.Rds")) {
   dir.create(file.path("annotation_reference"))
   download.file("https://zenodo.org/records/7770374/files/ext.Rds",
