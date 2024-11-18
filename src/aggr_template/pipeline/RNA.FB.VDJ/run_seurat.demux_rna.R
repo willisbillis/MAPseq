@@ -281,8 +281,12 @@ for (idx in seq_len(nrow(aggr_df))) {
   }
 }
 
-print(paste("Recovered", souporcell_recover - hto_recover,
-            "more cells by using souporcell genotype demultiplexing!"))
+if ((souporcell_recover - hto_recover) > 0) {
+  print(paste("Recovered", souporcell_recover - hto_recover,
+              "more cells by using souporcell genotype demultiplexing!"))
+} else {
+  print("[WARNING] Check souporcell results. Less cells detected with souporcell than HTO demux.")
+}
 
 sub_obj_list = sub_obj_list[lengths(sub_obj_list) != 0]
 sc_total <- merge(sub_obj_list[[1]], c(sub_obj_list[2:length(sub_obj_list)]))
