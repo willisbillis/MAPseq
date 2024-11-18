@@ -342,8 +342,11 @@ for (idx in seq_len(nrow(metadata_df))) {
   atac_obj_list[[idx]] = atac_sub
 }
 
-print(paste("Recovered", souporcell_recover - hto_recover,
-            "more cells by using souporcell genotype demultiplexing!"))
+if ((souporcell_recover - hto_recover) > 0) {
+  print(paste("Recovered", souporcell_recover - hto_recover,
+              "more cells by using souporcell genotype demultiplexing!"))
+}
+
 
 sc_total = merge(atac_obj_list[[1]], c(atac_obj_list[2:idx]))
 sc_total = JoinLayers(sc_total, assay = "HTO")
