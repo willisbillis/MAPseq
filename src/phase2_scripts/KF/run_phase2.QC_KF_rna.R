@@ -239,7 +239,7 @@ sc = ScoreJackStraw(sc, dims = 1:80)
 p = JackStrawPlot(sc, dims = 1:80)
 ggsave("jackstraw_plot.png", p, width = 12, height = 6)
 
-n_dims_keep = 10
+n_dims_keep = 50
 ########################################
 
 sc <- FindNeighbors(sc, dims = 1:n_dims_keep, verbose = FALSE)
@@ -250,14 +250,13 @@ sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction.name = "umap.rna",
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-DefaultAssay(sc) = "RNA"
 sc <- RunAzimuth(sc, reference = "pbmcref", assay = "RNA")
 sc[["prediction.score.celltype.l1"]] = NULL
 sc[["prediction.score.celltype.l2"]] = NULL
 sc[["prediction.score.celltype.l3"]] = NULL
 
 # Different cluster resolutions for SCT
-graph = "SCT_snn"
+graph = "RNA_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = graph,
                     algorithm = 3, verbose = FALSE)
@@ -272,8 +271,6 @@ Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
 # DEG testing between clusters (one vs all)
-DefaultAssay(sc) = "RNA"
-sc = NormalizeData(sc)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste0("DEG_", graph, ".clusters.res0.25.csv"),
