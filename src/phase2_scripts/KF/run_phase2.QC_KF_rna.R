@@ -42,8 +42,8 @@ set.seed(1234)
 ###############################################################################
 #### SET RESOURCE LIMITS ####
 ###############################################################################
-max_cores = 32
-max_mem = 128
+max_cores = 4
+max_mem = 512
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -58,7 +58,7 @@ plan("multicore", workers = max_cores)
 # REPLACE, must be the same as used in MAPseq pipeline
 PROJECT_NAME = "KF_all"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
-PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/enriched.Bcells/KF_all/analysis/RNA.FB.VDJ"
+PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/sorted.Bcells/KF_all/analysis/RNA.FB.VDJ"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
                          PROJECT_NAME, ".RDS")
 
@@ -92,7 +92,7 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_ID",
+            group.by = "hash.ID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -101,7 +101,7 @@ ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_classification",
+            group.by = "HTO_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -109,27 +109,19 @@ ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
 ###############################################################################
 #### CALCULATE QC METRICS (RNA) ####
 ###############################################################################
-# Doublet Detection
-DefaultAssay(sc_total) = "RNA"
-sc_v3 = sc_total
-sc_v3[["HTO"]] = NULL
-sc_v3[["ADT"]] = NULL
-sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class = "Assay")
-sce <- scDblFinder(as.SingleCellExperiment(sc_v3),
-                   samples = "library_id", BPPARAM = MulticoreParam(max_cores))
-sc_total$scDblFinder.score <- sce$scDblFinder.score
+# Label doublets and negatives from object
+sc_total$doublet_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Doublet")
+sc_total$negative_status = (is.na(sc_total$patient_id)) &
+  (sc_total$HTO_classification.global == "Negative")
 
 # Ig and mitochondrial reads detection
+DefaultAssay(sc_total) = "RNA"
 sc_total[["percent.Ig"]] <- PercentageFeatureSet(sc_total, pattern = igs)
 sc_total[["percent.mt"]] <- PercentageFeatureSet(sc_total, pattern = mt_pattern)
 
 p = DensityScatter(sc_total, "percent.Ig", "percent.mt", quantiles = TRUE)
 ggsave("scatter_pct.Ig.v.pct.mt_alldata.png",
-       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-p = DensityScatter(sc_total, "scDblFinder.score", "percent.mt",
-                   quantiles = TRUE)
-ggsave("scatter_dbl.v.pct.mt_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 
 p = DensityScatter(sc_total, "nCount_RNA", "nFeature_RNA",
@@ -141,17 +133,11 @@ p = DensityScatter(sc_total, "nCount_HTO", "nCount_RNA",
                    quantiles = TRUE, log_x = TRUE, log_y = TRUE)
 ggsave("scatter_nCountHTO.v.nCountRNA_alldata.png",
        p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
-
-p = DensityScatter(sc_total, "nFeature_HTO", "nFeature_RNA",
-                   quantiles = TRUE, log_x = TRUE, log_y = TRUE)
-ggsave("scatter_nFeatHTO.v.nFeatRNA_alldata.png",
-       p, width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MAX_PCT_MT = 15        # REPLACE, maximum percent mitochondrial reads per cell
-DBL_LIMIT = 0.75       # REPLACE, minimum scDblFinder score to permit
+MAX_PCT_MT = 10        # REPLACE, maximum percent mitochondrial reads per cell
 MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
@@ -170,13 +156,12 @@ ggsave("scatter_nFeatRNA.v.pct.mt_filtered.png", nfeat_mt_plot,
 # adjust metadata to accomodate Seurat's AggregateExpression
 sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
-sc_total$patient_id[sc_total$MULTI_ID == "Doublet"] = "Doublet"
+sc_total$patient_id[sc_total$doublet_status] = "Doublet"
+sc_total$patient_id[sc_total$negative_status] = "Negative"
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
                            sc_total$patient_id,
                            sep = "-")
-neg_cells_mask = sc_total$MULTI_ID == "Negative"
-sc_total$sample_id[neg_cells_mask] = "Negative"
 stats = data.frame(sample_id = unique(sc_total$sample_id))
 sample_id_counts = as.data.frame(table(sc_total$sample_id))
 stats$Unfiltered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -204,10 +189,10 @@ stats$Unfiltered_Avg_Expression.HTO = round(cells_hto[match(stats$sample_id,
 
 sc = subset(sc_total,
             subset = percent.mt < MAX_PCT_MT &
-              scDblFinder.score < DBL_LIMIT &
               nFeature_RNA > MIN_GENE_READS &
               nFeature_RNA < MAX_GENE_READS &
-              MULTI_ID != "Doublet")
+              doublet_status == FALSE &
+              negative_status == FALSE)
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
@@ -239,43 +224,37 @@ saveRDS(sc_total,
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
 DefaultAssay(sc) = "RNA"
-sc <- SCTransform(sc, verbose = FALSE)
+sc = NormalizeData(sc, verbose = FALSE)
+sc = FindVariableFeatures(sc, verbose = FALSE)
 # Filter out Ig genes from VariableFeatures, they will clog the results as
 #     they are highly-variable by nature
 non_ig_mask = !grepl(igs, VariableFeatures(sc))
 VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
-sc <- RunPCA(sc, npcs = 40,
-             reduction.name = "rna.pca", verbose = FALSE)
-sc <- FindNeighbors(sc, dims = 1:40, reduction = "rna.pca",
-                    verbose = FALSE)
-sc <- RunUMAP(sc, dims = 1:40, reduction = "rna.pca",
-              reduction.name = "umap.rna",
-              verbose = FALSE)
+sc = ScaleData(sc, features = VariableFeatures(sc), verbose = FALSE)
+sc <- RunPCA(sc, npcs = 80, verbose = FALSE)
 
-DefaultAssay(sc) = "ADT"
-VariableFeatures(sc) <- rownames(sc[["ADT"]])
-sc = NormalizeData(sc, normalization.method = "CLR", margin = 2)
-sc = ScaleData(sc)
+## LOOK AT THIS PLOT AND SET VARIABLE ##
+sc = JackStraw(sc, dims = 80)
+sc = ScoreJackStraw(sc, dims = 1:80)
+p = JackStrawPlot(sc, dims = 1:80)
+ggsave("jackstraw_plot.png", p, width = 12, height = 6)
+
+n_dims_keep = 10
+########################################
+
+sc <- FindNeighbors(sc, dims = 1:n_dims_keep, verbose = FALSE)
+sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction.name = "umap.rna",
+              verbose = FALSE)
 ###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
-DefaultAssay(sc) = "RNA"
-sc_v3 = sc
-sc_v3[["ADT"]] = NULL
-sc_v3[["SCT"]] = NULL
-sc_v3[["RNA"]] = as(sc_v3[["RNA"]], Class = "Assay")
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-sc_v3 <- RunAzimuth(sc_v3, reference = "pbmcref")
-
-sc$predicted.celltype.l1 = sc_v3$predicted.celltype.l1
-sc$predicted.celltype.l2 = sc_v3$predicted.celltype.l2
-sc$predicted.celltype.l3 = sc_v3$predicted.celltype.l3
-sc$predicted.celltype.l1.score = sc_v3$predicted.celltype.l1.score
-sc$predicted.celltype.l2.score = sc_v3$predicted.celltype.l2.score
-sc$predicted.celltype.l3.score = sc_v3$predicted.celltype.l3.score
-
-sc@reductions$ref.umap = sc_v3@reductions$ref.umap
+DefaultAssay(sc) = "RNA"
+sc <- RunAzimuth(sc, reference = "pbmcref", assay = "RNA")
+sc[["prediction.score.celltype.l1"]] = NULL
+sc[["prediction.score.celltype.l2"]] = NULL
+sc[["prediction.score.celltype.l3"]] = NULL
 
 # Different cluster resolutions for SCT
 graph = "SCT_snn"
@@ -293,15 +272,11 @@ Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
 # DEG testing between clusters (one vs all)
-all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "SCT")
+DefaultAssay(sc) = "RNA"
+sc = NormalizeData(sc)
+all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
-write.csv(all_markers, paste("DEG_", graph, ".clusters.res0.25.csv"),
-          row.names = FALSE, quote = FALSE)
-
-# DEP testing between clusters (one vs all)
-all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "ADT")
-all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
-write.csv(all_markers, paste("DEP_", graph, ".clusters.res0.25.csv"),
+write.csv(all_markers, paste0("DEG_", graph, ".clusters.res0.25.csv"),
           row.names = FALSE, quote = FALSE)
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
