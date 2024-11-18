@@ -345,6 +345,8 @@ for (idx in seq_len(nrow(metadata_df))) {
 if ((souporcell_recover - hto_recover) > 0) {
   print(paste("Recovered", souporcell_recover - hto_recover,
               "more cells by using souporcell genotype demultiplexing!"))
+} else {
+  print("[WARNING] Check souporcell results. Less cells detected with souporcell than HTO demux.")
 }
 
 
