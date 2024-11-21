@@ -138,8 +138,8 @@ ggsave("scatter_nCountHTO.v.nCountRNA_alldata.png",
 #### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MAX_PCT_MT = 10        # REPLACE, maximum percent mitochondrial reads per cell
-MIN_GENE_READS = 100   # REPLACE, minimum genes with reads per cell
+MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
+MIN_GENE_READS = 300   # REPLACE, minimum genes with reads per cell
 MAX_GENE_READS = 10000  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
@@ -255,38 +255,39 @@ if (FALSE) {
 #### NON-BATCH CORRECTED DIMENSIONAL REDUCTION ####
 ###############################################################################
 DefaultAssay(sc) = "RNA"
-sc <- SCTransform(sc, verbose = FALSE)
+sc = NormalizeData(sc, verbose = FALSE)
+sc = FindVariableFeatures(sc, verbose = FALSE)
 # Filter out Ig genes from VariableFeatures, they will clog the results as
 #     they are highly-variable by nature
 non_ig_mask = !grepl(igs, VariableFeatures(sc))
 VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
-sc <- RunPCA(sc, npcs = 40,
-             reduction.name = "rna.pca", verbose = FALSE)
+sc = ScaleData(sc, features = VariableFeatures(sc), verbose = FALSE)
+sc <- RunPCA(sc, npcs = 60, verbose = FALSE)
 
 ## LOOK AT THIS PLOT AND SET VARIABLE ##
-p = ElbowPlot(sc, ndims = 40, reduction = "rna.pca")
+sc = JackStraw(sc, dims = 60)
+sc = ScoreJackStraw(sc, dims = 1:60)
+p = JackStrawPlot(sc, dims = 1:60)
+ggsave("jackstraw_plot.png", p, width = 12, height = 6)
 
-n_dims_keep = 10
+n_dims_keep = 60
 ########################################
 
-sc <- FindNeighbors(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
-                    verbose = FALSE)
-sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction = "rna.pca",
-              reduction.name = "umap.rna",
+sc <- FindNeighbors(sc, dims = 1:n_dims_keep, verbose = FALSE)
+sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction.name = "umap.rna",
               verbose = FALSE)
 ###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-DefaultAssay(sc) = "RNA"
 sc <- RunAzimuth(sc, reference = "pbmcref", assay = "RNA")
 sc[["prediction.score.celltype.l1"]] = NULL
 sc[["prediction.score.celltype.l2"]] = NULL
 sc[["prediction.score.celltype.l3"]] = NULL
 
-# Different cluster resolutions for SCT
-graph = "SCT_snn"
+# Different cluster resolutions for RNA
+graph = "RNA_snn"
 for (res in c(1, 0.5, 0.25, 0.1, 0.05)) {
   sc = FindClusters(sc, resolution = res, graph.name = graph,
                     algorithm = 3, verbose = FALSE)
@@ -301,8 +302,6 @@ Idents(sc) = "seurat_clusters"
 sc$seurat_clusters = factor(sc$seurat_clusters)
 
 # DEG testing between clusters (one vs all)
-DefaultAssay(sc) = "RNA"
-sc = NormalizeData(sc)
 all_markers = FindAllMarkers(sc, verbose = FALSE, assay = "RNA")
 all_markers = all_markers[all_markers$p_val_adj < 0.05, ]
 write.csv(all_markers, paste0("DEG_", graph, ".clusters.res0.25.csv"),
@@ -310,7 +309,7 @@ write.csv(all_markers, paste0("DEG_", graph, ".clusters.res0.25.csv"),
 ###############################################################################
 # SAVE SEURAT OBJECT AND SESSION INFO
 ###############################################################################
-saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto.adt_", PROJECT_NAME, ".RDS"))
+saveRDS(sc, paste0(PROJECT_DIR, "/data/qc_rna.hto_", PROJECT_NAME, ".RDS"))
 # Save the R session environment information
 capture.output(sessionInfo(),
                file = paste0(PROJECT_DIR, "/",
@@ -323,23 +322,22 @@ capture.output(sessionInfo(),
 # create ShinyCell app with data - MUST pre-authenticate using shinyapps.io
 #      token with rsconnect
 if (FALSE) {
-  DefaultAssay(sc) = "SCT"
+  DefaultAssay(sc) = "RNA"
   sc = FindVariableFeatures(sc)
   sc_conf = createConfig(sc)
   makeShinyApp(sc, sc_conf, gene.mapping = FALSE,
                shiny.title = paste0(PROJECT_NAME, " RNA + HTO"),
                shiny.dir = paste0("shiny_", PROJECT_NAME, "_rna"),
-               gex.assay = "SCT")
+               gex.assay = "RNA")
   rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "_rna"))
 }
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
 if (FALSE) {
   sc[["HTO"]] = NULL
-  sc[["SCT"]] = NULL
   sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
   convertFormat(sc, from = "seurat", to = "anndata",
                 outFile = paste0(PROJECT_DIR,
-                                 "/data/qc_sct.adt_",
+                                 "/data/qc_rna_",
                                  PROJECT_NAME, ".h5ad"))
 }
