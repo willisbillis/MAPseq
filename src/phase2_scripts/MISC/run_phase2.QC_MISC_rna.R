@@ -134,9 +134,9 @@ ggsave("scatter_nCountHTO.v.nCountRNA_alldata.png",
 #### RNA QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MAX_PCT_MT = 5        # REPLACE, maximum percent mitochondrial reads per cell
+MAX_PCT_MT = 10        # REPLACE, maximum percent mitochondrial reads per cell
 MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
-MAX_GENE_READS = 5000  # REPLACE, maximum genes with reads per cell
+MAX_GENE_READS = 10000  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
 p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt",
@@ -334,15 +334,15 @@ sc = FindVariableFeatures(sc, verbose = FALSE)
 non_ig_mask = !grepl(igs, VariableFeatures(sc))
 VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
 sc = ScaleData(sc, features = VariableFeatures(sc), verbose = FALSE)
-sc <- RunPCA(sc, npcs = 40, verbose = FALSE)
+sc <- RunPCA(sc, npcs = 30, verbose = FALSE)
 
 ## LOOK AT THIS PLOT AND SET VARIABLE ##
-sc = JackStraw(sc, dims = 40)
-sc = ScoreJackStraw(sc, dims = 1:40)
-p = JackStrawPlot(sc, dims = 1:40)
+sc = JackStraw(sc, dims = 60)
+sc = ScoreJackStraw(sc, dims = 1:60)
+p = JackStrawPlot(sc, dims = 1:60)
 ggsave("jackstraw_plot.png", p, width = 12, height = 6)
 
-n_dims_keep = 30
+n_dims_keep = 45
 ########################################
 
 sc <- FindNeighbors(sc, dims = 1:n_dims_keep, verbose = FALSE)
