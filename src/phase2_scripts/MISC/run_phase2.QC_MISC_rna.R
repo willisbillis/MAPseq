@@ -334,15 +334,15 @@ sc = FindVariableFeatures(sc, verbose = FALSE)
 non_ig_mask = !grepl(igs, VariableFeatures(sc))
 VariableFeatures(sc) = VariableFeatures(sc)[non_ig_mask]
 sc = ScaleData(sc, features = VariableFeatures(sc), verbose = FALSE)
-sc <- RunPCA(sc, npcs = 30, verbose = FALSE)
+sc <- RunPCA(sc, npcs = 45, verbose = FALSE)
 
 ## LOOK AT THIS PLOT AND SET VARIABLE ##
-sc = JackStraw(sc, dims = 60)
-sc = ScoreJackStraw(sc, dims = 1:60)
-p = JackStrawPlot(sc, dims = 1:60)
+sc = JackStraw(sc, dims = 45)
+sc = ScoreJackStraw(sc, dims = 1:45)
+p = JackStrawPlot(sc, dims = 1:45)
 ggsave("jackstraw_plot.png", p, width = 12, height = 6)
 
-n_dims_keep = 45
+n_dims_keep = 30
 ########################################
 
 sc <- FindNeighbors(sc, dims = 1:n_dims_keep, verbose = FALSE)
