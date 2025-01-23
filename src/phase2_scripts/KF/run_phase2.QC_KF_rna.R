@@ -56,7 +56,7 @@ plan("multicore", workers = max_cores)
 #### OPTIONS ####
 ###############################################################################
 # REPLACE, must be the same as used in MAPseq pipeline
-PROJECT_NAME = "KF_all"
+PROJECT_NAME = "SLE_vax_scRNA.sortedBcells.05-2024"
 # REPLACE, path to RNA.FB.VDJ analysis dir from MAPseq pipeline
 PROJECT_DIR = "/home/Projects/Scharer_sc/Katia.MAPseq/sorted.Bcells/KF_all/analysis/RNA.FB.VDJ"
 RAW_SEURAT_PATH = paste0(PROJECT_DIR, "/data/raw_rna.hto.adt_",
@@ -139,11 +139,11 @@ ggsave("scatter_nCountHTO.v.nCountRNA_alldata.png",
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
 MAX_PCT_MT = 10        # REPLACE, maximum percent mitochondrial reads per cell
 MIN_GENE_READS = 200   # REPLACE, minimum genes with reads per cell
-MAX_GENE_READS = Inf  # REPLACE, maximum genes with reads per cell
+MAX_GENE_READS = 10000  # REPLACE, maximum genes with reads per cell
 #                                (set plasma cell limit to Inf)
 
 p = DensityScatter(sc_total, "nFeature_RNA", "percent.mt",
-                   quantiles=TRUE, log_x=TRUE)
+                   quantiles = TRUE, log_x = TRUE)
 nfeat_mt_plot <- p +
   geom_hline(yintercept = MAX_PCT_MT, linetype = "dashed") +
   geom_vline(xintercept = c(MIN_GENE_READS, MAX_GENE_READS),
@@ -250,10 +250,9 @@ sc <- RunUMAP(sc, dims = 1:n_dims_keep, reduction.name = "umap.rna",
 ###############################################################################
 # Annotate PBMC cell types using Azimuth's PBMC reference
 # REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
-sc <- RunAzimuth(sc, reference = "pbmcref", assay = "RNA")
+sc <- RunAzimuth(sc, reference = "tonsilref", assay = "RNA")
 sc[["prediction.score.celltype.l1"]] = NULL
 sc[["prediction.score.celltype.l2"]] = NULL
-sc[["prediction.score.celltype.l3"]] = NULL
 
 # Different cluster resolutions for RNA
 graph = "RNA_snn"
@@ -314,12 +313,12 @@ if (FALSE) {
                                        data = rna_act_data)
   DefaultAssay(sc) = "RNA_ADT"
   sc = FindVariableFeatures(sc)
-  sc_conf = createConfig(sc)
+  sc_conf = createConfig(sc, maxLevels = 100, legendCols = 6)
   makeShinyApp(sc, sc_conf, gene.mapping = FALSE,
-               shiny.title = paste0(PROJECT_NAME, " sorted B cells RNA + ADT + HTO"),
-               shiny.dir = paste0("shiny_", PROJECT_NAME, "sortedBcells_rna"),
+               shiny.title = PROJECT_NAME,
+               shiny.dir = paste0("shiny_", PROJECT_NAME),
                gex.assay = "RNA_ADT")
-  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME, "sortedBcells_rna"))
+  rsconnect::deployApp(paste0("shiny_", PROJECT_NAME))
 }
 ###############################################################################
 # Save h5ad for CellxGene use (https://github.com/chanzuckerberg/cellxgene)
