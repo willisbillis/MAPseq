@@ -8,10 +8,10 @@ We recommend this tutorial for users who have a basic understanding of virtual e
 
 ## Setting up the Environment
 
-We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide a [`environment.yaml`](environment.yaml) file for easy installation with conda. This can be run and initialized with:
+We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide an [`environment_ubuntu-latest.yml`](environment_ubuntu-latest.yml) file for easy installation with conda. This can be run and initialized with:
 
 ```
-conda env create -f environment.yaml
+conda env create -f environment_ubuntu-latest.yml
 conda activate mapseq_env
 ```
 
@@ -27,7 +27,12 @@ It is necessary to reload the shell for changes to take effect after installatio
 
 ## Running the Pipeline
 
-### Executing a single run
+### Executing a Single Run
+
+Below is a flowchart outlining the steps for executing a single run:
+
+![Single Run Flowchart](../assets/mapseq_run_pipeline.png)
+
 If working with multiple libraries of the same modality, sometimes it may make sense to combine multiple libraries into a single run. To avoid multiple samples being demultiplexed with the same hashtag, divide the set of libraries into separate runs so that no hashtag is represented multiple times in a single run.
 
 #### 1. Create a new MAPseq run directory
@@ -60,9 +65,13 @@ From the head of the run directory, `<RUN_NAME>`, run:
 
     ./run_mapseq.sh
 
-### Aggregating multiple runs
-After multiple runs from the same project, aggregate the single cell counts from the entire project with the aggregation pipeline.
-This pipeline also performs basic unsupervised quality control and Seurat object construction.
+### Aggregating Multiple Runs
+
+Below is a flowchart outlining the steps for aggregating multiple runs:
+
+![Aggregation Flowchart](../assets/mapseq_aggr_pipeline.png)
+
+After multiple runs from the same project, aggregate the single cell counts from the entire project with the aggregation pipeline. This pipeline also performs basic unsupervised quality control and Seurat object construction.
 
 #### 1. Create a new MAPseq aggr run directory
 
@@ -76,7 +85,7 @@ To assign sample IDs and other metadata to the hashtags, edit the demultiplexing
 `library_id` | Unique library ID specified in the manifest. This is repeated for each hashtag in the library.
 `hashtag` | Hashtag for the sample, matching the hashtag naming found in the Feature Barcoding reference file.
 `patient_id` | Patient or sample ID unique to the library and hashtag combination.
-`extra columns` | (Optional) If more metadata is available, it may be included in this table to be attached to the cells opn aggregation and processing.
+`extra columns` | (Optional) If more metadata is available, it may be included in this table to be attached to the cells on aggregation and processing.
 
 #### 3. Run the MAPseq aggregation pipeline
 From the head of the aggregation run directory, `<AGGR_RUN_NAME>`, run:
