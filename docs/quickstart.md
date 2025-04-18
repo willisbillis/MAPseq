@@ -31,7 +31,9 @@ It is necessary to reload the shell for changes to take effect after installatio
 
 Below is a flowchart outlining the steps for executing a single run:
 
-![Single Run Flowchart](../assets/mapseq_run_pipeline.png){ style="background-color: white;" }
+<div style="background-color: white;">
+    <img src="../assets/mapseq_run_pipeline.png" alt="Single Run Flowchart">
+</div>
 
 If working with multiple libraries of the same modality, sometimes it may make sense to combine multiple libraries into a single run. To avoid multiple samples being demultiplexed with the same hashtag, divide the set of libraries into separate runs so that no hashtag is represented multiple times in a single run.
 
@@ -69,7 +71,9 @@ From the head of the run directory, `<RUN_NAME>`, run:
 
 Below is a flowchart outlining the steps for aggregating multiple runs:
 
-![Aggregation Flowchart](../assets/mapseq_aggr_pipeline.png){ style="background-color: white;" }
+<div style="background-color: white;">
+    <img src="../assets/mapseq_aggr_pipeline.png" alt="Aggregation Flowchart">
+</div>
 
 After multiple runs from the same project, aggregate the single cell counts from the entire project with the aggregation pipeline. This pipeline also performs basic unsupervised quality control and Seurat object construction.
 
