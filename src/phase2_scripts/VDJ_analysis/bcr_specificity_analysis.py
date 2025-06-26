@@ -37,17 +37,16 @@ influenza_abdab["IR_VDJ_2_junction_aa"] = None
 
 # Clean up the 'Binding' column
 influenza_abdab["Binding"] = influenza_abdab["Binding"].apply(
-    lambda x: "Influenza" if "Influenza" in x else "None"
+    lambda x: "Influenza" if isinstance(x, str) and "Influenza" in x else ("None" if pd.isna(x) or not isinstance(x, str) else x)
 )
 
 # Add cysteine and tryptophan to CDR3 sequences (important for some distance metrics)
-influenza_abdab["IR_VJ_1_junction_aa"] = "C" + influenza_abdab["IR_VJ_1_junction_aa"] + "F"
-influenza_abdab["IR_VDJ_1_junction_aa"] = "C" + influenza_abdab["IR_VDJ_1_junction_aa"] + "W"
-
-# Convert the database to an AnnData object
-influenza_abdab = sc.AnnData(obs=influenza_abdab)
-influenza_abdab.uns["DB"] = {}
-influenza_abdab.uns["DB"]["name"] = "Influenza-AbDab"
+# Fill missing CDR3 sequences with empty strings before concatenation
+influenza_abdab["IR_VJ_1_junction_aa"] = influenza_abdab["IR_VJ_1_junction_aa"].fillna("")
+influenza_abdab["IR_VDJ_1_junction_aa"] = influenza_abdab["IR_VDJ_1_junction_aa"].fillna("")
+influenza_abdab["IR_VJ_1_junction_aa"] = "C" + influenza_abdab["IR_VJ_1_junction_aa"].astype(str) + "F"
+influenza_abdab["IR_VDJ_1_junction_aa"] = "C" + influenza_abdab["IR_VDJ_1_junction_aa"].astype(str) + "W"
+influenza_abdab.uns["DB"] = {"name": "Influenza-AbDab"}
 
 # Perform matching using different metrics
 
