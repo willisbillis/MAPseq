@@ -12,21 +12,21 @@ from tcrdist.repertoire import TCRrep
 
 # Define paths
 path_data = "data"
-path_tcr = f"{path_data}/TCR_01_preprocessed.h5ad"
+path_tcr = f"{path_data}/raw_rna.hto.adt_URT005.h5ad"
 
 # Load TCR data
 adata_tcr = sc.read(path_tcr)
 
 # Subset data for specific patients (optional, remove if not needed)
-adata_tcr = adata_tcr[adata_tcr.obs["patient_id"].isin(["CV0902", "AP6"])].copy()
+#adata_tcr = adata_tcr[adata_tcr.obs["patient_id"].isin(["CV0902", "AP6"])].copy()
 
 # Load VDJdb data
 vdjdb = ir.datasets.vdjdb()
 
 # Explore VDJdb data (optional)
-# print(f"Amount of samples in VDJDB: {len(vdjdb)}")
-# print(vdjdb[vdjdb.obs['antigen.species'] == 'SARS-CoV-2'].obs['antigen.epitope'].value_counts())
-# print(vdjdb[vdjdb.obs['antigen.species'] == 'SARS-CoV-2'].obs['antigen.species'].value_counts())
+print(f"Amount of samples in VDJDB: {len(vdjdb)}")
+print(vdjdb[vdjdb.obs['antigen.species'] == 'InfluenzaA'].obs['antigen.epitope'].value_counts())
+print(vdjdb[vdjdb.obs['antigen.species'] == 'InfluenzaA'].obs['antigen.species'].value_counts())
 
 
 # Manual VDJdb overlap analysis (less robust than scirpy's methods, consider removing)
