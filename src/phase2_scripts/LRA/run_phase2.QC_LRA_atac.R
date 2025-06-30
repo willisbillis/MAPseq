@@ -144,7 +144,7 @@ sc_v3 = sc_total
 sc_v3[["HTO"]] = NULL
 sc_v3[["ATAC"]] = as(sc_v3[["ATAC"]], Class = "ChromatinAssay")
 sce <- scDblFinder(as.SingleCellExperiment(sc_v3), artificialDoublets = 1,
-                   aggregateFeatures = TRUE, samples = "library_id",
+                   aggregateFeatures = TRUE, samples = "atac_id",
                    nfeatures = 25, processing = "normFeatures",
                    BPPARAM = MulticoreParam(max_cores))
 
