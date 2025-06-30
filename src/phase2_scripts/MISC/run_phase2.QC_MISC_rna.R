@@ -438,7 +438,7 @@ if (FALSE) {
   DefaultAssay(sc) = "RNA_ADT"
   sc[["RNA_ADT"]] = as(sc[["RNA_ADT"]], Class = "Assay")
   sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
-  sc[["RNA"]] = as(sc[["RNA"]], Class = "Assay")
+  sc[["ADT"]] = as(sc[["ADT"]], Class = "Assay")
   sc[["HTO"]] = as(sc[["HTO"]], Class = "Assay")
   sceasy::convertFormat(sc, from = "seurat", to = "anndata",
                         outFile = paste0("qc_rna.adt_", PROJECT_NAME, ".h5ad"))
