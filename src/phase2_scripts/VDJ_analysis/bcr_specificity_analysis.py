@@ -36,9 +36,15 @@ influenza_abdab["IR_VJ_2_junction_aa"] = None
 influenza_abdab["IR_VDJ_2_junction_aa"] = None
 
 # Clean up the 'Binding' column
-influenza_abdab["Binding"] = influenza_abdab["Binding"].apply(
-    lambda x: "Influenza" if isinstance(x, str) and "Influenza" in x else ("None" if pd.isna(x) or not isinstance(x, str) else x)
-)
+def clean_binding(x):
+    if isinstance(x, str) and "Influenza" in x:
+        return "Influenza"
+    elif pd.isna(x) or not isinstance(x, str):
+        return "None"
+    else:
+        return x
+
+influenza_abdab["Binding"] = influenza_abdab["Binding"].apply(clean_binding)
 
 # Add cysteine and tryptophan to CDR3 sequences (important for some distance metrics)
 # Fill missing CDR3 sequences with empty strings before concatenation
