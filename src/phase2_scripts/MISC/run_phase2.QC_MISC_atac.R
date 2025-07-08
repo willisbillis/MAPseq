@@ -42,8 +42,8 @@ set.seed(1234)                # set seed for reproducibility
 ###############################################################################
 #### SET RESOURCE LIMITS ####
 ###############################################################################
-max_cores = 32
-max_mem = 256
+max_cores = 16
+max_mem = 512
 if (max_cores == -1) {
   max_cores = detectCores()
 }
@@ -166,7 +166,7 @@ ggsave("scatter_peakfrags.v.blacklist_alldata.png",
 #### ATAC QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MIN_PEAK_FRAGMENTS = 100   # REPLACE, minimum peak fragments per cell
+MIN_PEAK_FRAGMENTS = 300   # REPLACE, minimum peak fragments per cell
 MIN_PCT_RiP = 60            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
@@ -429,6 +429,6 @@ if (FALSE) {
     scale.factor = median(sc$nCount_pseudoRNA)
   )
   DefaultAssay(sc) = "pseudoRNA"
-  sceasy::convertFormat(sc, from = "seurat", to = "anndata",
+  sceasy::convertFormat(sc, from = "seurat", to = "anndata", assay = "pseudoRNA",
                         outFile = paste0("qc_atac.pseudorna_", PROJECT_NAME, ".h5ad"))
 }
