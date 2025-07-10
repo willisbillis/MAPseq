@@ -21,18 +21,27 @@ export ASAP_NAMING_ID=$ASAP_NAMING_ID
 ################################################################################
 # TODO: add unit tests here
 
-# run cellranger aggr on the RNA+FB samples
-cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && ./run_cellranger.aggr_rna.sh &
-# run cellranger aggr on the ATAC samples
-cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && ./run_cellranger.aggr_atac.sh &
-wait
+# check to see if RNA hashtag reference has been populated to run RNA aggr
+rna_sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
+rna_sample_names=$(printf -- '%s ' "${rna_sample_name_col[@]}" | grep -v library_id | uniq)
+# check to see if ATAC hashtag reference has been populated to run ATAC aggr
+atac_sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
+atac_sample_names=$(printf -- '%s ' "${atac_sample_name_col[@]}" | grep -v library_id | uniq)
 
-# run souporcell genotype demultiplexing for RNA samples in souporcell conda environment
-cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && conda run -n souporcell --live-stream ./run_souporcell.demux_rna.sh
-# run souporcell genotype demultiplexing for ATAC samples in souporcell conda environment
-cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && conda run -n souporcell --live-stream ./run_souporcell.demux_atac.sh
+if [ ${#rna_sample_names[@]} != 0 ]; then
+    # run cellranger aggr on the RNA+FB samples
+    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && ./run_cellranger.aggr_rna.sh
+    # run souporcell genotype demultiplexing for RNA samples in souporcell conda environment
+    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && conda run -n souporcell --live-stream ./run_souporcell.demux_rna.sh
+    # load RNA cellranger matrices into Seurat and generate a demultiplexed raw Seurat object
+    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && Rscript run_seurat.demux_rna.R
+fi
 
-# load RNA cellranger matrices into Seurat and generate a demultiplexed raw Seurat object
-cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && Rscript run_seurat.demux_rna.R
-# load ATAC cellranger/kite matrices into Seurat and generate a demultiplexed raw Seurat object
-cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && Rscript run_seurat.demux_atac.R
+if [ ${#atac_sample_names[@]} != 0 ]; then
+    # run cellranger aggr on the ATAC samples
+    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && ./run_cellranger.aggr_atac.sh
+    # run souporcell genotype demultiplexing for ATAC samples in souporcell conda environment
+    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && conda run -n souporcell --live-stream ./run_souporcell.demux_atac.sh
+    # load ATAC cellranger/kite matrices into Seurat and generate a demultiplexed raw Seurat object
+    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && Rscript run_seurat.demux_atac.R
+fi
