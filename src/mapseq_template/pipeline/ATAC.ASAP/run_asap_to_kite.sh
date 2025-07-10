@@ -41,8 +41,15 @@ python_version=$(python --version | grep -Po '(?<=Python )[^;]+')
 # Log information about the script execution
 echo "[INFO] $(date) Running asap_to_kite_v2.py using python version $python_version and binary $(which python)" &>> $OUTPUT_FILE
 
-# Loop through each ASAP sample
+# Check for correct ASAP FASTQ files (R1, R2, R3)
 for sample in "${asap_samples[@]}"; do
+    r1_file=$(ls $FASTQ_PATH/${sample}*R1*.fastq.gz 2>/dev/null | head -n1)
+    r2_file=$(ls $FASTQ_PATH/${sample}*R2*.fastq.gz 2>/dev/null | head -n1)
+    r3_file=$(ls $FASTQ_PATH/${sample}*R3*.fastq.gz 2>/dev/null | head -n1)
+    if [[ -z "$r3_file" ]]; then
+        echo "[ERROR] ASAP sample '$sample' is missing an R3 FASTQ file. If you sequenced on a NextSeq 2000 or similar, you must pull ATAC I2 as ASAP R2 and ASAP R2 as ASAP R3. See the documentation for details." | tee -a $OUTPUT_FILE >&2
+        exit 1
+    fi
     # Run the asap_to_kite_v2.py script
     python $TOOL_PATH/asap_to_kite_v2.py -f $FASTQ_PATH \
         -s $sample -o $OUTPUT_DIR/$sample -j TotalSeqB \
