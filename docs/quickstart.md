@@ -25,6 +25,21 @@ cd MAPseq
 
 It is necessary to reload the shell for changes to take effect after installation. We recommend doing this by closing the current session and opening a new one.
 
+
+## Important Note for ASAPseq Data from NextSeq 2000 and Similar Machines
+
+**If your ASAPseq libraries were sequenced on a NextSeq 2000 or another sequencer that only produces R1 and R2 files for ASAP:**
+
+- You must manually pull or rename the files as follows:
+    - **ATAC I2** → **ASAP R2**
+    - **ASAP R2** → **ASAP R3**
+- This is required because the MAPseq pipeline expects three reads for ASAP: R1, R2, and R3. If only R1 and R2 are present, the pipeline will not function correctly until the files are renamed or linked as above.
+- If you are using a NextSeq 550, this issue does not occur and no warning or error will be shown.
+
+Please ensure your FASTQ files are named appropriately before running the pipeline. If you encounter an error about missing ASAP R2 or R3, refer to this note.
+
+---
+
 ## Running the Pipeline
 
 ### Executing a Single Run

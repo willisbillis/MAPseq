@@ -1,0 +1,56 @@
+#running ATAC Azimuth
+
+#need to install Seurat 5.0.1 and Signac 1.12
+
+## Michael did this by opening a fresh R session and installing these packages with the following:
+
+# Seurat
+install.packages("https://cran.r-project.org/src/contrib/Archive/Seurat/Seurat_4.1.0.tar.gz",
+                 repos = NULL,
+                 type = "source",
+                 lib = "~/R/seurat_old_lib")
+
+# Signac
+install.packages("https://github.com/stuart-lab/signac/archive/refs/tags/1.12.0.tar.gz",
+                 repos = NULL,
+                 type = "source",
+                 lib = "~/R/signac_old_lib")
+                 
+#### then load each of these libraries individually with:
+
+#load Seurat 5.0.1
+# Temporarily prepend your library path
+.libPaths(c("~/R/seurat_old_lib", .libPaths()))
+
+# Now load that Seurat
+library(Seurat)
+packageVersion("Seurat")  # confirm it's 5.0.1
+
+#load Signac 1.12
+# Temporarily prepend your library path
+.libPaths(c("~/R/signac_old_lib", .libPaths()))
+
+# Now load that Seurat
+library(Signac)
+packageVersion("Signac")  # confirm it's 1.12
+
+#if these versions are correct, you're ready to load Azimuth
+library(Azimuth)
+
+#load in Seurat object
+sc = readRDS("path/to/rds/object")
+
+# Now you can run AzimuthATAC
+# Annotate PBMC cell types using Azimuth's PBMC reference
+# REPLACE AZIMUTH REFERENCE WITH APPROPRIATE DATASET
+options(timeout = 600)  # Set timeout to 600 seconds (10 minutes)
+if (!file.exists("annotation_reference/ext.Rds")) {
+  dir.create(file.path("annotation_reference"))
+  download.file("https://zenodo.org/records/7770374/files/ext.Rds",
+                destfile = "annotation_reference/ext.Rds") # PBMC reference
+}
+DefaultAssay(sc) = "ATAC"
+sc <- RunAzimuthATAC(sc, reference = file.path("annotation_reference"),
+                     fragment.path = Fragments(sc)[[1]]@path)
+
+
