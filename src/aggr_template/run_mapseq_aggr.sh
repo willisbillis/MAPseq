@@ -32,6 +32,10 @@ if [ ${#rna_sample_names[@]} != 0 ]; then
     # run cellranger aggr on the RNA+FB samples
     cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && ./run_cellranger.aggr_rna.sh
     # run souporcell genotype demultiplexing for RNA samples in souporcell conda environment
+    echo "$date Running souporcell demultiplexing for RNA samples..."
+    echo "$date This may take a while, please be patient."
+    echo "$date You can monitor the progress in the souporcell log file."
+    echo "$date The log file is located at $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/RNA_demuxing/souporcell_rna.log"
     cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && conda run -n souporcell --live-stream ./run_souporcell.demux_rna.sh
     # load RNA cellranger matrices into Seurat and generate a demultiplexed raw Seurat object
     cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && Rscript run_seurat.demux_rna.R
@@ -41,6 +45,10 @@ if [ ${#atac_sample_names[@]} != 0 ]; then
     # run cellranger aggr on the ATAC samples
     cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && ./run_cellranger.aggr_atac.sh
     # run souporcell genotype demultiplexing for ATAC samples in souporcell conda environment
+    echo "$date Running souporcell demultiplexing for ATAC samples..."
+    echo "$date This may take a while, please be patient."
+    echo "$date You can monitor the progress in the souporcell log file."
+    echo "$date The log file is located at $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/ATAC_demuxing/souporcell_atac.log"
     cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && conda run -n souporcell --live-stream ./run_souporcell.demux_atac.sh
     # load ATAC cellranger/kite matrices into Seurat and generate a demultiplexed raw Seurat object
     cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && Rscript run_seurat.demux_atac.R
