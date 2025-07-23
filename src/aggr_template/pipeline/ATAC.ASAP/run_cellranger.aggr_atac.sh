@@ -29,7 +29,12 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
     sample_name=$(basename $sample_path)
     fragments_file=${sample_path}outs/fragments.tsv.gz
     cells_file=${sample_path}outs/singlecell.csv
-    printf '%s\n' $sample_name $fragments_file $cells_file | paste -sd ',' >> $AGGR_CSV
+
+    if [[ -f $fragments_file && -f $cells_file ]]; then
+      printf '%s\n' $sample_name $fragments_file $cells_file | paste -sd ',' >> $AGGR_CSV
+    else
+      echo "Warning: Missing files for $sample_name. Skipping." >> $OUTPUT_FILE
+    fi
   fi
 done
 

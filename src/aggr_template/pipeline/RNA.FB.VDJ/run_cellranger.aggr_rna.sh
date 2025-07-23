@@ -32,12 +32,20 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
       for multi_path in "${multi_samples_array[@]}"; do
         sample_name=$(basename $multi_path)
         count_molecule_file=${multi_path}count/sample_molecule_info.h5
-        printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
+        if [ -f "$count_molecule_file" ]; then
+          printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
+        else
+          echo "Warning: $count_molecule_file does not exist, skipping $sample_name" >> $OUTPUT_FILE
+        fi
       done
     else
       sample_name=$(basename $sample_path)
       count_molecule_file=${sample_path}outs/molecule_info.h5
-      printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
+      if [ -f "$count_molecule_file" ]; then
+        printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
+      else
+        echo "Warning: $count_molecule_file does not exist, skipping $sample_name" >> $OUTPUT_FILE
+      fi
     fi
   fi
 done

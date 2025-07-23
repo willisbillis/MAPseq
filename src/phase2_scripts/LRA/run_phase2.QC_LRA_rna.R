@@ -98,7 +98,7 @@ ncol = ceiling(nrow(sc_total[["HTO"]]) / 3)
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_ID",
+            group.by = "HTO_maxID",
             pt.size = 0)
 ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -107,7 +107,7 @@ ggsave(paste0("vln_called_", PROJECT_NAME, ".png"),
 p = VlnPlot(sc_total,
             features = rownames(sc_total[["HTO"]]),
             ncol = ncol,
-            group.by = "MULTI_classification",
+            group.by = "HTO_classification",
             pt.size = 0)
 ggsave(paste0("vln_classification_", PROJECT_NAME, ".png"),
        p, height = OUTPUT_FIG_HEIGHT,
@@ -176,8 +176,8 @@ ggsave("scatter_nFeatRNA.v.pct.mt_filtered.png", nfeat_mt_plot,
 # adjust metadata to accomodate Seurat's AggregateExpression
 sc_total$library_id = gsub("_", "-", sc_total$library_id)
 sc_total$patient_id = gsub("_", "-", sc_total$patient_id)
-sc_total$patient_id[sc_total$MULTI_ID == "Doublet"] = "Doublet"
-sc_total$patient_id[sc_total$MULTI_ID == "Negative"] = "Negative"
+sc_total$patient_id[sc_total$HTO_maxID == "Doublet"] = "Doublet"
+sc_total$patient_id[sc_total$HTO_maxID == "Negative"] = "Negative"
 sc_total = sc_total[, !is.na(sc_total$patient_id)]
 # create new column for unique sample ID - adjust as needed for each dataset
 sc_total$sample_id = paste(sc_total$library_id,
@@ -213,7 +213,7 @@ sc = subset(sc_total,
               scDblFinder.score < DBL_LIMIT &
               nFeature_RNA > MIN_GENE_READS &
               nFeature_RNA < MAX_GENE_READS &
-              MULTI_ID != "Doublet")
+              HTO_maxID != "Doublet")
 
 sample_id_counts = as.data.frame(table(sc$sample_id))
 stats$Filtered_Cells = sample_id_counts$Freq[match(stats$sample_id,
