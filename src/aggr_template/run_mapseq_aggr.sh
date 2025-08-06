@@ -22,10 +22,10 @@ export ASAP_NAMING_ID=$ASAP_NAMING_ID
 # TODO: add unit tests here
 
 # check to see if RNA hashtag reference has been populated to run RNA aggr
-rna_sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
+rna_sample_name_col=$(cut -d, -f1 $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv)
 rna_sample_names=$(printf -- '%s ' "${rna_sample_name_col[@]}" | grep -v library_id | uniq)
 # check to see if ATAC hashtag reference has been populated to run ATAC aggr
-atac_sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.ATAC.sampleManifest.csv)
+atac_sample_name_col=$(cut -d, -f1 $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/hashtag_ref_atac.csv)
 atac_sample_names=$(printf -- '%s ' "${atac_sample_name_col[@]}" | grep -v library_id | uniq)
 
 if [ ${#rna_sample_names[@]} != 0 ]; then
