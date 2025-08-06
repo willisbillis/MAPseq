@@ -15,6 +15,7 @@ SAMPLES_ARRAY=($(ls -d $PROJECT_PATH/*/pipeline/ATAC.ASAP/ATAC/*/))
 OUTPUT_DIR=$PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/ATAC
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_atac_aggr.log
 AGGR_CSV=$OUTPUT_DIR/aggr.csv
+METRICS_CSV=$OUTPUT_DIR/summary_metrics_atac.csv
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
@@ -34,6 +35,16 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
       printf '%s\n' $sample_name $fragments_file $cells_file | paste -sd ',' >> $AGGR_CSV
     else
       echo "Warning: Missing files for $sample_name. Skipping." >> $OUTPUT_FILE
+    fi
+    summary_metrics_file=${sample_path}summary.csv
+    # append summary metrics to the metrics CSV
+    if [ -f "$summary_metrics_file" ]; then
+      if [ ! -f $METRICS_CSV ]; then
+        printf '%s\n' $(head -n 1 $summary_metrics_file) >> $METRICS_CSV
+      fi
+      tail -n +2 $summary_metrics_file >> $METRICS_CSV
+    else
+      echo "Warning: $summary_metrics_file does not exist, skipping $sample_name" >> $OUTPUT_FILE
     fi
   fi
 done
