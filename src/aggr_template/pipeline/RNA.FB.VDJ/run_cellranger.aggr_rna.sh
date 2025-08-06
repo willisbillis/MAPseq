@@ -16,6 +16,7 @@ SAMPLES_ARRAY=($(ls -d $PROJECT_PATH/*/pipeline/RNA.FB.VDJ/*/))
 OUTPUT_DIR=$PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna_aggr.log
 AGGR_CSV=$OUTPUT_DIR/aggr.csv
+METRICS_CSV=$OUTPUT_DIR/summary_metrics_rna.csv
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
@@ -23,7 +24,7 @@ cd $OUTPUT_DIR
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
 
-## Create aggregation csv
+## Create aggregation csv and compile summary metrics
 printf '%s\n' sample_id molecule_h5 | paste -sd ',' >> $AGGR_CSV
 for sample_path in "${SAMPLES_ARRAY[@]}"; do
   if [[ $(basename $sample_path) != reports ]]; then
@@ -36,6 +37,16 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
           printf '%s\n' $sample_name $count_molecule_file | paste -sd ',' >> $AGGR_CSV
         else
           echo "Warning: $count_molecule_file does not exist, skipping $sample_name" >> $OUTPUT_FILE
+        fi
+        summary_metrics_file=${multi_path}metrics_summary.csv
+        # append summary metrics to the metrics CSV
+        if [ -f "$summary_metrics_file" ]; then
+          if [ ! -f $METRICS_CSV ]; then
+            printf '%s\n' $(head -n 1 $summary_metrics_file) >> $METRICS_CSV
+          fi
+          tail -n +2 $summary_metrics_file >> $METRICS_CSV
+        else
+          echo "Warning: $summary_metrics_file does not exist, skipping $sample_name" >> $OUTPUT_FILE
         fi
       done
     else

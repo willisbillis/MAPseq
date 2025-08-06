@@ -54,7 +54,7 @@ elif [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
     mkdir -p $ATAC_FASTQ_PATH
     declare -a atac_samples=($(ls $ATAC_DIR/*fastq.gz))
     for sample in "${atac_samples[@]}"; do
-        ln -s $(realpath $sample) $ATAC_FASTQ_PATH
+        cp $(realpath $sample) $ATAC_FASTQ_PATH
     done
 fi
 
@@ -93,6 +93,6 @@ elif [[ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
     mkdir -p $RNA_FASTQ_PATH
     declare -a rna_samples=($(ls $RNA_DIR/*fastq.gz))
     for sample in "${rna_samples[@]}"; do
-        ln -s $(realpath $sample) $RNA_FASTQ_PATH
+        cp $(realpath $sample) $RNA_FASTQ_PATH
     done
 fi
