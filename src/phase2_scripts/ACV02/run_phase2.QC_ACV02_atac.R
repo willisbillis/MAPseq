@@ -438,6 +438,6 @@ if (FALSE) {
     scale.factor = median(sc$nCount_pseudoRNA)
   )
   DefaultAssay(sc) = "pseudoRNA"
-  sceasy::convertFormat(sc, from = "seurat", to = "anndata",
+  sceasy::convertFormat(sc, from = "seurat", to = "anndata", assay = "pseudoRNA",
                         outFile = paste0("qc_atac.pseudorna_", PROJECT_NAME, ".h5ad"))
 }
