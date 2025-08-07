@@ -171,7 +171,7 @@ saveRDS(sc_total,
 #### ATAC QC CUTOFFS ####
 ###############################################################################
 # PAUSE, view scatter figures above and determine appropriate cutoffs below
-MIN_PEAK_FRAGMENTS = 100   # REPLACE, minimum peak fragments per cell
+MIN_PEAK_FRAGMENTS = 300   # REPLACE, minimum peak fragments per cell
 MIN_PCT_RiP = 60            # REPLACE, minimum percent reads in peaks per cell
 MAX_BLACKLIST_RATIO = 1.0   # REPLACE, maximum blacklist ratio per cell
 MAX_NUCLEOSOME_SIG = 1      # REPLACE, maximum nucleosome signal per cell
@@ -346,6 +346,12 @@ sc <- FindNeighbors(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
 sc <- RunUMAP(sc, dims = 2:n_dims_keep, reduction = "atac.lsi",
               reduction.name = "umap.atac",
               return.model = TRUE, verbose = FALSE)
+
+# plot umap to visualize the data
+p = DimPlot(sc, reduction = "umap.atac", group.by = "run_id",
+            label = TRUE, label.size = 3)
+ggsave("umap_atac.unintegrated_runid.png", p,
+       width = OUTPUT_FIG_WIDTH, height = OUTPUT_FIG_HEIGHT)
 ###############################################################################
 #### CLUSTERING AND ANNOTATION ####
 ###############################################################################
