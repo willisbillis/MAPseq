@@ -64,8 +64,8 @@ RAW_SEURAT_PATH = paste0(PROJECT_DIR,
                          "/data/raw_atac.hto_", PROJECT_NAME, ".RDS")
 
 GENOME = "GRCh38"                     # REPLACE (GRCh38 or GRCm39)
-OUTPUT_FIG_WIDTH =  8                 # inches, width of output figures
-OUTPUT_FIG_HEIGHT = 8                 # inches, height of output figures
+OUTPUT_FIG_WIDTH =  6                 # inches, width of output figures
+OUTPUT_FIG_HEIGHT = 6                 # inches, height of output figures
 ###############################################################################
 #### LOAD DATA ####
 ###############################################################################
