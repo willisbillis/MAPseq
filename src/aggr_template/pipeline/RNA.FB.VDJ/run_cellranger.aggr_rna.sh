@@ -42,7 +42,7 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
         # append summary metrics to the metrics CSV
         if [ -f "$summary_metrics_file" ]; then
           if [ ! -f $METRICS_CSV ]; then
-            printf '%s\n' $(head -n 1 $summary_metrics_file) >> $METRICS_CSV
+            head -n 1 $summary_metrics_file >> $METRICS_CSV
           fi
           tail -n +2 $summary_metrics_file >> $METRICS_CSV
         else

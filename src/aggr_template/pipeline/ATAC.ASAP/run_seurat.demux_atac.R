@@ -60,7 +60,7 @@ asap_library_paths = Sys.glob(paste0(PROJECT_PATH,
 for (idx in seq_along(asap_library_paths)) {
   asap_path = asap_library_paths[idx]
   asap_id = basename(asap_path)
-  atac_id = gsub(ASAP_NAMING_ID, ATAC_NAMING_ID, asap_id)
+  atac_id = aggr_df$library_id[idx]
   run_id = basename(gsub("\\/pipeline.*", "", asap_path))
   metadata_df[idx, c("run_id", "asap_id", "atac_id")] = c(run_id,
                                                           asap_id,

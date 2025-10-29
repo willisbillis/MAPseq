@@ -89,6 +89,7 @@ function clean_ms_tree() {
         "data/concat_fqs.sh"
         "data/$PROJECT_NAME.RNA.sampleManifest.csv"
         "data/$PROJECT_NAME.ATAC.sampleManifest.csv"
+        "data/*/outs/*fastq*"
         "pipeline"
         "pipeline/preflight_checks.sh"
         "pipeline/ATAC.ASAP"
