@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: nvcr.io/nvidia/rapids:25.12-cuda12.0-runtime-ubuntu22.04
+From: nvidia/cuda:12.0.0-runtime-ubuntu22.04
 
 %labels
     Author "MAPseq Team"
@@ -31,7 +31,7 @@ From: nvcr.io/nvidia/rapids:25.12-cuda12.0-runtime-ubuntu22.04
     echo "Building B-cell atlas pipeline container..."
     
     # ==========================================
-    # Update base system
+    # Update base system and install Python
     # ==========================================
     apt-get update
     apt-get upgrade -y
@@ -48,7 +48,10 @@ From: nvcr.io/nvidia/rapids:25.12-cuda12.0-runtime-ubuntu22.04
         less \
         nano \
         htop \
-        vim
+        vim \
+        python3 \
+        python3-pip \
+        python3-dev
     
     # ==========================================
     # Install Cell Ranger (manually)
