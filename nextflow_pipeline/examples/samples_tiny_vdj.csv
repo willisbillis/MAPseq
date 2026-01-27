@@ -1,0 +1,3 @@
+sample_id,batch_id,gex_fastq_r1,gex_fastq_r2,hto_fastq_r1,hto_fastq_r2,vdj_fastq_r1,vdj_fastq_r2,donor_id,tissue,facs_gates
+S001,B001,/data/fastq/GEX/S001_R1.fastq.gz,/data/fastq/GEX/S001_R2.fastq.gz,,,/data/fastq/VDJ/S001_R1.fastq.gz,/data/fastq/VDJ/S001_R2.fastq.gz,D001,PBMC,CD19+
+S002,B001,/data/fastq/GEX/S002_R1.fastq.gz,/data/fastq/GEX/S002_R2.fastq.gz,,,/data/fastq/VDJ/S002_R1.fastq.gz,/data/fastq/VDJ/S002_R2.fastq.gz,D002,PBMC,CD19+

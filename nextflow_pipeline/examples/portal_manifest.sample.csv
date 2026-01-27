@@ -1,0 +1,11 @@
+batch_id,kind,label,path,bytes,md5,mtime,source_process,schema_version,tags
+B001,expression,clustered_h5ad,analysis/clustering/B001/clustered.h5ad,154321234,d41d8cd98f00b204e9800998ecf8427e,2026-01-27T11:50:00Z,RAPIDS_CLUSTERING,1.0,"h5ad;clustered"
+B001,expression,harmony_integrated_h5ad,analysis/harmony/B001/harmony_integrated.h5ad,120045678,0cc175b9c0f1b6a831c399e269772661,2026-01-27T11:48:00Z,HARMONY_INTEGRATION,1.0,"h5ad;integrated"
+B001,metadata,annotated_h5ad,analysis/final/B001/annotated.h5ad,125678901,900150983cd24fb0d6963f7d28e17f72,2026-01-27T11:47:00Z,METADATA_INJECT,1.0,"h5ad;annotated"
+B001,vdj,vdj_integrated_h5ad,analysis/final/B001/vdj_integrated.h5ad,45678901,92eb5ffee6ae2fec3ad71c777531578f,2026-01-27T11:46:00Z,VDJ_INTEGRATION,1.0,"h5ad;vdj"
+B001,qc,qc_filtered_h5ad,analysis/qc/B001/qc_filtered.h5ad,98765432,4a8a08f09d37b73795649038408b5f33,2026-01-27T11:30:00Z,SCDBLFINDER_FILTER,1.0,"h5ad;qc"
+B001,qc,doublet_metrics,analysis/qc/B001/doublet_metrics.csv,23456,e4da3b7fbbce2345d7772b0674a318d5,2026-01-27T11:29:00Z,SCDBLFINDER_FILTER,1.0,"metrics;csv"
+B001,metrics,clustering_metrics,analysis/clustering/B001/clustering_metrics.csv,12345,1679091c5a880faf6fb5e6087eb1b2dc,2026-01-27T11:50:05Z,RAPIDS_CLUSTERING,1.0,"metrics;csv"
+B001,report,clustering_report,analysis/clustering/B001/clustering_report.txt,4567,8f14e45fceea167a5a36dedd4bea2543,2026-01-27T11:50:06Z,RAPIDS_CLUSTERING,1.0,"report"
+B001,vdj,vdj_clonotypes,vdj/clonotypes/vdj_clonotypes.csv,34567,c9f0f895fb98ab9159f51fd0297e236d,2026-01-27T11:40:00Z,VDJ_CLONOTYPE_ANALYSIS,1.0,"vdj;csv"
+B001,metadata,metadata_metrics,analysis/final/B001/metadata_injection_metrics.csv,6789,45c48cce2e2d7fbdea1afc51c7c6ad26,2026-01-27T11:47:05Z,METADATA_INJECT,1.0,"metrics;csv"

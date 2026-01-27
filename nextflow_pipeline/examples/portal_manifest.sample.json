@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-01-27T12:00:00Z",
+  "batch_id": "B001",
+  "outdir": "/data/mapseq_runs/run_001",
+  "entries": [
+    {
+      "batch_id": "B001",
+      "kind": "expression",
+      "label": "clustered_h5ad",
+      "path": "analysis/clustering/B001/clustered.h5ad",
+      "bytes": 154321234,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e",
+      "mtime": "2026-01-27T11:50:00Z",
+      "source_process": "RAPIDS_CLUSTERING",
+      "schema_version": "1.0",
+      "tags": ["h5ad", "clustered"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "expression",
+      "label": "harmony_integrated_h5ad",
+      "path": "analysis/harmony/B001/harmony_integrated.h5ad",
+      "bytes": 120045678,
+      "md5": "0cc175b9c0f1b6a831c399e269772661",
+      "mtime": "2026-01-27T11:48:00Z",
+      "source_process": "HARMONY_INTEGRATION",
+      "schema_version": "1.0",
+      "tags": ["h5ad", "integrated"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "metadata",
+      "label": "annotated_h5ad",
+      "path": "analysis/final/B001/annotated.h5ad",
+      "bytes": 125678901,
+      "md5": "900150983cd24fb0d6963f7d28e17f72",
+      "mtime": "2026-01-27T11:47:00Z",
+      "source_process": "METADATA_INJECT",
+      "schema_version": "1.0",
+      "tags": ["h5ad", "annotated"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "vdj",
+      "label": "vdj_integrated_h5ad",
+      "path": "analysis/final/B001/vdj_integrated.h5ad",
+      "bytes": 45678901,
+      "md5": "92eb5ffee6ae2fec3ad71c777531578f",
+      "mtime": "2026-01-27T11:46:00Z",
+      "source_process": "VDJ_INTEGRATION",
+      "schema_version": "1.0",
+      "tags": ["h5ad", "vdj"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "qc",
+      "label": "qc_filtered_h5ad",
+      "path": "analysis/qc/B001/qc_filtered.h5ad",
+      "bytes": 98765432,
+      "md5": "4a8a08f09d37b73795649038408b5f33",
+      "mtime": "2026-01-27T11:30:00Z",
+      "source_process": "SCDBLFINDER_FILTER",
+      "schema_version": "1.0",
+      "tags": ["h5ad", "qc"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "qc",
+      "label": "doublet_metrics",
+      "path": "analysis/qc/B001/doublet_metrics.csv",
+      "bytes": 23456,
+      "md5": "e4da3b7fbbce2345d7772b0674a318d5",
+      "mtime": "2026-01-27T11:29:00Z",
+      "source_process": "SCDBLFINDER_FILTER",
+      "schema_version": "1.0",
+      "tags": ["metrics", "csv"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "metrics",
+      "label": "clustering_metrics",
+      "path": "analysis/clustering/B001/clustering_metrics.csv",
+      "bytes": 12345,
+      "md5": "1679091c5a880faf6fb5e6087eb1b2dc",
+      "mtime": "2026-01-27T11:50:05Z",
+      "source_process": "RAPIDS_CLUSTERING",
+      "schema_version": "1.0",
+      "tags": ["metrics", "csv"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "report",
+      "label": "clustering_report",
+      "path": "analysis/clustering/B001/clustering_report.txt",
+      "bytes": 4567,
+      "md5": "8f14e45fceea167a5a36dedd4bea2543",
+      "mtime": "2026-01-27T11:50:06Z",
+      "source_process": "RAPIDS_CLUSTERING",
+      "schema_version": "1.0",
+      "tags": ["report"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "vdj",
+      "label": "vdj_clonotypes",
+      "path": "vdj/clonotypes/vdj_clonotypes.csv",
+      "bytes": 34567,
+      "md5": "c9f0f895fb98ab9159f51fd0297e236d",
+      "mtime": "2026-01-27T11:40:00Z",
+      "source_process": "VDJ_CLONOTYPE_ANALYSIS",
+      "schema_version": "1.0",
+      "tags": ["vdj", "csv"]
+    },
+    {
+      "batch_id": "B001",
+      "kind": "metadata",
+      "label": "metadata_metrics",
+      "path": "analysis/final/B001/metadata_injection_metrics.csv",
+      "bytes": 6789,
+      "md5": "45c48cce2e2d7fbdea1afc51c7c6ad26",
+      "mtime": "2026-01-27T11:47:05Z",
+      "source_process": "METADATA_INJECT",
+      "schema_version": "1.0",
+      "tags": ["metrics", "csv"]
+    }
+  ]
+}
