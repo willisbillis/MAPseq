@@ -124,6 +124,14 @@ for (idx in seq_len(nrow(metadata_df))) {
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   hto_ref_sub$hashtag = gsub("_", "-", hto_ref_sub$hashtag)
 
+  # Check if there are any overlapping cells between HTO and ATAC data
+  hto_cells_for_library = colnames(master_ht)[colnames(master_ht) %in% cells]
+  if (length(hto_cells_for_library) == 0) {
+    print(paste0("No cell overlap between HTO and ATAC data for sample ", asap_lib_id, 
+                 ". Skipping this sample."))
+    next
+  }
+
   if (length(hto_ref_sub$hashtag) > 1) {
     print(paste("Demultiplexing", asap_lib_id))
 
@@ -349,8 +357,17 @@ if ((souporcell_recover - hto_recover) > 0) {
   print("[WARNING] Check souporcell results. Less cells detected with souporcell than HTO demux.")
 }
 
+# Remove NULL entries from the list (skipped samples)
+atac_obj_list = atac_obj_list[!sapply(atac_obj_list, is.null)]
 
-sc_total = merge(atac_obj_list[[1]], c(atac_obj_list[2:idx]))
+if (length(atac_obj_list) > 1) {
+  sc_total = merge(atac_obj_list[[1]], atac_obj_list[2:length(atac_obj_list)])
+} else if (length(atac_obj_list) == 1) {
+  sc_total = atac_obj_list[[1]]
+} else {
+  stop("No valid samples to process after filtering.")
+}
+
 sc_total = JoinLayers(sc_total, assay = "HTO")
 sc_total = sc_total[, !is.na(sc_total$nCount_HTO)]
 

@@ -36,11 +36,11 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
     else
       echo "Warning: Missing files for $sample_name. Skipping." >> $OUTPUT_FILE
     fi
-    summary_metrics_file=${sample_path}summary.csv
+    summary_metrics_file=${sample_path}outs/summary.csv
     # append summary metrics to the metrics CSV
     if [ -f "$summary_metrics_file" ]; then
       if [ ! -f $METRICS_CSV ]; then
-        printf '%s\n' $(head -n 1 $summary_metrics_file) >> $METRICS_CSV
+        head -n 1 $summary_metrics_file >> $METRICS_CSV
       fi
       tail -n +2 $summary_metrics_file >> $METRICS_CSV
     else
