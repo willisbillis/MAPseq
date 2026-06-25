@@ -1,0 +1,5 @@
+donor_id,hla_allele
+DonorA,HLA-A*02:01
+DonorA,HLA-B*07:02
+DonorB,HLA-A*01:01
+DonorB,HLA-B*08:01

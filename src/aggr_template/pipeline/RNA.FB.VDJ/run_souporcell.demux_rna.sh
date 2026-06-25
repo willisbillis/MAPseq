@@ -16,6 +16,7 @@ OUTPUT_FILE=$OUTPUT_DIR/souporcell_rna.log
 SOUPORCELL_PATH=/home/Apps/github/souporcell
 FASTA=/home/Apps/genomes/cellranger/refdata-gex-GRCh38-2024-A/fasta/genome.fa
 HTO_REF=$PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv
+HLA_VCF=$PROJECT_PATH/pipeline/RNA.FB.VDJ/hla_vcf_gen/merged_hla_genotypes.vcf.gz
 ################################################################################
 # Preflight checks
 # Check for "souporcell" conda environment
@@ -46,6 +47,13 @@ if [ ! -f $HTO_REF ]; then
   echo "ERROR: HTO_REF file not found at $HTO_REF"
   echo "Please provide a valid path to the HTO_REF file."
   exit 1
+fi
+
+# check for HLA VCF
+GENOTYPE_ARGS=""
+if [ -f $HLA_VCF ]; then
+  echo "Found HLA genotypes at $HLA_VCF. Using for demultiplexing."
+  GENOTYPE_ARGS="--known_genotypes $HLA_VCF"
 fi
 
 #  code to check whether a log file has been generated already
@@ -95,6 +103,7 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
       -f $FASTA \
       -t $NCPU \
       -o $OUTPUT_DIR/$sample_name \
-      -k $N >> $OUTPUT_FILE 2>&1
+      -k $N \
+      $GENOTYPE_ARGS >> $OUTPUT_FILE 2>&1
   fi
 done

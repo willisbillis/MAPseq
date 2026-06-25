@@ -31,6 +31,11 @@ atac_sample_names=$(printf -- '%s ' "${atac_sample_name_col[@]}" | grep -v libra
 if [ ${#rna_sample_names[@]} != 0 ]; then
     # run cellranger aggr on the RNA+FB samples
     cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && ./run_cellranger.aggr_rna.sh
+    # check for HLA allele mapping to generate known genotypes VCF
+    if [ -f $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/hla_alleles.csv ]; then
+        echo "$date Generating HLA VCF for known genotypes..."
+        cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && ./generate_hla_vcf.sh
+    fi
     # run souporcell genotype demultiplexing for RNA samples in souporcell conda environment
     echo "$date Running souporcell demultiplexing for RNA samples..."
     echo "$date This may take a while, please be patient."

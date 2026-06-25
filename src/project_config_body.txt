@@ -18,5 +18,10 @@ ATAC_REF_PATH=/home/Apps/genomes/cellranger/refdata-cellranger-arc-GRCh38-2024-A
 NCPU=32
 MEM=128
 
+# HLA Typing & Genotype Demultiplexing
+# Path to the primary reference genome FASTA used for alignment
+# (Default uses GEX_REF_PATH/fasta/genome.fa)
+# HLA_ALLELE_FILE=$PROJECT_PATH/pipeline/RNA.FB.VDJ/hla_alleles.csv
+
 ## CHECK ALL VARIABLES BEFORE EACH RUN ##
 ###################################################################################

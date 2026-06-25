@@ -19,3 +19,7 @@ dependencies:
   - r-rjson
   - r-azimuth
   - scirpy
+  - arcashla
+  - minimap2
+  - samtools
+  - bcftools
