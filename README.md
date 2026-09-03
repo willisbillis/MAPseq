@@ -8,7 +8,7 @@ processing of MAPseq (**M**arker **A**ssisted **P**rogramming **seq**uencing) da
 ## Pre-Installation Requirements
 
 Supported Operating Systems:
- - Ubuntu 22.04
+ - Ubuntu 24.04
 
 
 We recommend creating a new conda environment for the installation of the tools required for the MAPseq pipeline and secondary analysis. For external software (not including Cell Ranger), we provide an `environment.yml` file for easy installation with conda. This can be run and initialized with:
@@ -26,11 +26,9 @@ conda activate mapseq_env
 
 ### External software required
 
-* Cell Ranger (v8.0.0) [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
-* Cell Ranger ATAC (v2.1.0) [(install here)](https://support.10xgenomics.com/single-cell-atac/software/pipelines/2.1/installation)
-* kallisto (<v1.0) [(install here)](https://pachterlab.github.io/kallisto/download)
-* bustools (<v1.0) [(install here)](https://bustools.github.io/download)
-* cellbender (v0.3.0) [(install here)](https://cellbender.readthedocs.io/en/latest/installation/index.html)
+* Cell Ranger (v10.0.0) [(install here)](https://www.10xgenomics.com/support/software/cell-ranger/latest)
+* Cell Ranger ATAC (v2.1.0) [(install here)](https://www.10xgenomics.com/support/software/cell-ranger-atac/downloads/installation)
+* kb (kallisto | bustools) (<v1.0) [(install here)](https://kallisto.readthedocs.io/en/latest/quick_start/installation.html)
 * leidenalg (<v1.0) [(install here)](https://leidenalg.readthedocs.io/en/stable/install.html)
 
 ### Installation
