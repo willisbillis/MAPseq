@@ -77,6 +77,8 @@ Edit the `project_config.txt` file within the `<RUN_NAME>` directory with the fo
 #### 3. Populate the Sample Manifest(s)
 Whether or not the libraries have been demultiplexed already, each sample within the libraries must be accounted for in the sample manifests, stored in the `<RUN_NAME>/data` directory. Put all RNAseq, Feature Barcoding, and VDJ libraries in the RNA manifest, and ATACseq and ASAPseq libraries in the ATAC manifest. The manifests follow the formatting from the [Cell Ranger simple CSV sample sheet](https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/inputs/cr-mkfastq#running-with-simple-csv).
 
+For existing FASTQs, only files matching sample IDs in the corresponding manifest are copied. The expected filename format is `<sample>[_S<number>]_L<lane>_<read>_<chunk>.fastq.gz`, where lane and chunk are three digits and read is `R` or `I` followed by a digit. The sample ID may include the `_S<number>` portion. A missing sample produces an error; FASTQs already in the output directory are not removed.
+
 #### 4. Run the MAPseq pipeline
 From the head of the run directory, `<RUN_NAME>`, run:
 

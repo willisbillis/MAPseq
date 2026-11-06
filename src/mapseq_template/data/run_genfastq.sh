@@ -12,11 +12,48 @@ source ../project_config.txt
 OUTPUT_DIR=$PROJECT_PATH/data
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_mkfastq.log
 ################################################################################
-cd $OUTPUT_DIR
-mkdir -p $OUTPUT_DIR/reports
+cd "$OUTPUT_DIR" || exit 1
+mkdir -p "$OUTPUT_DIR/reports" || exit 1
 
-declare -a rna_fqs=($(ls $RNA_DIR/*fastq.gz 2>/dev/null))
-declare -a atac_fqs=($(ls $ATAC_DIR/*fastq.gz 2>/dev/null))
+shopt -s nullglob
+declare -a rna_fqs=("$RNA_DIR/"*fastq.gz)
+declare -a atac_fqs=("$ATAC_DIR/"*fastq.gz)
+shopt -u nullglob
+
+copy_manifest_fastqs() {
+    local modality=$1 source_dir=$2 destination=$3 manifest=$4
+    local lane sample index fastq filename suffix matched missing=0
+    shift 4
+
+    mkdir -p "$destination" || return 1
+    while IFS=, read -r lane sample index || [[ -n $lane$sample$index ]]; do
+        lane=${lane%$'\r'}
+        sample=${sample%$'\r'}
+        index=${index%$'\r'}
+        [[ $lane == Lane && $sample == Sample ]] && continue
+        [[ -z $lane$sample$index ]] && continue
+        if [[ -z $sample ]]; then
+            echo "[ERROR] Empty sample ID in $manifest" >&2
+            return 1
+        fi
+
+        matched=0
+        for fastq in "$@"; do
+            filename=${fastq##*/}
+            [[ $filename == "$sample"* ]] || continue
+            suffix=${filename#"$sample"}
+            if [[ $suffix =~ ^(_S[0-9]+)?_L[0-9]{3}_[IR][0-9]_[0-9]{3}\.fastq\.gz$ ]]; then
+                cp -- "$fastq" "$destination/" || return 1
+                matched=1
+            fi
+        done
+        if (( ! matched )); then
+            echo "[ERROR] No FASTQs found for $modality sample '$sample' in '$source_dir'" >&2
+            missing=1
+        fi
+    done < "$manifest"
+    (( ! missing ))
+}
 
 ## ATAC.ASAP fastq generation
 if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_fqs[@]} -eq 0 ]]; then
@@ -49,13 +86,10 @@ if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_
 
     #cp $OUTPUT_DIR/reports/* $PROJECT_PATH/reports
 elif [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
-    # fastqs were already generated, move the fastqs from the data directory
+    # Copy only FASTQs for samples in the ATAC manifest.
     ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
-    mkdir -p $ATAC_FASTQ_PATH
-    declare -a atac_samples=($(ls $ATAC_DIR/*fastq.gz))
-    for sample in "${atac_samples[@]}"; do
-        cp $(realpath $sample) $ATAC_FASTQ_PATH
-    done
+    copy_manifest_fastqs ATAC "$ATAC_DIR" "$ATAC_FASTQ_PATH" \
+        "${PROJECT_NAME}.ATAC.sampleManifest.csv" "${atac_fqs[@]}" || exit 1
 fi
 
 ## RNA.FB.BCR fastq generation
@@ -88,11 +122,8 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ ${#rna_fqs[@
 
     #cp $OUTPUT_DIR/reports/* $PROJECT_PATH/reports
 elif [[ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
-    # fastqs were already generated, move the fastqs from the data directory
+    # Copy only FASTQs for samples in the RNA manifest.
     RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
-    mkdir -p $RNA_FASTQ_PATH
-    declare -a rna_samples=($(ls $RNA_DIR/*fastq.gz))
-    for sample in "${rna_samples[@]}"; do
-        cp $(realpath $sample) $RNA_FASTQ_PATH
-    done
+    copy_manifest_fastqs RNA "$RNA_DIR" "$RNA_FASTQ_PATH" \
+        "${PROJECT_NAME}.RNA.sampleManifest.csv" "${rna_fqs[@]}" || exit 1
 fi
