@@ -3,8 +3,7 @@
 # the LRA MAPseq project started in 2023.
 #
 # NOTICE: At this point, the user has generated the fastqs and
-#       has formatted a feature reference table for the 
-#       HTO/ADT demultiplexing.
+#       has formatted a feature reference table if HTO/ADT data are present.
 ################################################################################
 # Import all the global variables for this project
 source ../../project_config.txt
@@ -14,21 +13,70 @@ FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
 OUTPUT_DIR=$PROJECT_PATH/pipeline/RNA.FB.VDJ
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.vdj_mapping.log
 ################################################################################
-mkdir -p $OUTPUT_DIR
-cd $OUTPUT_DIR
-mkdir -p $OUTPUT_DIR/reports
+mkdir -p "$OUTPUT_DIR/reports" || exit 1
+cd "$OUTPUT_DIR" || exit 1
 
-sample_name_col=$(cut -d, -f2 $PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv)
-sample_names=$(printf -- '%s ' "${sample_name_col[@]}" | grep -v Sample | uniq)
+if [[ -z $GEX_NAMING_ID || -z $VDJ_NAMING_ID || -z $GEX_FEAT_NAMING_ID ]]; then
+    echo "[ERROR] GEX_NAMING_ID, VDJ_NAMING_ID and GEX_FEAT_NAMING_ID must not be empty" >&2
+    exit 1
+fi
 
-vdj_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${VDJ_NAMING_ID}.*))
-rna_samples=($(printf -- '%s ' "${sample_names[@]}" | grep .*${GEX_NAMING_ID}.*))
+manifest=$PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv
+if [[ ! -r $manifest ]]; then
+    echo "[ERROR] Cannot read sample manifest '$manifest'" >&2
+    exit 1
+fi
+declare -a rna_samples=() vdj_samples=() feature_samples=()
+declare -A seen_samples=()
+while IFS=, read -r lane sample index || [[ -n $lane$sample$index ]]; do
+    lane=${lane%$'\r'}
+    sample=${sample%$'\r'}
+    index=${index%$'\r'}
+    [[ $lane == Lane && $sample == Sample ]] && continue
+    [[ -z $lane$sample$index ]] && continue
+    if [[ -z $sample ]]; then
+        echo "[ERROR] Empty sample ID in $manifest" >&2
+        exit 1
+    fi
+    [[ -n ${seen_samples[$sample]+present} ]] && continue
+    seen_samples["$sample"]=1
+    matches=0
+    [[ $sample == *"$GEX_NAMING_ID"* ]] && ((matches+=1))
+    [[ $sample == *"$VDJ_NAMING_ID"* ]] && ((matches+=1))
+    [[ $sample == *"$GEX_FEAT_NAMING_ID"* ]] && ((matches+=1))
+    if (( matches > 1 )); then
+        echo "[ERROR] Sample '$sample' matches multiple RNA, VDJ or feature naming IDs" >&2
+        exit 1
+    fi
+    if [[ $sample == *"$GEX_NAMING_ID"* ]]; then
+        rna_samples+=("$sample")
+    fi
+    if [[ $sample == *"$VDJ_NAMING_ID"* ]]; then
+        vdj_samples+=("$sample")
+    fi
+    if [[ $sample == *"$GEX_FEAT_NAMING_ID"* ]]; then
+        feature_samples+=("$sample")
+    fi
+done < "$manifest"
+if (( ${#rna_samples[@]} > 1 || ${#vdj_samples[@]} > 1 || ${#feature_samples[@]} > 1 )); then
+    echo "[ERROR] Expected at most one RNA, one VDJ and one feature sample in $manifest" >&2
+    exit 1
+fi
+if (( ${#rna_samples[@]} == 0 )); then
+    echo "[WARN] No RNA samples matching '$GEX_NAMING_ID' in $manifest" >&2
+fi
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" &>> $OUTPUT_FILE
 GEX_REF_version=$(echo $GEX_REF_PATH | grep -Po '(?<=refdata-gex-)[^;]+')
 echo "$(date) Using transcriptome reference $GEX_REF_version located at $GEX_REF_PATH" &>> $OUTPUT_FILE
-echo "$(date) Using HTO/ADT feature reference located at $GEX_FEAT_REF_PATH" &>> $OUTPUT_FILE
+if (( ${#feature_samples[@]} > 0 )); then
+    if [[ ! -f $GEX_FEAT_REF_PATH ]]; then
+        echo "[ERROR] Feature reference '$GEX_FEAT_REF_PATH' not found" >&2
+        exit 1
+    fi
+    echo "$(date) Using HTO/ADT feature reference located at $GEX_FEAT_REF_PATH" &>> "$OUTPUT_FILE"
+fi
 if [ ${#vdj_samples[@]} != 0 ]; then
     VDJ_REF_version=$(echo $VDJ_REF_PATH | grep -Po '(?<=refdata-cellranger-vdj-)[^;]+')
     echo "$(date) Using vdj reference $VDJ_REF_version located at $VDJ_REF_PATH" &>> $OUTPUT_FILE
@@ -37,47 +85,29 @@ fi
 for sample in "${rna_samples[@]}"; do
     echo "$(date) Running sample ${sample}..." &>> $OUTPUT_FILE
     SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
-
-    if [ ${#vdj_samples[@]} != 0 ]; then
-        ## VDJ SAMPLES DETECTED
-        # Create the config csv for the sample being run
-        echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' create-bam true | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        echo "[feature]" >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' reference $GEX_FEAT_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        echo "[vdj]" >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' reference $VDJ_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-
-        echo "[libraries]" >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' fastq_id fastqs feature_types | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        gex_sample=$sample
-        # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $GEX_FEAT_NAMING_ID
-        hashtag_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$GEX_FEAT_NAMING_ID/p")
-        # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $VDJ_NAMING_ID
-        vdj_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$VDJ_NAMING_ID/p")
-        printf '%s\n' $gex_sample $FASTQ_PATH 'Gene Expression' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $hashtag_sample $FASTQ_PATH 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $vdj_sample $FASTQ_PATH VDJ | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-
-    else
-        ## NO VDJ SAMPLES DETECTED, CONSIDER USING 'cellranger count'
-        ## Performance comparison with 'cellranger multi' recommended
-        # Create the config csv for the sample being run
-        echo "[gene-expression]" >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' reference $GEX_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' create-bam true | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        echo "[feature]" >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' reference $GEX_FEAT_REF_PATH | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-
-        echo "[libraries]" >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' fastq_id fastqs feature_types | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        gex_sample=$sample
-        # this sed command substitutes the $GEX_NAMING_ID part of the sample name with $GEX_FEAT_NAMING_ID
-        hashtag_sample=$(echo $sample | sed -n -e "s/$GEX_NAMING_ID/$GEX_FEAT_NAMING_ID/p")
-        printf '%s\n' $gex_sample $FASTQ_PATH 'Gene Expression' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-        printf '%s\n' $hashtag_sample $FASTQ_PATH 'Antibody Capture' | paste -sd ',' >> $SAMPLE_CONFIG_CSV
-    fi
+    vdj_sample=${vdj_samples[0]-}
+    feature_sample=${feature_samples[0]-}
+    {
+        echo "[gene-expression]"
+        printf 'reference,%s\ncreate-bam,true\n' "$GEX_REF_PATH"
+        if [[ -n $feature_sample ]]; then
+            echo "[feature]"
+            printf 'reference,%s\n' "$GEX_FEAT_REF_PATH"
+        fi
+        if [[ -n $vdj_sample ]]; then
+            echo "[vdj]"
+            printf 'reference,%s\n' "$VDJ_REF_PATH"
+        fi
+        echo "[libraries]"
+        echo "fastq_id,fastqs,feature_types"
+        printf '%s,%s,Gene Expression\n' "$sample" "$FASTQ_PATH"
+        if [[ -n $feature_sample ]]; then
+            printf '%s,%s,Antibody Capture\n' "$feature_sample" "$FASTQ_PATH"
+        fi
+        if [[ -n $vdj_sample ]]; then
+            printf '%s,%s,VDJ\n' "$vdj_sample" "$FASTQ_PATH"
+        fi
+    } > "$SAMPLE_CONFIG_CSV" || exit 1
 
     # Run the Cell Ranger multi command for the sample
     cellranger multi --id $sample \

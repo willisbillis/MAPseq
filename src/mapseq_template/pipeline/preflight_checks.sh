@@ -12,7 +12,7 @@ function check_dir_var() {
 }
 
 function check_path_var() {
-    if [ ! -f $1 ]; then
+    if [ ! -f "$1" ]; then
         echo "[ERROR] File $1 not found! Please check your project config file."
         return 1
     else
@@ -25,14 +25,26 @@ source ../project_config.txt
 # check that the input parameters are valid
 declare -a dir_vars=($DATA_DOWNLOADS_DIR $ATAC_DIR $RNA_DIR $GEX_REF_PATH \
     $VDJ_REF_PATH $ATAC_REF_PATH)
-declare -a path_vars=($GEX_FEAT_REF_PATH $ASAP_FEAT_REF_PATH)
+declare -a path_vars=("$ASAP_FEAT_REF_PATH")
+rna_manifest=$PROJECT_PATH/data/${PROJECT_NAME}.RNA.sampleManifest.csv
+if [[ ! -r $rna_manifest || -z $GEX_FEAT_NAMING_ID ]]; then
+    echo "[ERROR] RNA manifest must be readable and GEX_FEAT_NAMING_ID must not be empty."
+    exit 1
+fi
+while IFS=, read -r lane sample index || [[ -n $lane$sample$index ]]; do
+    [[ $lane == Lane && $sample == Sample ]] && continue
+    if [[ $sample == *"$GEX_FEAT_NAMING_ID"* ]]; then
+        path_vars+=("$GEX_FEAT_REF_PATH")
+        break
+    fi
+done < "$rna_manifest"
 
 for dir in "${dir_vars[@]}"; do
     check_dir_var $dir || exit 1
 done
 
 for path in "${path_vars[@]}"; do
-    check_path_var $path || exit 1
+    check_path_var "$path" || exit 1
 done
 
 # check to make sure manifests aren't both empty
