@@ -41,6 +41,26 @@ OUTPUT_DIR = paste0(PROJECT_PATH, "/", PROJECT_NAME, "/analysis/ATAC.ASAP")
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 aggr_df = read.csv(paste0(OUTS_DIR, "/aggregation_csv.csv"))
+aggr_manifest_path = paste0(PROJECT_PATH, "/", PROJECT_NAME,
+                            "/pipeline/ATAC.ASAP/ATAC/aggr.csv")
+if (!file.exists(aggr_manifest_path)) {
+  stop("Current ATAC aggregation manifest not found: ", aggr_manifest_path)
+}
+aggr_manifest = read.csv(aggr_manifest_path, stringsAsFactors = FALSE)
+source_run_id = function(path) {
+  path_parts = strsplit(gsub("\\\\", "/", path), "/", fixed = TRUE)[[1]]
+  pipeline_index = match("pipeline", path_parts)
+  if (!is.na(pipeline_index) && pipeline_index > 1) {
+    path_parts[pipeline_index - 1]
+  } else {
+    ""
+  }
+}
+expected_library_run = data.frame(
+  atac_id = as.character(aggr_manifest$library_id),
+  run_id = vapply(aggr_manifest$fragments, source_run_id, character(1)),
+  stringsAsFactors = FALSE
+)
 barcodes = read.csv(paste0(OUTS_DIR, "/filtered_peak_bc_matrix/barcodes.tsv"),
                     header = FALSE)
 barcodes$library_id = aggr_df$library_id[as.numeric(gsub(".*\\-", "",
@@ -66,6 +86,12 @@ for (idx in seq_along(asap_library_paths)) {
                                                           asap_id,
                                                           atac_id)
 }
+
+expected_keys = paste(expected_library_run$run_id,
+                      expected_library_run$atac_id, sep = "\r")
+metadata_keys = paste(metadata_df$run_id, metadata_df$atac_id, sep = "\r")
+metadata_df = metadata_df[metadata_keys %in% expected_keys, , drop = FALSE]
+rownames(metadata_df) = NULL
 
 for (idx in seq_len(nrow(metadata_df))) {
   asap_lib_id = metadata_df[idx, "asap_id"]
@@ -371,8 +397,7 @@ if (length(atac_obj_list) > 1) {
 sc_total = JoinLayers(sc_total, assay = "HTO")
 sc_total = sc_total[, !is.na(sc_total$nCount_HTO)]
 
-demux_metrics = metadata_df
-demux_metrics$input_cells = demux_metrics$ATAC_cells
+demux_metrics = metadata_df[, c("run_id", "atac_id"), drop = FALSE]
 demux_metrics$output_cells = 0L
 demux_metrics$assigned_cells = 0L
 demux_metrics$doublet_cells = 0L

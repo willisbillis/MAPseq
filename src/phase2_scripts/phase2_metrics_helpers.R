@@ -5,10 +5,44 @@ make_sample_ids <- function(metadata, grouping_columns) {
   }
   values <- lapply(metadata[grouping_columns], function(column) {
     value <- as.character(column)
-    value[is.na(value) | value == ""] <- "Unassigned"
-    value
+    vapply(value, function(component) {
+      if (is.na(component)) {
+        return("N")
+      }
+      bytes <- as.integer(charToRaw(enc2utf8(component)))
+      paste0("V", paste(sprintf("%02X", bytes), collapse = ""))
+    }, character(1))
   })
   do.call(paste, c(values, sep = "-"))
+}
+
+spreadsheet_safe <- function(value, field) {
+  value <- as.character(value)
+  value[is.na(value)] <- ""
+  stripped <- trimws(value, whitespace = "[ \\t\\r\\n]")
+  numeric_value <- field == "value" & grepl(
+    "^-?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?%?$",
+    stripped, perl = TRUE
+  )
+  formula_value <- grepl("^[=+@-]", stripped)
+  value[formula_value & !numeric_value] <- paste0("'", value[formula_value & !numeric_value])
+  value
+}
+
+acquire_metrics_lock <- function(metrics_path, timeout_seconds = 300,
+                                 poll_seconds = 0.1) {
+  lock_path <- paste0(metrics_path, ".lock")
+  deadline <- Sys.time() + timeout_seconds
+  repeat {
+    if (dir.create(lock_path, showWarnings = FALSE)) {
+      return(lock_path)
+    }
+    if (Sys.time() >= deadline) {
+      stop("Timed out waiting for metrics lock: ", lock_path,
+           ". Confirm no writer is running, then remove a stale lock directory if needed.")
+    }
+    Sys.sleep(poll_seconds)
+  }
 }
 
 append_qc_metrics <- function(metrics_path, qc_summary, modality,
@@ -17,6 +51,9 @@ append_qc_metrics <- function(metrics_path, qc_summary, modality,
     "project_id", "run_id", "modality", "stage", "sample_id",
     "sample_scope", "metric", "value", "unit", "source_file"
   )
+  metrics_path <- normalizePath(metrics_path, winslash = "/", mustWork = FALSE)
+  lock_path <- acquire_metrics_lock(metrics_path)
+  on.exit(unlink(lock_path, recursive = TRUE), add = TRUE)
   if (!file.exists(metrics_path)) {
     stop("Sample metrics CSV not found: ", metrics_path)
   }
@@ -85,7 +122,16 @@ append_qc_metrics <- function(metrics_path, qc_summary, modality,
     existing$source_file == source_file
   existing <- existing[!is_previous_run, , drop = FALSE]
   updated <- rbind(existing, new_rows)
-  write.csv(updated, metrics_path, row.names = FALSE, na = "")
+  for (column in required_columns) {
+    updated[[column]] <- spreadsheet_safe(updated[[column]], column)
+  }
+  temp_path <- tempfile(pattern = paste0(".", basename(metrics_path), "."),
+                        tmpdir = dirname(metrics_path))
+  on.exit(unlink(temp_path), add = TRUE)
+  write.csv(updated, temp_path, row.names = FALSE, na = "")
+  if (!file.rename(temp_path, metrics_path)) {
+    stop("Could not atomically update sample metrics CSV: ", metrics_path)
+  }
   message("Backed up original metrics to ", backup_path)
   message("Appended ", nrow(new_rows), " ", toupper(modality), " QC metrics")
   invisible(backup_path)

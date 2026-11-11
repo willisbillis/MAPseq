@@ -11,7 +11,18 @@
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
-SAMPLES_ARRAY=($(ls -d $PROJECT_PATH/*/pipeline/ATAC.ASAP/ATAC/*/))
+shopt -s nullglob
+SAMPLES_ARRAY=()
+for sample_path in "$PROJECT_PATH"/*/pipeline/ATAC.ASAP/ATAC/*/; do
+  sample_name=$(basename "${sample_path%/}")
+  run_root=${sample_path%%/pipeline/*}
+  if [[ $run_root == "$PROJECT_PATH/$PROJECT_NAME" ||
+        -f $run_root/run_mapseq_aggr.sh ||
+        $sample_name == reports || $sample_name == *_aggr ]]; then
+    continue
+  fi
+  SAMPLES_ARRAY+=("$sample_path")
+done
 OUTPUT_DIR=$PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/ATAC
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_atac_aggr.log
 AGGR_CSV=$OUTPUT_DIR/aggr.csv
@@ -19,6 +30,8 @@ METRICS_CSV=$OUTPUT_DIR/summary_metrics_atac.csv
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
+: > "$AGGR_CSV"
+: > "$METRICS_CSV"
 
 CR_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
 echo "$(date) Running Cell Ranger ATAC version $CR_version using binary $(which cellranger-atac)" >> $OUTPUT_FILE
@@ -51,6 +64,12 @@ done
 
 ## Run aggregation pipeline
 echo "$(date) Running sample aggregation..." >> $OUTPUT_FILE
-cellranger-atac aggr --id=${PROJECT_NAME}_aggr \
-  --csv $AGGR_CSV --reference $ATAC_REF_PATH --normalize none \
-  --localcores=$NCPU --localmem=$MEM
+if cellranger-atac aggr --id=${PROJECT_NAME}_aggr \
+  --csv "$AGGR_CSV" --reference "$ATAC_REF_PATH" --normalize none \
+  --localcores=$NCPU --localmem=$MEM; then
+  :
+else
+  status=$?
+  echo "Cell Ranger ATAC aggregation failed with status $status" >> "$OUTPUT_FILE"
+  exit "$status"
+fi

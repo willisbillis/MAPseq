@@ -72,7 +72,10 @@ the end of an aggregation run. Since QC scripts run separately, rerun the
 compiler after QC to refresh the ledger with those results:
 
 ```bash
-python3 /path/to/aggregation_run/phase2_scripts/compile_pipeline_metrics.py /path/to/project_parent
+python3 /path/to/aggregation_run/phase2_scripts/compile_pipeline_metrics.py \
+	/path/to/project_parent \
+	--project-dir /path/to/project_parent/aggregation_run \
+	--project-id aggregation_run
 ```
 
 The output is `reports/sample_metrics.csv`, a long-form table with one row per
@@ -80,7 +83,8 @@ metric and columns for project, run, modality, stage, sample ID, sample scope,
 value, and source file. `sample_scope` distinguishes Cell Ranger samples,
 demultiplexing libraries, and QC sample IDs. Existing stage-specific CSVs
 remain available alongside this combined ledger; the HTML reports are retained
-for review.
+for review. R and Python writers share a lock beside the ledger, so concurrent
+QC updates and rebuilds serialize instead of overwriting one another.
 
 ## Generic Phase-2 QC
 

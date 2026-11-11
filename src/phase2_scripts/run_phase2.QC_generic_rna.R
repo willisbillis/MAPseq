@@ -93,10 +93,6 @@ if (is.na(classification_column)) {
 }
 sc_total$doublet_status <- doublet_status
 sc_total$negative_status <- negative_status
-if ("patient_id" %in% colnames(sc_total@meta.data)) {
-  sc_total$patient_id[doublet_status] <- "Doublet"
-  sc_total$patient_id[negative_status] <- "Negative"
-}
 sc_total$sample_id <- make_sample_ids(sc_total@meta.data, SAMPLE_ID_COLUMNS)
 
 ###############################################################################
@@ -220,16 +216,8 @@ ggsave("umap_rna_qc_metrics.pdf", p, width = 9, height = 5)
 ###############################################################################
 #### BACK UP AND UPDATE SAMPLE METRICS ####
 ###############################################################################
-project_id <- PROJECT_NAME
-existing_metrics <- read.csv(METRICS_PATH, stringsAsFactors = FALSE,
-                             check.names = FALSE)
-if ("project_id" %in% colnames(existing_metrics)) {
-  project_ids <- unique(existing_metrics$project_id[!is.na(existing_metrics$project_id) &
-                                                        existing_metrics$project_id != ""])
-  if (length(project_ids) == 1) project_id <- project_ids
-}
 append_qc_metrics(
-  METRICS_PATH, qc_stats, "RNA", project_id,
+  METRICS_PATH, qc_stats, "RNA", PROJECT_NAME,
   file.path(PROJECT_NAME, "analysis", "RNA.FB.VDJ", stats_path),
   units = c(unfiltered_cells = "cells", filtered_cells = "cells",
             doublet_cells = "cells", negative_cells = "cells",

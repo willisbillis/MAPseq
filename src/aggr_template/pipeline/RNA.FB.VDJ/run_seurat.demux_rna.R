@@ -61,6 +61,19 @@ hto_reference = hto_reference[hto_reference$library_id %in%
 
 sub_obj_list <- list()
 input_cells_by_library <- table(sc_total$library_id)
+source_run_id <- function(path) {
+  path_parts <- strsplit(gsub("\\\\", "/", path), "/", fixed = TRUE)[[1]]
+  pipeline_index <- match("pipeline", path_parts)
+  if (!is.na(pipeline_index) && pipeline_index > 1) {
+    path_parts[pipeline_index - 1]
+  } else {
+    ""
+  }
+}
+run_ids_by_library <- setNames(
+  vapply(aggr_df$molecule_h5, source_run_id, character(1)),
+  aggr_df$sample_id
+)
 
 hto_recover = 0
 souporcell_recover = 0
@@ -297,6 +310,7 @@ sc_total <- JoinLayers(sc_total, assay = "ADT")
 
 demux_metrics <- data.frame(
   library_id = aggr_df$sample_id,
+  run_id = unname(run_ids_by_library[aggr_df$sample_id]),
   input_cells = as.integer(input_cells_by_library[aggr_df$sample_id]),
   output_cells = 0L,
   assigned_cells = 0L,

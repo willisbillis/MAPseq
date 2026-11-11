@@ -6,7 +6,8 @@
 if (!requireNamespace("pacman", quietly = TRUE)) {
   install.packages("pacman")
 }
-pacman::p_load(Seurat, Signac, ggplot2, clustree, future, parallel)
+pacman::p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, ggplot2,
+               clustree, future, parallel)
 options(Seurat.object.assay.version = "v5")
 options(future.rng.onMisuse = "ignore")
 set.seed(1234)
@@ -16,6 +17,7 @@ set.seed(1234)
 ###############################################################################
 PROJECT_ROOT <- "/path/to/project_parent"
 PROJECT_NAME <- "aggregation_project"
+GENOME <- "GRCh38"                         # GRCh38 or GRCm39
 MAPSEQ_REPO_PATH <- Sys.getenv("MAPSEQ_REPO_PATH", unset = "/path/to/MAPseq")
 SAMPLE_ID_COLUMNS <- c("atac_id", "patient_id")
 MAX_CORES <- 8
@@ -75,6 +77,32 @@ if (!all(required_metrics %in% colnames(metadata))) {
 if (!all(SAMPLE_ID_COLUMNS %in% colnames(metadata))) {
   stop("Update SAMPLE_ID_COLUMNS; at least one configured column is missing")
 }
+if (!GENOME %in% c("GRCh38", "GRCm39")) {
+  stop("GENOME must be 'GRCh38' or 'GRCm39'")
+}
+
+annotation_hub <- AnnotationHub::AnnotationHub()
+annotation_pattern <- if (GENOME == "GRCh38") {
+  c("Homo Sapiens", "EnsDb")
+} else {
+  c("Mus Musculus", "EnsDb")
+}
+annotation_db <- AnnotationHub::query(annotation_hub,
+                                      pattern = annotation_pattern)
+annotation_db <- annotation_db[annotation_db$genome == GENOME]
+annotation_db <- annotation_db[
+  annotation_db$rdatadateadded == annotation_db@date
+]
+if (length(annotation_db) == 0) {
+  stop("No current EnsDb annotation found for ", GENOME)
+}
+genome_annotation <- annotation_db[[names(annotation_db@.db_uid)[1]]]
+annotations <- Signac::GetGRangesFromEnsDb(ensdb = genome_annotation)
+seqlevel_map <- GenomeInfoDb::mapSeqlevels(
+  GenomeInfoDb::seqlevels(annotations), "UCSC"
+)
+annotations <- GenomeInfoDb::renameSeqlevels(annotations, seqlevel_map)
+Signac::Annotation(sc_total) <- annotations
 
 sc_total <- NucleosomeSignal(sc_total, verbose = FALSE)
 sc_total <- TSSEnrichment(sc_total, verbose = FALSE)
@@ -104,10 +132,6 @@ if (is.na(classification_column)) {
 }
 sc_total$doublet_status <- doublet_status
 sc_total$negative_status <- negative_status
-if ("patient_id" %in% colnames(sc_total@meta.data)) {
-  sc_total$patient_id[doublet_status] <- "Doublet"
-  sc_total$patient_id[negative_status] <- "Negative"
-}
 sc_total$sample_id <- make_sample_ids(sc_total@meta.data, SAMPLE_ID_COLUMNS)
 
 ###############################################################################
