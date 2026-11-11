@@ -18,7 +18,7 @@ cd $PROJECT_PATH/pipeline && $PROJECT_PATH/pipeline/preflight_checks.sh $? -eq 0
 mkdir -p $PROJECT_PATH/reports
 
 # demultiplex any fastqs available on RNA.FB.VDJ or ATAC.ASAP side
-cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_genfastq.sh
+cd $PROJECT_PATH/data && $PROJECT_PATH/data/run_genfastq.sh || exit 1
 
 # check for any fastqs from RNA.FB.VDJ
 rna_fqs=$(ls $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/*fastq.gz 2>/dev/null)

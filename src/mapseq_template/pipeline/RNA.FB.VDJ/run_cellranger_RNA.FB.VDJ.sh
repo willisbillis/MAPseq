@@ -15,6 +15,8 @@ OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna.fb.vdj_mapping.log
 ################################################################################
 mkdir -p "$OUTPUT_DIR/reports" || exit 1
 cd "$OUTPUT_DIR" || exit 1
+rm -f "$OUTPUT_DIR"/reports/mapping.report_*.html \
+    "$OUTPUT_DIR"/reports/mapping.metrics_*.csv
 
 if [[ -z $GEX_NAMING_ID || -z $VDJ_NAMING_ID || -z $GEX_FEAT_NAMING_ID ]]; then
     echo "[ERROR] GEX_NAMING_ID, VDJ_NAMING_ID and GEX_FEAT_NAMING_ID must not be empty" >&2
@@ -84,6 +86,9 @@ fi
 
 for sample in "${rna_samples[@]}"; do
     echo "$(date) Running sample ${sample}..." &>> $OUTPUT_FILE
+    report_html="$OUTPUT_DIR/reports/mapping.report_${sample}.html"
+    report_metrics="$OUTPUT_DIR/reports/mapping.metrics_${sample}.csv"
+    rm -f "$report_html" "$report_metrics"
     SAMPLE_CONFIG_CSV=$OUTPUT_DIR/${sample}_config.csv
     vdj_sample=${vdj_samples[0]-}
     feature_sample=${feature_samples[0]-}
@@ -110,9 +115,35 @@ for sample in "${rna_samples[@]}"; do
     } > "$SAMPLE_CONFIG_CSV" || exit 1
 
     # Run the Cell Ranger multi command for the sample
-    cellranger multi --id $sample \
-    --csv $SAMPLE_CONFIG_CSV \
-    --localcores $NCPU --localmem $MEM &>> $OUTPUT_FILE
+    if cellranger multi --id "$sample" \
+    --csv "$SAMPLE_CONFIG_CSV" \
+    --localcores "$NCPU" --localmem "$MEM" &>> "$OUTPUT_FILE"; then
+        :
+    else
+        status=$?
+        echo "$(date) ERROR: Cell Ranger multi failed for ${sample} (status ${status})" &>> "$OUTPUT_FILE"
+        exit "$status"
+    fi
 
-    cp $sample/outs/per_sample_outs/$sample/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
+    cp "$sample/outs/per_sample_outs/$sample/web_summary.html" "$report_html" || exit 1
+
+    metrics_csv=$(find "$sample/outs/per_sample_outs/$sample" -type f \\
+        -name metrics_summary.csv -print -quit)
+    if [[ -z $metrics_csv ]]; then
+        metrics_csv=$(find "$sample/outs/per_sample_outs/$sample" -type f \\
+            -name summary.csv -print -quit)
+    fi
+    if [[ -z $metrics_csv ]]; then
+        metrics_csv=$(find "$sample/outs" -maxdepth 1 -type f \\
+            -name metrics_summary.csv -print -quit)
+    fi
+    if [[ -z $metrics_csv ]]; then
+        metrics_csv=$(find "$sample/outs" -maxdepth 1 -type f \\
+            -name summary.csv -print -quit)
+    fi
+    if [[ -n $metrics_csv ]]; then
+        cp -- "$metrics_csv" "$report_metrics" || exit 1
+    else
+        echo "$(date) WARNING: No Cell Ranger metrics CSV found for ${sample}" &>> "$OUTPUT_FILE"
+    fi
 done
