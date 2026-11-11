@@ -79,15 +79,7 @@ fi
 # Phase-2 QC outputs describe the previous aggregation and must not survive reset.
 for analysis_dir in "$AGGR_DIR/analysis/RNA.FB.VDJ" "$AGGR_DIR/analysis/ATAC.ASAP"; do
     [[ -d $analysis_dir ]] || continue
-    find "$analysis_dir" -type f \\
-        \( -name 'qc_rna_*.RDS' -o -name 'qc_atac_*.RDS' \\
-        -o -name 'QC.rna_sampleID_filtering.stats.csv' \\
-        -o -name 'QC.atac_sampleID_filtering.stats.csv' \\
-        -o -name 'scatter_rna_*.png' -o -name 'scatter_atac_*.png' \\
-        -o -name 'clustree_rna_*.png' -o -name 'clustree_atac_*.png' \\
-        -o -name 'umap_rna_*.pdf' -o -name 'umap_atac_*.pdf' \\
-        -o -name 'DEG_RNA_clusters.csv' -o -name 'DAR_ATAC_clusters.csv' \\
-        -o -name 'lsi_variance_explained.csv' \) -delete
+    find "$analysis_dir" -type f \( -name 'qc_rna_*.RDS' -o -name 'qc_atac_*.RDS' -o -name 'QC.rna_sampleID_filtering.stats.csv' -o -name 'QC.atac_sampleID_filtering.stats.csv' -o -name 'scatter_rna_*.png' -o -name 'scatter_atac_*.png' -o -name 'clustree_rna_*.png' -o -name 'clustree_atac_*.png' -o -name 'umap_rna_*.pdf' -o -name 'umap_atac_*.pdf' -o -name 'pca_variance_explained.csv' -o -name 'correlation_rna_filtered_cells_vs_depth.*' -o -name 'correlation_atac_filtered_cells_vs_depth.*' -o -name 'DEG_RNA_clusters.csv' -o -name 'DAR_ATAC_clusters.csv' -o -name 'lsi_variance_explained.csv' \) -delete
 done
 
 rm -f "$RNA_DIR/aggr.csv" "$RNA_DIR/summary_metrics_rna.csv"
