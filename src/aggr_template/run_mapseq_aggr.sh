@@ -9,6 +9,8 @@
 #       in the project_config.txt and populated the sample hashtag
 #       sheets with the correct hashtags for demultiplexing the pools.
 ################################################################################
+set -euo pipefail
+
 # Import all the global variables for this project
 source ./project_config.txt
 # Export global variables for R scripts
@@ -19,37 +21,57 @@ export GEX_FEAT_NAMING_ID=$GEX_FEAT_NAMING_ID
 export ATAC_NAMING_ID=$ATAC_NAMING_ID
 export ASAP_NAMING_ID=$ASAP_NAMING_ID
 ################################################################################
-# TODO: add unit tests here
+AGGR_DIR="$PROJECT_PATH/$PROJECT_NAME"
+RNA_DIR="$AGGR_DIR/pipeline/RNA.FB.VDJ"
+ATAC_DIR="$AGGR_DIR/pipeline/ATAC.ASAP"
 
-# check to see if RNA hashtag reference has been populated to run RNA aggr
-rna_sample_name_col=$(cut -d, -f1 $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/hashtag_ref_rna.csv)
-rna_sample_names=$(printf -- '%s ' "${rna_sample_name_col[@]}" | grep -v library_id | uniq)
-# check to see if ATAC hashtag reference has been populated to run ATAC aggr
-atac_sample_name_col=$(cut -d, -f1 $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/hashtag_ref_atac.csv)
-atac_sample_names=$(printf -- '%s ' "${atac_sample_name_col[@]}" | grep -v library_id | uniq)
+run_step() {
+    local step_name=$1
+    local working_dir=$2
+    shift 2
+    echo "$(date) Running ${step_name}..."
+    if (cd "$working_dir" && "$@"); then
+        return 0
+    else
+        local status=$?
+        echo "[ERROR] ${step_name} failed with status ${status}" >&2
+        exit "${status:-1}"
+    fi
+}
 
-if [ ${#rna_sample_names[@]} != 0 ]; then
-    # run cellranger aggr on the RNA+FB samples
-    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && ./run_cellranger.aggr_rna.sh
-    # run souporcell genotype demultiplexing for RNA samples in souporcell conda environment
-    echo "$date Running souporcell demultiplexing for RNA samples..."
-    echo "$date This may take a while, please be patient."
-    echo "$date You can monitor the progress in the souporcell log file."
-    echo "$date The log file is located at $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ/RNA_demuxing/souporcell_rna.log"
-    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && conda run -n souporcell --live-stream ./run_souporcell.demux_rna.sh
-    # load RNA cellranger matrices into Seurat and generate a demultiplexed raw Seurat object
-    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ && Rscript run_seurat.demux_rna.R
+has_manifest_samples() {
+    awk -F, 'NR > 1 { gsub(/\r/, "", $1); if ($1 != "") found = 1 }
+        END { exit !found }' "$1"
+}
+
+RNA_MANIFEST="$RNA_DIR/hashtag_ref_rna.csv"
+ATAC_MANIFEST="$ATAC_DIR/hashtag_ref_atac.csv"
+[[ -r $RNA_MANIFEST ]] || { echo "[ERROR] Cannot read $RNA_MANIFEST" >&2; exit 1; }
+[[ -r $ATAC_MANIFEST ]] || { echo "[ERROR] Cannot read $ATAC_MANIFEST" >&2; exit 1; }
+
+rm -f "$RNA_DIR/aggr.csv" "$RNA_DIR/summary_metrics_rna.csv"
+rm -f "$RNA_DIR"/demux_metrics.*.csv
+rm -f "$ATAC_DIR/ATAC/aggr.csv" "$ATAC_DIR/ATAC/summary_metrics_atac.csv"
+rm -f "$ATAC_DIR"/demux_metrics.*.csv "$ATAC_DIR"/library_stats.*.csv
+rm -f "$AGGR_DIR"/analysis/RNA.FB.VDJ/QC.*_sampleID_filtering.stats.csv
+rm -f "$AGGR_DIR"/analysis/ATAC.ASAP/QC.*_sampleID_filtering.stats.csv
+rm -f "$AGGR_DIR/analysis/RNA.FB.VDJ/data/raw_rna.hto.adt_${PROJECT_NAME}.RDS"
+rm -f "$AGGR_DIR/analysis/ATAC.ASAP/data/raw_atac.hto_${PROJECT_NAME}.RDS"
+
+if has_manifest_samples "$RNA_MANIFEST"; then
+    run_step "RNA Cell Ranger aggregation" "$RNA_DIR" ./run_cellranger.aggr_rna.sh
+    run_step "RNA souporcell demultiplexing" "$RNA_DIR" \
+        conda run -n souporcell --live-stream ./run_souporcell.demux_rna.sh
+    run_step "RNA Seurat demultiplexing" "$RNA_DIR" Rscript run_seurat.demux_rna.R
 fi
 
-if [ ${#atac_sample_names[@]} != 0 ]; then
-    # run cellranger aggr on the ATAC samples
-    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && ./run_cellranger.aggr_atac.sh
-    # run souporcell genotype demultiplexing for ATAC samples in souporcell conda environment
-    echo "$date Running souporcell demultiplexing for ATAC samples..."
-    echo "$date This may take a while, please be patient."
-    echo "$date You can monitor the progress in the souporcell log file."
-    echo "$date The log file is located at $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP/ATAC_demuxing/souporcell_atac.log"
-    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && conda run -n souporcell --live-stream ./run_souporcell.demux_atac.sh
-    # load ATAC cellranger/kite matrices into Seurat and generate a demultiplexed raw Seurat object
-    cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && Rscript run_seurat.demux_atac.R
+if has_manifest_samples "$ATAC_MANIFEST"; then
+    run_step "ATAC Cell Ranger aggregation" "$ATAC_DIR" ./run_cellranger.aggr_atac.sh
+    run_step "ATAC souporcell demultiplexing" "$ATAC_DIR" \
+        conda run -n souporcell --live-stream ./run_souporcell.demux_atac.sh
+    run_step "ATAC Seurat demultiplexing" "$ATAC_DIR" Rscript run_seurat.demux_atac.R
 fi
+
+echo "Compiling available mapping, demultiplexing, and QC metrics..."
+python3 "$AGGR_DIR/phase2_scripts/compile_pipeline_metrics.py" "$PROJECT_PATH" \
+    --project-dir "$AGGR_DIR" --project-id "$PROJECT_NAME"

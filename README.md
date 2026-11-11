@@ -63,6 +63,52 @@ Resources
 
 * [MAPseq tutorial](docs/quickstart.md)
 
+## Pipeline Metrics
+
+Mapping keeps the Cell Ranger HTML summaries and also copies the native metrics
+CSV into each modality's `pipeline/*/reports/` directory. The aggregation
+driver compiles available mapping, demultiplexing, and QC CSVs automatically at
+the end of an aggregation run. Since QC scripts run separately, rerun the
+compiler after QC to refresh the ledger with those results:
+
+```bash
+python3 /path/to/aggregation_run/phase2_scripts/compile_pipeline_metrics.py \
+	/path/to/project_parent \
+	--project-dir /path/to/project_parent/aggregation_run \
+	--project-id aggregation_run
+```
+
+The output is `reports/sample_metrics.csv`, a long-form table with one row per
+metric and columns for project, run, modality, stage, sample ID, sample scope,
+value, and source file. `sample_scope` distinguishes Cell Ranger samples,
+demultiplexing libraries, and QC sample IDs. Existing stage-specific CSVs
+remain available alongside this combined ledger; the HTML reports are retained
+for review. R and Python writers share a lock beside the ledger, so concurrent
+QC updates and rebuilds serialize instead of overwriting one another.
+
+## Generic Phase-2 QC
+
+New aggregation projects also include configurable RNA and ATAC phase-2
+templates in `phase2_scripts/`. Set the project paths, `MAPSEQ_REPO_PATH`, sample
+ID columns, and QC thresholds at the top of each script, inspect the generated
+QC plots, then run the corresponding script with `Rscript`. The helper is loaded
+from the local MAPseq repository, so the templates can be moved without moving
+the helper or relying on their location. They write a timestamped backup of
+`reports/sample_metrics.csv` before appending modality-specific QC metrics, plus
+Spearman correlation statistics and plots for filtered sample cell count versus
+mean sequencing depth. Re-running replaces that template's prior QC rows instead
+of duplicating them.
+
+The templates follow the current [single-cell best-practices guidance on QC](https://www.sc-best-practices.org/preprocessing-visualization/quality-control/),
+[feature selection](https://www.sc-best-practices.org/preprocessing-visualization/feature-selection/),
+[dimensionality reduction](https://www.sc-best-practices.org/preprocessing-visualization/dimensionality-reduction/),
+and [ATAC QC and embedding](https://www.sc-best-practices.org/chromatin-accessibility/dimensionality-reduction-clustering/).
+Thresholds are dataset-specific, so the scripts produce joint QC plots for
+review rather than treating defaults as universal. The ATAC template keeps
+Signac TF-IDF/LSI to match the MAPseq toolchain and makes fragment-depth effects
+visible on the embedding; the guide discusses SnapATAC2 spectral embedding as
+an alternative that would require a separate toolchain.
+
 Citing
 ---------
 

@@ -12,7 +12,18 @@
 source ../../project_config.txt
 
 # Set all the local variables for this pipeline
-SAMPLES_ARRAY=($(ls -d $PROJECT_PATH/*/pipeline/RNA.FB.VDJ/*/))
+shopt -s nullglob
+SAMPLES_ARRAY=()
+for sample_path in "$PROJECT_PATH"/*/pipeline/RNA.FB.VDJ/*/; do
+  sample_name=$(basename "${sample_path%/}")
+  run_root=${sample_path%%/pipeline/*}
+  if [[ $run_root == "$PROJECT_PATH/$PROJECT_NAME" ||
+        -f $run_root/run_mapseq_aggr.sh ||
+        $sample_name == reports || $sample_name == *_aggr ]]; then
+    continue
+  fi
+  SAMPLES_ARRAY+=("$sample_path")
+done
 OUTPUT_DIR=$PROJECT_PATH/$PROJECT_NAME/pipeline/RNA.FB.VDJ
 OUTPUT_FILE=$OUTPUT_DIR/cellranger_rna_aggr.log
 AGGR_CSV=$OUTPUT_DIR/aggr.csv
@@ -20,6 +31,8 @@ METRICS_CSV=$OUTPUT_DIR/summary_metrics_rna.csv
 ################################################################################
 mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
+: > "$AGGR_CSV"
+: > "$METRICS_CSV"
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
@@ -63,6 +76,12 @@ done
 
 ## Run aggregation pipeline
 echo "$(date) Running sample aggregation..." >> $OUTPUT_FILE
-cellranger aggr --id=${PROJECT_NAME}_aggr \
-	--csv $AGGR_CSV  --normalize none \
-	--localcores=$NCPU --localmem=$MEM
+if cellranger aggr --id=${PROJECT_NAME}_aggr \
+	--csv "$AGGR_CSV" --normalize none \
+	--localcores=$NCPU --localmem=$MEM; then
+  :
+else
+  status=$?
+  echo "Cell Ranger RNA aggregation failed with status $status" >> "$OUTPUT_FILE"
+  exit "$status"
+fi

@@ -60,6 +60,20 @@ hto_reference = hto_reference[hto_reference$library_id %in%
                                           aggr_df$sample_id), ]
 
 sub_obj_list <- list()
+input_cells_by_library <- table(sc_total$library_id)
+source_run_id <- function(path) {
+  path_parts <- strsplit(gsub("\\\\", "/", path), "/", fixed = TRUE)[[1]]
+  pipeline_index <- match("pipeline", path_parts)
+  if (!is.na(pipeline_index) && pipeline_index > 1) {
+    path_parts[pipeline_index - 1]
+  } else {
+    ""
+  }
+}
+run_ids_by_library <- setNames(
+  vapply(aggr_df$molecule_h5, source_run_id, character(1)),
+  aggr_df$sample_id
+)
 
 hto_recover = 0
 souporcell_recover = 0
@@ -293,6 +307,35 @@ sc_total <- merge(sub_obj_list[[1]], c(sub_obj_list[2:length(sub_obj_list)]))
 sc_total <- JoinLayers(sc_total, assay = "HTO")
 sc_total <- JoinLayers(sc_total, assay = "RNA")
 sc_total <- JoinLayers(sc_total, assay = "ADT")
+
+demux_metrics <- data.frame(
+  library_id = aggr_df$sample_id,
+  run_id = unname(run_ids_by_library[aggr_df$sample_id]),
+  input_cells = as.integer(input_cells_by_library[aggr_df$sample_id]),
+  output_cells = 0L,
+  assigned_cells = 0L,
+  doublet_cells = 0L,
+  negative_cells = 0L
+)
+for (idx in seq_len(nrow(demux_metrics))) {
+  library_cells <- sc_total@meta.data[
+    sc_total$library_id == demux_metrics$library_id[idx], , drop = FALSE
+  ]
+  demux_metrics$output_cells[idx] <- nrow(library_cells)
+  demux_metrics$assigned_cells[idx] <- sum(!is.na(library_cells$patient_id))
+  if ("HTO_classification.global" %in% colnames(library_cells)) {
+    demux_metrics$doublet_cells[idx] <- sum(
+      library_cells$HTO_classification.global == "Doublet", na.rm = TRUE
+    )
+    demux_metrics$negative_cells[idx] <- sum(
+      library_cells$HTO_classification.global == "Negative", na.rm = TRUE
+    )
+  }
+}
+write.csv(demux_metrics,
+          paste0("demux_metrics.", PROJECT_NAME, ".csv"),
+          quote = FALSE, row.names = FALSE)
+
 DefaultAssay(sc_total) <- "RNA"
 
 saveRDS(sc_total, paste0(data_dir, "raw_rna.hto.adt_", PROJECT_NAME, ".RDS"))
