@@ -6,6 +6,9 @@ function check_dir_var() {
     if [ ! -d "$1" ]; then
         echo "[ERROR] Directory $1 not found! Please check your project config file."
         return 1
+    elif [ ! -r "$1" ] || [ ! -x "$1" ]; then
+        echo "[ERROR] Directory $1 is not readable or searchable. Please check permissions." >&2
+        return 1
     else
         return 0
     fi

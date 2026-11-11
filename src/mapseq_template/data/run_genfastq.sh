@@ -18,10 +18,12 @@ mkdir -p "$OUTPUT_DIR/reports" || exit 1
 declare -a rna_dirs=() atac_dirs=() rna_fqs=() atac_fqs=()
 
 collect_fastqs() {
-    local configured_dirs=$1 dirs_name=$2 fastqs_name=$3 dir
+    local configured_dirs=$1 dirs_name=$2 fastqs_name=$3 maxdepth=${4:-} dir root fastq resolved
     local -n dirs=$dirs_name fastqs=$fastqs_name
     local IFS=,
-    local -a configured_dir_list
+    local -a configured_dir_list find_args
+    local -A resolved_fastqs=()
+    local fastq_list
     read -r -a configured_dir_list <<< "$configured_dirs"
     dirs=()
     fastqs=()
@@ -30,18 +32,45 @@ collect_fastqs() {
         dir=${dir%"${dir##*[![:space:]]}"}
         [[ -z $dir ]] && continue
         dirs+=("$dir")
+        root=$(realpath -e -- "$dir") || {
+            echo "[ERROR] Cannot resolve FASTQ source directory '$dir'." >&2
+            return 1
+        }
+        find_args=(-L "$dir")
+        [[ -n $maxdepth ]] && find_args+=(-maxdepth "$maxdepth")
+        find_args+=(-type f -name '*.fastq.gz' -print0)
+        fastq_list=$(mktemp) || return 1
+        if ! find "${find_args[@]}" > "$fastq_list"; then
+            echo "[ERROR] Failed to fully traverse FASTQ source directory '$dir'." >&2
+            rm -f -- "$fastq_list"
+            return 1
+        fi
         while IFS= read -r -d '' fastq; do
-            fastqs+=("$fastq")
-        done < <(find "$dir" \( -type f -o -type l \) -name '*.fastq.gz' -print0 2>/dev/null)
+            [[ -L $fastq ]] && continue
+            resolved=$(realpath -e -- "$fastq") || {
+                echo "[ERROR] Cannot resolve FASTQ '$fastq'." >&2
+                rm -f -- "$fastq_list"
+                return 1
+            }
+            case "$resolved" in
+                "$root"/*)
+                    if [[ -z ${resolved_fastqs[$resolved]+present} ]]; then
+                        resolved_fastqs[$resolved]=1
+                        fastqs+=("$fastq")
+                    fi
+                    ;;
+            esac
+        done < "$fastq_list"
+        rm -f -- "$fastq_list"
     done
 }
 
-collect_fastqs "$RNA_DIR" rna_dirs rna_fqs
-collect_fastqs "$ATAC_DIR" atac_dirs atac_fqs
+collect_fastqs "$RNA_DIR" rna_dirs rna_fqs || exit 1
+collect_fastqs "$ATAC_DIR" atac_dirs atac_fqs || exit 1
 
 copy_manifest_fastqs() {
     local modality=$1 destination=$2 manifest=$3
-    local lane sample index fastq filename suffix matched missing=0 naming_id
+    local lane sample index fastq filename suffix matched naming_id
     shift 3
     local -a naming_ids=()
     while [[ $1 != -- ]]; do
@@ -50,8 +79,10 @@ copy_manifest_fastqs() {
     done
     shift
     local -a fastqs=("$@")
+    local missing=0
+    local -A basename_sources=() selected_sources=()
+    local -a selected_fastqs=()
 
-    mkdir -p "$destination" || return 1
     while IFS=, read -r lane sample index || [[ -n $lane$sample$index ]]; do
         lane=${lane%$'\r'}
         sample=${sample%$'\r'}
@@ -70,7 +101,11 @@ copy_manifest_fastqs() {
                 break
             fi
         done
-        (( naming_match )) || continue
+        if (( ! naming_match )); then
+            echo "[ERROR] Manifest sample '$sample' does not match any configured $modality naming ID." >&2
+            missing=1
+            continue
+        fi
 
         matched=0
         for fastq in "${fastqs[@]}"; do
@@ -78,7 +113,15 @@ copy_manifest_fastqs() {
             [[ $filename == "$sample"* ]] || continue
             suffix=${filename#"$sample"}
             if [[ $suffix =~ ^(_S[0-9]+)?_L[0-9]{3}_[IR][0-9]_[0-9]{3}\.fastq\.gz$ ]]; then
-                cp -- "$fastq" "$destination/" || return 1
+                if [[ -n ${basename_sources[$filename]+present} && ${basename_sources[$filename]} != "$fastq" ]]; then
+                    echo "[ERROR] Duplicate $modality FASTQ destination basename '$filename': '${basename_sources[$filename]}' and '$fastq'." >&2
+                    return 1
+                fi
+                basename_sources[$filename]=$fastq
+                if [[ -z ${selected_sources[$fastq]+present} ]]; then
+                    selected_sources[$fastq]=1
+                    selected_fastqs+=("$fastq")
+                fi
                 matched=1
             fi
         done
@@ -87,7 +130,45 @@ copy_manifest_fastqs() {
             missing=1
         fi
     done < "$manifest"
-    (( ! missing ))
+    (( ! missing )) || return 1
+    mkdir -p "$destination" || return 1
+    for fastq in "${selected_fastqs[@]}"; do
+        cp -- "$fastq" "$destination/" || return 1
+    done
+}
+
+filter_bcl_fastqs() {
+    local modality=$1 destination=$2 manifest=$3
+    shift 3
+    local stage_dir
+    local -a bcl_dirs=() bcl_fastqs=()
+
+    if ! collect_fastqs "$destination" bcl_dirs bcl_fastqs 1; then
+        find "$destination" -maxdepth 1 -type f -name '*.fastq.gz' -delete || \
+            echo "[ERROR] Failed to remove unfiltered $modality BCL FASTQs." >&2
+        return 1
+    fi
+    stage_dir=$(mktemp -d "$destination/.filtered-fastqs.XXXXXX") || return 1
+    if ! copy_manifest_fastqs "$modality" "$stage_dir" "$manifest" "$@" -- "${bcl_fastqs[@]}"; then
+        rm -f -- "$stage_dir"/*.fastq.gz
+        rmdir -- "$stage_dir"
+        find "$destination" -maxdepth 1 -type f -name '*.fastq.gz' -delete || \
+            echo "[ERROR] Failed to remove unfiltered $modality BCL FASTQs." >&2
+        return 1
+    fi
+    if ! find "$destination" -maxdepth 1 -type f -name '*.fastq.gz' -delete; then
+        echo "[ERROR] Failed to remove unfiltered $modality BCL FASTQs." >&2
+        rm -f -- "$stage_dir"/*.fastq.gz
+        rmdir -- "$stage_dir"
+        return 1
+    fi
+    if ! mv -- "$stage_dir"/*.fastq.gz "$destination/"; then
+        echo "[ERROR] Failed to stage filtered $modality BCL FASTQs." >&2
+        rm -f -- "$stage_dir"/*.fastq.gz
+        rmdir -- "$stage_dir"
+        return 1
+    fi
+    rmdir -- "$stage_dir"
 }
 
 ## ATAC.ASAP fastq generation
@@ -116,6 +197,8 @@ if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_
     mkdir -p $NEW_FQ_PATH/mkfastq_outputs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
     rm -r $PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs/fastq_path
+    filter_bcl_fastqs ATAC "$NEW_FQ_PATH" "${PROJECT_NAME}.ATAC.sampleManifest.csv" \
+        "$ATAC_NAMING_ID" "$ASAP_NAMING_ID" || exit 1
 
     # MEW (07/19/2024)
     # Commented out - not working anymore, maybe mkfastq doesn't generate htmls anymore?
@@ -157,6 +240,8 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ ${#rna_fqs[@
     mkdir -p $NEW_FQ_PATH/mkfastq_outputs
     mv $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path/* $NEW_FQ_PATH/mkfastq_outputs
     rm -r $PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs/fastq_path
+    filter_bcl_fastqs RNA "$NEW_FQ_PATH" "${PROJECT_NAME}.RNA.sampleManifest.csv" \
+        "$GEX_NAMING_ID" "$GEX_FEAT_NAMING_ID" "$VDJ_NAMING_ID" || exit 1
 
     # MEW (07/19/2024)
     # Commented out - not working anymore, maybe mkfastq doesn't generate htmls anymore?
