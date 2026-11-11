@@ -15,15 +15,41 @@ OUTPUT_FILE=$OUTPUT_DIR/cellranger_mkfastq.log
 cd "$OUTPUT_DIR" || exit 1
 mkdir -p "$OUTPUT_DIR/reports" || exit 1
 
-shopt -s nullglob
-declare -a rna_fqs=("$RNA_DIR/"*fastq.gz)
-declare -a atac_fqs=("$ATAC_DIR/"*fastq.gz)
-shopt -u nullglob
+declare -a rna_dirs=() atac_dirs=() rna_fqs=() atac_fqs=()
+
+collect_fastqs() {
+    local configured_dirs=$1 dirs_name=$2 fastqs_name=$3 dir
+    local -n dirs=$dirs_name fastqs=$fastqs_name
+    local IFS=,
+    local -a configured_dir_list
+    read -r -a configured_dir_list <<< "$configured_dirs"
+    dirs=()
+    fastqs=()
+    for dir in "${configured_dir_list[@]}"; do
+        dir=${dir#"${dir%%[![:space:]]*}"}
+        dir=${dir%"${dir##*[![:space:]]}"}
+        [[ -z $dir ]] && continue
+        dirs+=("$dir")
+        while IFS= read -r -d '' fastq; do
+            fastqs+=("$fastq")
+        done < <(find "$dir" \( -type f -o -type l \) -name '*.fastq.gz' -print0 2>/dev/null)
+    done
+}
+
+collect_fastqs "$RNA_DIR" rna_dirs rna_fqs
+collect_fastqs "$ATAC_DIR" atac_dirs atac_fqs
 
 copy_manifest_fastqs() {
-    local modality=$1 source_dir=$2 destination=$3 manifest=$4
-    local lane sample index fastq filename suffix matched missing=0
-    shift 4
+    local modality=$1 destination=$2 manifest=$3
+    local lane sample index fastq filename suffix matched missing=0 naming_id
+    shift 3
+    local -a naming_ids=()
+    while [[ $1 != -- ]]; do
+        naming_ids+=("$1")
+        shift
+    done
+    shift
+    local -a fastqs=("$@")
 
     mkdir -p "$destination" || return 1
     while IFS=, read -r lane sample index || [[ -n $lane$sample$index ]]; do
@@ -37,8 +63,17 @@ copy_manifest_fastqs() {
             return 1
         fi
 
+        local naming_match=0
+        for naming_id in "${naming_ids[@]}"; do
+            if [[ -n $naming_id && $sample == *"$naming_id"* ]]; then
+                naming_match=1
+                break
+            fi
+        done
+        (( naming_match )) || continue
+
         matched=0
-        for fastq in "$@"; do
+        for fastq in "${fastqs[@]}"; do
             filename=${fastq##*/}
             [[ $filename == "$sample"* ]] || continue
             suffix=${filename#"$sample"}
@@ -48,7 +83,7 @@ copy_manifest_fastqs() {
             fi
         done
         if (( ! matched )); then
-            echo "[ERROR] No FASTQs found for $modality sample '$sample' in '$source_dir'" >&2
+            echo "[ERROR] No FASTQs found for $modality sample '$sample'" >&2
             missing=1
         fi
     done < "$manifest"
@@ -57,11 +92,15 @@ copy_manifest_fastqs() {
 
 ## ATAC.ASAP fastq generation
 if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_fqs[@]} -eq 0 ]]; then
+    if (( ${#atac_dirs[@]} != 1 )); then
+        echo "[ERROR] Cell Ranger mkfastq requires one ATAC BCL run directory." >&2
+        exit 1
+    fi
     # Need to demultiplex fastqs from bcl files, run cellranger mkfastq
     CR_atac_version=$(cellranger-atac --version | grep -Po '(?<=cellranger-atac-)[^;]+')
     echo "[INFO] $(date) Running Cell Ranger ATAC version $CR_atac_version using binary $(which cellranger-atac)" &>> $OUTPUT_FILE
 
-    cellranger-atac mkfastq --id=${PROJECT_NAME}_ATAC --run=$ATAC_DIR \
+    cellranger-atac mkfastq --id=${PROJECT_NAME}_ATAC --run=${atac_dirs[0]} \
         --csv=${PROJECT_NAME}.ATAC.sampleManifest.csv \
         --delete-undetermined \
         --localcores=$NCPU --localmem=$MEM &>> $OUTPUT_FILE
@@ -88,17 +127,22 @@ if [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]] && [[ ${#atac_
 elif [[ $(wc -l < ${PROJECT_NAME}.ATAC.sampleManifest.csv) -gt 1 ]]; then
     # Copy only FASTQs for samples in the ATAC manifest.
     ATAC_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_ATAC/outs
-    copy_manifest_fastqs ATAC "$ATAC_DIR" "$ATAC_FASTQ_PATH" \
-        "${PROJECT_NAME}.ATAC.sampleManifest.csv" "${atac_fqs[@]}" || exit 1
+    copy_manifest_fastqs ATAC "$ATAC_FASTQ_PATH" \
+        "${PROJECT_NAME}.ATAC.sampleManifest.csv" \
+        "$ATAC_NAMING_ID" "$ASAP_NAMING_ID" -- "${atac_fqs[@]}" || exit 1
 fi
 
 ## RNA.FB.BCR fastq generation
 if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ ${#rna_fqs[@]} -eq 0 ]; then
+    if (( ${#rna_dirs[@]} != 1 )); then
+        echo "[ERROR] Cell Ranger mkfastq requires one RNA BCL run directory." >&2
+        exit 1
+    fi
     # Need to demultiplex fastqs from bcl files, run cellranger mkfastq
     CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
     echo "[INFO] $(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" &>> $OUTPUT_FILE
 
-    cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=$RNA_DIR \
+    cellranger mkfastq --id=${PROJECT_NAME}_RNA --run=${rna_dirs[0]} \
         --csv=${PROJECT_NAME}.RNA.sampleManifest.csv \
         --delete-undetermined \
         --localcores=$NCPU --localmem=$MEM &>> $OUTPUT_FILE
@@ -124,6 +168,7 @@ if [ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ] && [ ${#rna_fqs[@
 elif [[ $(wc -l < ${PROJECT_NAME}.RNA.sampleManifest.csv) -gt 1 ]]; then
     # Copy only FASTQs for samples in the RNA manifest.
     RNA_FASTQ_PATH=$PROJECT_PATH/data/${PROJECT_NAME}_RNA/outs
-    copy_manifest_fastqs RNA "$RNA_DIR" "$RNA_FASTQ_PATH" \
-        "${PROJECT_NAME}.RNA.sampleManifest.csv" "${rna_fqs[@]}" || exit 1
+    copy_manifest_fastqs RNA "$RNA_FASTQ_PATH" \
+        "${PROJECT_NAME}.RNA.sampleManifest.csv" \
+        "$GEX_NAMING_ID" "$GEX_FEAT_NAMING_ID" "$VDJ_NAMING_ID" -- "${rna_fqs[@]}" || exit 1
 fi
