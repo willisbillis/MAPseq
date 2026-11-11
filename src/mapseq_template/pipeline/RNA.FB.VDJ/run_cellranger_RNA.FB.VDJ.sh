@@ -127,10 +127,18 @@ for sample in "${rna_samples[@]}"; do
 
     cp "$sample/outs/per_sample_outs/$sample/web_summary.html" "$report_html" || exit 1
 
-    metrics_csv=$(find "$sample/outs" -type f \
+    metrics_csv=$(find "$sample/outs/per_sample_outs/$sample" -type f \\
         -name metrics_summary.csv -print -quit)
     if [[ -z $metrics_csv ]]; then
-        metrics_csv=$(find "$sample/outs" -type f \
+        metrics_csv=$(find "$sample/outs/per_sample_outs/$sample" -type f \\
+            -name summary.csv -print -quit)
+    fi
+    if [[ -z $metrics_csv ]]; then
+        metrics_csv=$(find "$sample/outs" -maxdepth 1 -type f \\
+            -name metrics_summary.csv -print -quit)
+    fi
+    if [[ -z $metrics_csv ]]; then
+        metrics_csv=$(find "$sample/outs" -maxdepth 1 -type f \\
             -name summary.csv -print -quit)
     fi
     if [[ -n $metrics_csv ]]; then

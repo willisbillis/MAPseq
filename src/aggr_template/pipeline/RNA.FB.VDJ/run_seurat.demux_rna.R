@@ -39,9 +39,7 @@ sc_total <- CreateSeuratObject(
   project = PROJECT_NAME
 )
 aggr_df <- read.csv(paste0(OUTS_DIR, "/aggregation.csv"))
-new_sample_names <- factor(aggr_df$sample_id,
-                           levels = aggr_df$sample_id,
-                           ordered = TRUE)
+new_sample_names <- as.character(aggr_df$sample_id)
 sc_total$library_id <- new_sample_names[as.integer(gsub(".*-", "",
                                                         colnames(sc_total)))]
 
@@ -60,7 +58,6 @@ hto_reference = hto_reference[hto_reference$library_id %in%
                                           aggr_df$sample_id), ]
 
 sub_obj_list <- list()
-input_cells_by_library <- table(sc_total$library_id)
 source_run_id <- function(path) {
   path_parts <- strsplit(gsub("\\\\", "/", path), "/", fixed = TRUE)[[1]]
   pipeline_index <- match("pipeline", path_parts)
@@ -70,10 +67,9 @@ source_run_id <- function(path) {
     ""
   }
 }
-run_ids_by_library <- setNames(
-  vapply(aggr_df$molecule_h5, source_run_id, character(1)),
-  aggr_df$sample_id
-)
+source_run_ids <- vapply(aggr_df$molecule_h5, source_run_id, character(1))
+barcode_library_indices <- as.integer(sub(".*-", "", colnames(sc_total)))
+sc_total$run_id <- source_run_ids[barcode_library_indices]
 
 hto_recover = 0
 souporcell_recover = 0
@@ -87,8 +83,9 @@ for (idx in seq_len(nrow(aggr_df))) {
   hto_ref_sub <- hto_reference[hto_reference$library_id == rna_library_id, ]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   hto_ref_sub$hashtag <- gsub("_", "-", hto_ref_sub$hashtag)
-  sc_sub <- sc_total[, colnames(sc_total)[sc_total$library_id ==
-                                            rna_library_id]]
+  sc_sub <- sc_total[, colnames(sc_total)[
+    sc_total$library_id == rna_library_id & sc_total$run_id == run_id
+  ]]
   m <- GetAssayData(sc_sub, assay = "HTO", layer = "counts")
   n <- m + 1
   new_assay <- CreateAssayObject(counts = n[hto_ref_sub$hashtag, ])
@@ -310,8 +307,11 @@ sc_total <- JoinLayers(sc_total, assay = "ADT")
 
 demux_metrics <- data.frame(
   library_id = aggr_df$sample_id,
-  run_id = unname(run_ids_by_library[aggr_df$sample_id]),
-  input_cells = as.integer(input_cells_by_library[aggr_df$sample_id]),
+  run_id = source_run_ids,
+  input_cells = vapply(seq_len(nrow(aggr_df)), function(idx) {
+    sum(sc_total$library_id == aggr_df$sample_id[idx] &
+          sc_total$run_id == source_run_ids[idx], na.rm = TRUE)
+  }, integer(1)),
   output_cells = 0L,
   assigned_cells = 0L,
   doublet_cells = 0L,
@@ -319,7 +319,8 @@ demux_metrics <- data.frame(
 )
 for (idx in seq_len(nrow(demux_metrics))) {
   library_cells <- sc_total@meta.data[
-    sc_total$library_id == demux_metrics$library_id[idx], , drop = FALSE
+    sc_total$library_id == demux_metrics$library_id[idx] &
+      sc_total$run_id == demux_metrics$run_id[idx], , drop = FALSE
   ]
   demux_metrics$output_cells[idx] <- nrow(library_cells)
   demux_metrics$assigned_cells[idx] <- sum(!is.na(library_cells$patient_id))

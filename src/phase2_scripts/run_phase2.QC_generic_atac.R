@@ -6,7 +6,7 @@
 if (!requireNamespace("pacman", quietly = TRUE)) {
   install.packages("pacman")
 }
-pacman::p_load(Seurat, Signac, GenomeInfoDb, AnnotationHub, ggplot2,
+pacman::p_load(Seurat, Signac, GenomeInfoDb, ggplot2,
                clustree, future, parallel)
 options(Seurat.object.assay.version = "v5")
 options(future.rng.onMisuse = "ignore")
@@ -81,22 +81,41 @@ if (!GENOME %in% c("GRCh38", "GRCm39")) {
   stop("GENOME must be 'GRCh38' or 'GRCm39'")
 }
 
-annotation_hub <- AnnotationHub::AnnotationHub()
-annotation_pattern <- if (GENOME == "GRCh38") {
-  c("Homo Sapiens", "EnsDb")
+ensdb_package <- if (GENOME == "GRCh38") {
+  "EnsDb.Hsapiens.v86"
 } else {
-  c("Mus Musculus", "EnsDb")
+  "EnsDb.Mmusculus.v102"
 }
-annotation_db <- AnnotationHub::query(annotation_hub,
-                                      pattern = annotation_pattern)
-annotation_db <- annotation_db[annotation_db$genome == GENOME]
-annotation_db <- annotation_db[
-  annotation_db$rdatadateadded == annotation_db@date
-]
-if (length(annotation_db) == 0) {
-  stop("No current EnsDb annotation found for ", GENOME)
+if (requireNamespace(ensdb_package, quietly = TRUE)) {
+  genome_annotation <- getExportedValue(ensdb_package, ensdb_package)
+  if (is.function(genome_annotation)) {
+    genome_annotation <- genome_annotation()
+  }
+} else {
+  if (!requireNamespace("AnnotationHub", quietly = TRUE)) {
+    stop("Local EnsDb package ", ensdb_package,
+         " is unavailable and AnnotationHub is not installed")
+  }
+  annotation_pattern <- if (GENOME == "GRCh38") {
+    c("Homo Sapiens", "EnsDb")
+  } else {
+    c("Mus Musculus", "EnsDb")
+  }
+  annotation_db <- tryCatch({
+    annotation_hub <- AnnotationHub::AnnotationHub()
+    AnnotationHub::query(annotation_hub, pattern = annotation_pattern)
+  }, error = function(error) {
+    stop("Local EnsDb package ", ensdb_package,
+         " is unavailable and AnnotationHub could not be reached: ",
+         conditionMessage(error))
+  })
+  annotation_db <- annotation_db[annotation_db$genome == GENOME]
+  if (length(annotation_db) == 0) {
+    stop("No EnsDb annotation found for ", GENOME,
+         "; install the pinned ", ensdb_package, " package")
+  }
+  genome_annotation <- annotation_db[[names(annotation_db@.db_uid)[1]]]
 }
-genome_annotation <- annotation_db[[names(annotation_db@.db_uid)[1]]]
 annotations <- Signac::GetGRangesFromEnsDb(ensdb = genome_annotation)
 seqlevel_map <- GenomeInfoDb::mapSeqlevels(
   GenomeInfoDb::seqlevels(annotations), "UCSC"
@@ -284,7 +303,8 @@ append_qc_metrics(
             mean_depth_after = "fragments_per_cell",
             mean_tss_after = "tss_enrichment",
             mean_pct_reads_in_peaks_after = "percent",
-            mean_nucleosome_signal_after = "score")
+            mean_nucleosome_signal_after = "score"),
+  project_root = PROJECT_ROOT
 )
 plot_depth_cell_correlation(qc_stats, "ATAC", PROJECT_DIR)
 

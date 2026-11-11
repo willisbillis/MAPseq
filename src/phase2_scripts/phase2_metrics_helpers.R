@@ -46,12 +46,27 @@ acquire_metrics_lock <- function(metrics_path, timeout_seconds = 300,
 }
 
 append_qc_metrics <- function(metrics_path, qc_summary, modality,
-                              project_id, source_file, units = character()) {
+                              project_id, source_file, units = character(),
+                              project_root = NULL) {
   required_columns <- c(
     "project_id", "run_id", "modality", "stage", "sample_id",
     "sample_scope", "metric", "value", "unit", "source_file"
   )
-  metrics_path <- normalizePath(metrics_path, winslash = "/", mustWork = FALSE)
+  metrics_path <- path.expand(metrics_path)
+  metrics_parent <- normalizePath(dirname(metrics_path), winslash = "/",
+                                  mustWork = TRUE)
+  metrics_path <- file.path(metrics_parent, basename(metrics_path))
+  if (nzchar(Sys.readlink(metrics_path))) {
+    stop("Sample metrics destination must not be a symlink: ", metrics_path)
+  }
+  if (is.null(project_root)) project_root <- dirname(metrics_parent)
+  project_root <- normalizePath(project_root, winslash = "/", mustWork = TRUE)
+  parent_with_separator <- paste0(metrics_parent, "/")
+  root_with_separator <- paste0(project_root, "/")
+  if (!identical(metrics_parent, project_root) &&
+      !startsWith(parent_with_separator, root_with_separator)) {
+    stop("Sample metrics destination must be inside project root: ", metrics_path)
+  }
   lock_path <- acquire_metrics_lock(metrics_path)
   on.exit(unlink(lock_path, recursive = TRUE), add = TRUE)
   if (!file.exists(metrics_path)) {

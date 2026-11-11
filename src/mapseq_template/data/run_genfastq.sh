@@ -36,7 +36,7 @@ collect_fastqs() {
             echo "[ERROR] Cannot resolve FASTQ source directory '$dir'." >&2
             return 1
         }
-        find_args=(-L "$dir")
+        find_args=(-L "$root")
         [[ -n $maxdepth ]] && find_args+=(-maxdepth "$maxdepth")
         find_args+=(-type f -name '*.fastq.gz' -print0)
         fastq_list=$(mktemp) || return 1
@@ -46,14 +46,13 @@ collect_fastqs() {
             return 1
         fi
         while IFS= read -r -d '' fastq; do
-            [[ -L $fastq ]] && continue
             resolved=$(realpath -e -- "$fastq") || {
                 echo "[ERROR] Cannot resolve FASTQ '$fastq'." >&2
                 rm -f -- "$fastq_list"
                 return 1
             }
             case "$resolved" in
-                "$root"/*)
+                "$root"|"$root"/*)
                     if [[ -z ${resolved_fastqs[$resolved]+present} ]]; then
                         resolved_fastqs[$resolved]=1
                         fastqs+=("$fastq")

@@ -7,7 +7,7 @@ import os
 import re
 import tempfile
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 
@@ -102,13 +102,13 @@ def infer_stage(path):
 
 
 def infer_modality(path):
-    text = "/".join(path.parts).lower()
+    parts = {part.lower() for part in path.parts}
     if path.name.lower().startswith("qc.atac") or any(
-        part in {"atac", "atac.asap", "atac_demuxing"} for part in path.parts
+        part in {"atac", "atac.asap", "atac_demuxing"} for part in parts
     ):
         return "ATAC"
     if path.name.lower().startswith("qc.rna") or any(
-        part in {"rna", "rna.fb.vdj", "rna_demuxing"} for part in path.parts
+        part in {"rna", "rna.fb.vdj", "rna_demuxing"} for part in parts
     ):
         return "RNA"
     return "unknown"
@@ -169,6 +169,10 @@ def discover_sources(root, project_dir):
         for run_dir, source_modality, sample_id in read_aggregation_manifest(
             manifest_path, root, modality
         ):
+            if sample_id in {".", ".."} or not re.fullmatch(
+                r"[A-Za-z0-9._-]+", sample_id
+            ):
+                continue
             if source_modality == "RNA":
                 report_dirs = (run_dir / "pipeline/RNA.FB.VDJ/reports",)
             else:
@@ -181,7 +185,10 @@ def discover_sources(root, project_dir):
                 (
                     report_dir / filename
                     for report_dir in report_dirs
-                    if safe_source(report_dir / filename, root)
+                    if safe_source(report_dir, root)
+                    and not (report_dir / filename).is_symlink()
+                    and (report_dir / filename).resolve().parent == report_dir.resolve()
+                    and safe_source(report_dir / filename, root)
                     and (report_dir / filename).is_file()
                 ),
                 None,
@@ -291,16 +298,28 @@ def rows_from_file(path, root, project_id, inferred_run=""):
     return output
 
 
-def compile_metrics(root, output_path, project_id, project_dir):
+def compile_metrics(root, output_path, project_id, project_dir, lock_held=False):
     root = root.resolve()
-    output_path = output_path.resolve()
+    output_path = Path(os.path.abspath(output_path))
     project_dir = project_dir.resolve()
     try:
         project_dir.relative_to(root)
     except ValueError as error:
         raise ValueError(f"project directory must be inside scan root: {project_dir}") from error
+    try:
+        output_path.relative_to(root)
+    except ValueError as error:
+        raise ValueError(f"metrics output must be inside scan root: {output_path}") from error
+    if output_path.is_symlink():
+        raise ValueError(f"metrics output must not be a symlink: {output_path}")
+    current = root
+    for part in output_path.relative_to(root).parts[:-1]:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError(f"metrics output directory must not contain symlinks: {current}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with metrics_lock(output_path):
+    lock_context = nullcontext() if lock_held else metrics_lock(output_path)
+    with lock_context:
         discovered = discover_sources(root, project_dir)
         source_files = sorted(
             {
@@ -368,6 +387,10 @@ def main():
         help="Aggregation project directory; defaults to ROOT/PROJECT_ID",
     )
     parser.add_argument("--project-id", help="Override the project ID in output rows")
+    parser.add_argument(
+        "--lock-held", action="store_true",
+        help=argparse.SUPPRESS,
+    )
     args = parser.parse_args()
 
     root = args.root.resolve()
@@ -377,7 +400,7 @@ def main():
     project_dir = args.project_dir or root / project_id
     output_path = args.output or root / "reports" / "sample_metrics.csv"
     file_count, row_count = compile_metrics(
-        root, output_path, project_id, project_dir
+        root, output_path, project_id, project_dir, lock_held=args.lock_held
     )
     print(f"Wrote {row_count} metric rows from {file_count} source CSVs to {output_path}")
 

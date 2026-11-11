@@ -52,6 +52,7 @@ dependencies:
   - bioconductor-delayedmatrixstats=1.28.0=r44hdfd78af_0
   - bioconductor-dirichletmultinomial=1.48.0=r44h34769fb_1
   - bioconductor-ensdb.hsapiens.v86=2.99.0=r44hdfd78af_13
+  - bioconductor-ensdb.mmusculus.v102=2.99.0
   - bioconductor-ensembldb=2.30.0=r44hdfd78af_0
   - bioconductor-genomeinfodb=1.42.0=r44hdfd78af_2
   - bioconductor-genomeinfodbdata=1.2.13=r44hdfd78af_0

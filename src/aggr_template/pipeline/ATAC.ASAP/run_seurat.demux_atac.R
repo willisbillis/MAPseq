@@ -63,8 +63,12 @@ expected_library_run = data.frame(
 )
 barcodes = read.csv(paste0(OUTS_DIR, "/filtered_peak_bc_matrix/barcodes.tsv"),
                     header = FALSE)
-barcodes$library_id = aggr_df$library_id[as.numeric(gsub(".*\\-", "",
-                                                         barcodes$V1))]
+library_indices = as.integer(gsub(".*\\-", "", barcodes$V1))
+if (length(expected_library_run$run_id) != nrow(aggr_df)) {
+  stop("ATAC aggregation manifest does not match the aggregation output")
+}
+barcodes$library_id = aggr_df$library_id[library_indices]
+barcodes$run_id = expected_library_run$run_id[library_indices]
 
 metadata_df = data.frame(run_id = character(),
                          asap_id = character(),
@@ -90,6 +94,12 @@ for (idx in seq_along(asap_library_paths)) {
 expected_keys = paste(expected_library_run$run_id,
                       expected_library_run$atac_id, sep = "\r")
 metadata_keys = paste(metadata_df$run_id, metadata_df$atac_id, sep = "\r")
+missing_keys = setdiff(unique(expected_keys), unique(metadata_keys))
+if (length(missing_keys) > 0) {
+  missing_labels = gsub("\r", "/", missing_keys, fixed = TRUE)
+  stop("ASAP metadata is missing expected ATAC run/library pairs: ",
+       paste(missing_labels, collapse = ", "))
+}
 metadata_df = metadata_df[metadata_keys %in% expected_keys, , drop = FALSE]
 rownames(metadata_df) = NULL
 
@@ -101,8 +111,11 @@ for (idx in seq_len(nrow(metadata_df))) {
                          "/pipeline/ATAC.ASAP/ASAP/", asap_lib_id,
                          "/counts_unfiltered/cellranger")
   hto <- Read10X(data.dir = features_path, strip.suffix = TRUE)
-  cells = barcodes$V1[barcodes$library_id == atac_lib_id]
-  library_suffix = match(atac_lib_id, aggr_df$library_id)
+  cells = barcodes$V1[barcodes$library_id == atac_lib_id &
+                        barcodes$run_id == run_id]
+  library_suffix = match(paste(run_id, atac_lib_id),
+                         paste(expected_library_run$run_id,
+                               aggr_df$library_id))
   colnames(hto) = paste0(colnames(hto), "-", library_suffix)
   cmat <- hto[, colnames(hto) %in% cells]
 
@@ -145,7 +158,8 @@ for (idx in seq_len(nrow(metadata_df))) {
   asap_lib_id = metadata_df[idx, "asap_id"]
   atac_lib_id = metadata_df[idx, "atac_id"]
 
-  cells = barcodes$V1[barcodes$library_id == atac_lib_id]
+  cells = barcodes$V1[barcodes$library_id == atac_lib_id &
+                        barcodes$run_id == run_id]
   hto_ref_sub = hto_reference[hto_reference$library_id == atac_lib_id, ]
   # ensure input HTOs match Seurat's replacement of underscores with dashes
   hto_ref_sub$hashtag = gsub("_", "-", hto_ref_sub$hashtag)
@@ -403,7 +417,10 @@ demux_metrics$assigned_cells = 0L
 demux_metrics$doublet_cells = 0L
 demux_metrics$negative_cells = 0L
 for (idx in seq_len(nrow(demux_metrics))) {
-  library_cells = sc_total@meta.data[sc_total$atac_id == demux_metrics$atac_id[idx], , drop = FALSE]
+  library_cells = sc_total@meta.data[
+    sc_total$run_id == demux_metrics$run_id[idx] &
+      sc_total$atac_id == demux_metrics$atac_id[idx], , drop = FALSE
+  ]
   demux_metrics$output_cells[idx] = nrow(library_cells)
   demux_metrics$assigned_cells[idx] = sum(!is.na(library_cells$patient_id))
   if ("HTO_classification.global" %in% colnames(library_cells)) {

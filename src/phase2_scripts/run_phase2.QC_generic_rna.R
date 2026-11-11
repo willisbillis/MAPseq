@@ -224,7 +224,8 @@ append_qc_metrics(
             mean_depth_before = "counts_per_cell",
             mean_depth_after = "counts_per_cell",
             mean_features_after = "features_per_cell",
-            median_percent_mt_after = "percent")
+            median_percent_mt_after = "percent"),
+  project_root = PROJECT_ROOT
 )
 plot_depth_cell_correlation(qc_stats, "RNA", PROJECT_DIR)
 

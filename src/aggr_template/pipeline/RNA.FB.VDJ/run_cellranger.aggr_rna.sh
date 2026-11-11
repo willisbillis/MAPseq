@@ -33,6 +33,7 @@ mkdir -p $OUTPUT_DIR
 cd $OUTPUT_DIR
 : > "$AGGR_CSV"
 : > "$METRICS_CSV"
+metrics_initialized=0
 
 CR_version=$(cellranger --version | grep -Po '(?<=cellranger-)[^;]+')
 echo "$(date) Running Cell Ranger version $CR_version using binary $(which cellranger)" >> $OUTPUT_FILE
@@ -54,10 +55,11 @@ for sample_path in "${SAMPLES_ARRAY[@]}"; do
         summary_metrics_file=${multi_path}metrics_summary.csv
         # append summary metrics to the metrics CSV
         if [ -f "$summary_metrics_file" ]; then
-          if [ ! -f $METRICS_CSV ]; then
-            head -n 1 $summary_metrics_file >> $METRICS_CSV
+          if (( ! metrics_initialized )); then
+            head -n 1 "$summary_metrics_file" >> "$METRICS_CSV"
+            metrics_initialized=1
           fi
-          tail -n +2 $summary_metrics_file >> $METRICS_CSV
+          tail -n +2 "$summary_metrics_file" >> "$METRICS_CSV"
         else
           echo "Warning: $summary_metrics_file does not exist, skipping $sample_name" >> $OUTPUT_FILE
         fi
