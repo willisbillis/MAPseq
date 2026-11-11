@@ -5,7 +5,7 @@ authors:
   given-names: "M Elliott"
   orcid: "https://orcid.org/0000-0001-8271-3394"
 title: "MAPseq"
-version: 0.2.1
+version: 0.3.0
 doi: 10.5281/zenodo.10903737
-date-released: 2025-07-10
+date-released: 2026-11-11
 url: "https://github.com/willisbillis/MAPseq"
