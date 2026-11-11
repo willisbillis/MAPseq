@@ -48,11 +48,8 @@ find_install cellranger-atac
 cellranger-atac testrun --id=tiny >> $INSTALL_OUTPUT_FILE
 rm -r tiny
 
-echo "Checking to see if kallisto is installed..."
-find_install kallisto
-
-echo "Checking to see if bustools is installed..."
-find_install bustools
+echo "Checking to see if kallisto | bustools (kb) is installed..."
+find_install kb
 
 echo "Adding mapseq_functions.sh to /etc/profile.d/ to enable bash functions from this repository..."
 sudo cp $PWD/src/mapseq_functions.sh /etc/profile.d/
