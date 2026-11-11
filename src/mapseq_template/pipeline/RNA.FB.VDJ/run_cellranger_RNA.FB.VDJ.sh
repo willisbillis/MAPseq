@@ -115,4 +115,16 @@ for sample in "${rna_samples[@]}"; do
     --localcores $NCPU --localmem $MEM &>> $OUTPUT_FILE
 
     cp $sample/outs/per_sample_outs/$sample/web_summary.html $OUTPUT_DIR/reports/mapping.report_${sample}.html
+
+    metrics_csv=$(find "$sample/outs" -type f \
+        -name metrics_summary.csv -print -quit)
+    if [[ -z $metrics_csv ]]; then
+        metrics_csv=$(find "$sample/outs" -type f \
+            -name summary.csv -print -quit)
+    fi
+    if [[ -n $metrics_csv ]]; then
+        cp -- "$metrics_csv" "$OUTPUT_DIR/reports/mapping.metrics_${sample}.csv"
+    else
+        echo "$(date) WARNING: No Cell Ranger metrics CSV found for ${sample}" &>> "$OUTPUT_FILE"
+    fi
 done

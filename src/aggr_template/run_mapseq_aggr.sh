@@ -53,3 +53,9 @@ if [ ${#atac_sample_names[@]} != 0 ]; then
     # load ATAC cellranger/kite matrices into Seurat and generate a demultiplexed raw Seurat object
     cd $PROJECT_PATH/$PROJECT_NAME/pipeline/ATAC.ASAP && Rscript run_seurat.demux_atac.R
 fi
+
+echo "Compiling available mapping, demultiplexing, and QC metrics..."
+if ! python3 "$PROJECT_PATH/$PROJECT_NAME/phase2_scripts/compile_pipeline_metrics.py" "$PROJECT_PATH"; then
+    echo "[ERROR] Failed to compile pipeline metrics" >&2
+    exit 1
+fi

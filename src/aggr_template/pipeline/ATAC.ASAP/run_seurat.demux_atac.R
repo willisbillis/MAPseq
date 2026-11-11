@@ -371,6 +371,25 @@ if (length(atac_obj_list) > 1) {
 sc_total = JoinLayers(sc_total, assay = "HTO")
 sc_total = sc_total[, !is.na(sc_total$nCount_HTO)]
 
+demux_metrics = metadata_df
+demux_metrics$input_cells = demux_metrics$ATAC_cells
+demux_metrics$output_cells = 0L
+demux_metrics$assigned_cells = 0L
+demux_metrics$doublet_cells = 0L
+demux_metrics$negative_cells = 0L
+for (idx in seq_len(nrow(demux_metrics))) {
+  library_cells = sc_total@meta.data[sc_total$atac_id == demux_metrics$atac_id[idx], , drop = FALSE]
+  demux_metrics$output_cells[idx] = nrow(library_cells)
+  demux_metrics$assigned_cells[idx] = sum(!is.na(library_cells$patient_id))
+  if ("HTO_classification.global" %in% colnames(library_cells)) {
+    demux_metrics$doublet_cells[idx] = sum(library_cells$HTO_classification.global == "Doublet", na.rm = TRUE)
+    demux_metrics$negative_cells[idx] = sum(library_cells$HTO_classification.global == "Negative", na.rm = TRUE)
+  }
+}
+write.csv(demux_metrics,
+          paste0("demux_metrics.", PROJECT_NAME, ".csv"),
+          quote = FALSE, row.names = FALSE)
+
 DefaultAssay(sc_total) = "ATAC"
 
 saveRDS(sc_total, paste0(data_dir, "/raw_atac.hto_", PROJECT_NAME, ".RDS"))
