@@ -41,7 +41,10 @@ cd MAPseq
 ./install.sh # sudo password will be prompted during this script
 ```
 
-It is necessary to reload the shell for changes to take effect after installation. We recommend doing this by closing the current session and opening a new one.
+Open a new Bash login shell for the functions to be loaded automatically, or run
+`source /etc/profile.d/mapseq_functions.sh` in the current Bash shell.
+Non-login Bash shells do not automatically read `/etc/profile.d`; source the
+file in `~/.bashrc` if the functions are needed in those shells too.
 
 ### Remove an Installation
 

@@ -52,8 +52,16 @@ echo "Checking to see if kallisto | bustools (kb) is installed..."
 find_install kb
 
 echo "Adding mapseq_functions.sh to /etc/profile.d/ to enable bash functions from this repository..."
-sudo cp $PWD/src/mapseq_functions.sh /etc/profile.d/
-sudo echo -e "\nMAPSEQ_REPO_PATH=$PWD" >> /etc/profile.d/mapseq_functions.sh
+if ! profile_tmp=$(mktemp); then
+    echo "Error: Unable to prepare MAPseq shell functions." >&2
+    exit 1
+fi
+trap 'rm -f -- "$profile_tmp"' EXIT
+if ! { cat "$PWD/src/mapseq_functions.sh" && printf '\nexport MAPSEQ_REPO_PATH=%q\n' "$PWD"; } > "$profile_tmp" ||
+   ! sudo install -m 644 "$profile_tmp" /etc/profile.d/mapseq_functions.sh; then
+    echo "Error: Unable to install MAPseq shell functions." >&2
+    exit 1
+fi
 
 echo "To create a new directory for a single run, use the command below with an appropriately titled run name."
 echo -e "\ncreate_ms_run <RUN_NAME>\n"
@@ -61,4 +69,4 @@ echo -e "This directory (except for configuration and reference files) will mirr
 echo "To create a new directory for aggregating all completed runs, use the command below with an appropriately titled run name."
 echo -e "\ncreate_ms_aggr_run <AGGR_RUN_NAME>\n"
 echo "This directory (except for configuration and reference files) will mirror the local repository version of this pipeline, too."
-echo -e "\n\nInstallation complete! Restart shell (by closing and opening new command line session or running $SHELL) for changes to take effect."
+echo -e "\n\nInstallation complete! Open a new login shell or run 'source /etc/profile.d/mapseq_functions.sh' for changes to take effect."
