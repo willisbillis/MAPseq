@@ -82,7 +82,9 @@ function clean_ms_tree() {
 
     directory_to_process=$PWD/$1
     source $directory_to_process/project_config.txt
-    preserve_list=(
+    local path
+    local -a relative_preserve_list preserve_list find_expression
+    relative_preserve_list=(
         "run_mapseq.sh"
         "project_config.txt"
         "data"
@@ -100,15 +102,22 @@ function clean_ms_tree() {
         "pipeline/RNA.FB.VDJ"
         "pipeline/RNA.FB.VDJ/run_cellranger_RNA.FB.VDJ.sh"
     )
-    preserve_list=(
-        $directory_to_process
-        "${preserve_list[@]/#/$directory_to_process\/}"
-        $GEX_FEAT_REF_PATH
-        $ASAP_FEAT_REF_PATH
-        $(find "$directory_to_process/pipeline/ATAC.ASAP/tools" -print)
+    preserve_list=("$directory_to_process")
+    for path in "${relative_preserve_list[@]}"; do
+        preserve_list+=("$directory_to_process/$path")
+    done
+    preserve_list+=(
+        "$GEX_FEAT_REF_PATH"
+        "$ASAP_FEAT_REF_PATH"
+        "$directory_to_process/pipeline/ATAC.ASAP/tools"
+        "$directory_to_process/pipeline/ATAC.ASAP/tools/*"
     )
 
-    find "$directory_to_process" $(printf "! -wholename %s " "${preserve_list[@]}") -delete
+    for path in "${preserve_list[@]}"; do
+        find_expression+=( ! -wholename "$path" )
+    done
+
+    find "$directory_to_process" "${find_expression[@]}" \( ! -type d -o -empty \) -delete
 }
 
 function update_ms_tree() {
